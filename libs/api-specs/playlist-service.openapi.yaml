@@ -1,0 +1,517 @@
+openapi: 3.1.0
+info:
+  title: Playlist Service
+  description: |
+    Bounded Context: Playlist (Core Domain).
+    DDD Aggregate Root: Playlist → PlaylistItem + Collaborator + Visibility.
+    Mọi mutation đi qua Aggregate Root.
+    Language: Java (Spring Boot 3.3 + Spring Data JPA).
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8083
+    description: Local dev
+  - url: http://playlist-service:8083
+    description: K8s internal
+
+tags:
+  - name: Playlists
+    description: CRUD playlists
+  - name: Items
+    description: Quản lý tracks trong playlist
+  - name: Collaboration
+    description: Chia sẻ và cộng tác
+
+paths:
+  /api/v1/playlists:
+    get:
+      operationId: getMyPlaylists
+      tags: [Playlists]
+      summary: Danh sách playlist của user hiện tại
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+      responses:
+        '200':
+          description: Danh sách playlists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPlaylists'
+
+    post:
+      operationId: createPlaylist
+      tags: [Playlists]
+      summary: Tạo playlist mới
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePlaylistRequest'
+      responses:
+        '201':
+          description: Playlist đã tạo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaylistDetail'
+
+  /api/v1/playlists/{playlistId}:
+    get:
+      operationId: getPlaylistById
+      tags: [Playlists]
+      summary: Chi tiết playlist + tracks
+      parameters:
+        - $ref: '#/components/parameters/playlistId'
+      responses:
+        '200':
+          description: Playlist detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaylistDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '403':
+          description: Playlist private và không phải owner/collaborator
+
+    patch:
+      operationId: updatePlaylist
+      tags: [Playlists]
+      summary: Cập nhật tên, visibility
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/playlistId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePlaylistRequest'
+      responses:
+        '200':
+          description: Playlist đã cập nhật
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaylistDetail'
+
+    delete:
+      operationId: deletePlaylist
+      tags: [Playlists]
+      summary: Xóa playlist (chỉ owner)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/playlistId'
+      responses:
+        '204':
+          description: Đã xóa
+
+  /api/v1/playlists/{playlistId}/items:
+    post:
+      operationId: addTrackToPlaylist
+      tags: [Items]
+      summary: Thêm track vào playlist
+      description: Aggregate Root kiểm tra max 1000 items, duplicate, quyền.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/playlistId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddTrackRequest'
+      responses:
+        '201':
+          description: Track đã thêm
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaylistItem'
+        '400':
+          description: Playlist đầy (>1000) hoặc track đã có
+        '403':
+          description: Không có quyền edit
+
+  /api/v1/playlists/{playlistId}/items/{itemId}:
+    delete:
+      operationId: removeTrackFromPlaylist
+      tags: [Items]
+      summary: Xóa track khỏi playlist
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/playlistId'
+        - $ref: '#/components/parameters/itemId'
+      responses:
+        '204':
+          description: Track đã xóa
+
+  /api/v1/playlists/{playlistId}/items/reorder:
+    put:
+      operationId: reorderPlaylistItems
+      tags: [Items]
+      summary: Sắp xếp lại thứ tự tracks
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/playlistId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderRequest'
+      responses:
+        '200':
+          description: Đã sắp xếp lại
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlaylistItem'
+
+  /api/v1/playlists/{playlistId}/collaborators:
+    get:
+      operationId: getCollaborators
+      tags: [Collaboration]
+      summary: Danh sách collaborators
+      parameters:
+        - $ref: '#/components/parameters/playlistId'
+      responses:
+        '200':
+          description: Danh sách collaborators
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Collaborator'
+
+    post:
+      operationId: addCollaborator
+      tags: [Collaboration]
+      summary: Mời collaborator (chỉ owner)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/playlistId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCollaboratorRequest'
+      responses:
+        '201':
+          description: Collaborator đã thêm
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collaborator'
+
+  /api/v1/playlists/{playlistId}/collaborators/{userId}:
+    delete:
+      operationId: removeCollaborator
+      tags: [Collaboration]
+      summary: Xóa collaborator
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/playlistId'
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Đã xóa collaborator
+
+  /api/v1/users/{userId}/playlists:
+    get:
+      operationId: getUserPublicPlaylists
+      tags: [Playlists]
+      summary: Playlists public của một user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+      responses:
+        '200':
+          description: Public playlists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPlaylists'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    playlistId:
+      name: playlistId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    itemId:
+      name: itemId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    size:
+      name: size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  responses:
+    NotFound:
+      description: Resource không tồn tại
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    Visibility:
+      type: string
+      enum: [PUBLIC, PRIVATE, UNLISTED]
+      default: PRIVATE
+
+    CollaboratorRole:
+      type: string
+      enum: [EDITOR, VIEWER]
+
+    CreatePlaylistRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        visibility:
+          $ref: '#/components/schemas/Visibility'
+
+    UpdatePlaylistRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+        visibility:
+          $ref: '#/components/schemas/Visibility'
+
+    AddTrackRequest:
+      type: object
+      required: [trackId]
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        position:
+          type: integer
+          minimum: 0
+          description: Vị trí insert (null = cuối playlist)
+
+    ReorderRequest:
+      type: object
+      required: [itemIds]
+      properties:
+        itemIds:
+          type: array
+          description: Danh sách item IDs theo thứ tự mới
+          items:
+            type: string
+            format: uuid
+
+    AddCollaboratorRequest:
+      type: object
+      required: [userId, role]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        role:
+          $ref: '#/components/schemas/CollaboratorRole'
+
+    PlaylistSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        visibility:
+          $ref: '#/components/schemas/Visibility'
+        ownerId:
+          type: string
+          format: uuid
+        ownerName:
+          type: string
+        coverUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Auto-generated từ 4 track covers đầu tiên
+        trackCount:
+          type: integer
+        totalDurationMs:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PlaylistDetail:
+      allOf:
+        - $ref: '#/components/schemas/PlaylistSummary'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/PlaylistItem'
+            collaborators:
+              type: array
+              items:
+                $ref: '#/components/schemas/Collaborator'
+            isOwner:
+              type: boolean
+            canEdit:
+              type: boolean
+
+    PlaylistItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        trackId:
+          type: string
+          format: uuid
+        position:
+          type: integer
+        addedAt:
+          type: string
+          format: date-time
+        addedBy:
+          type: string
+          format: uuid
+        track:
+          $ref: '#/components/schemas/TrackRef'
+
+    TrackRef:
+      type: object
+      description: Denormalized track info (cached từ Catalog events)
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        durationMs:
+          type: integer
+        coverUrl:
+          type: string
+          format: uri
+          nullable: true
+        artistName:
+          type: string
+
+    Collaborator:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+        role:
+          $ref: '#/components/schemas/CollaboratorRole'
+        joinedAt:
+          type: string
+          format: date-time
+
+    PaginatedPlaylists:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlaylistSummary'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time

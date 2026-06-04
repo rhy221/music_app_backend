@@ -1,0 +1,266 @@
+openapi: 3.1.0
+info:
+  title: Notification Service
+  description: |
+    Bounded Context: Notification (Generic Domain).
+    Push notifications qua WebSocket, email, REST history.
+    Consume events từ RabbitMQ, broadcast qua WS.
+    Language: TypeScript (Fastify + ws).
+
+    WebSocket: ws://localhost:8087/ws?token={jwt}
+    STOMP-like protocol qua native WebSocket.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8087
+    description: Local dev
+  - url: http://notification-service:8087
+    description: K8s internal
+
+tags:
+  - name: Notifications
+    description: Notification history & management
+  - name: Preferences
+    description: Notification preferences
+  - name: WebSocket
+    description: Realtime push (documentation only)
+
+paths:
+  /api/v1/notifications:
+    get:
+      operationId: getNotifications
+      tags: [Notifications]
+      summary: Danh sách notifications của user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: unreadOnly
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: type
+          in: query
+          schema:
+            $ref: '#/components/schemas/NotificationType'
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+      responses:
+        '200':
+          description: Notification list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotifications'
+
+  /api/v1/notifications/unread-count:
+    get:
+      operationId: getUnreadCount
+      tags: [Notifications]
+      summary: Số notification chưa đọc
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+
+  /api/v1/notifications/{notificationId}/read:
+    post:
+      operationId: markAsRead
+      tags: [Notifications]
+      summary: Đánh dấu đã đọc
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Đã đánh dấu
+
+  /api/v1/notifications/read-all:
+    post:
+      operationId: markAllAsRead
+      tags: [Notifications]
+      summary: Đánh dấu tất cả đã đọc
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Tất cả đã đọc
+
+  /api/v1/notifications/preferences:
+    get:
+      operationId: getNotificationPreferences
+      tags: [Preferences]
+      summary: Lấy cài đặt notification
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferences'
+
+    put:
+      operationId: updateNotificationPreferences
+      tags: [Preferences]
+      summary: Cập nhật cài đặt notification
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationPreferences'
+      responses:
+        '200':
+          description: Đã cập nhật
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferences'
+
+  /ws:
+    get:
+      operationId: websocketConnect
+      tags: [WebSocket]
+      summary: WebSocket endpoint (documentation only)
+      description: |
+        Connect: `ws://host:8087/ws?token={jwt}`
+
+        Server → Client messages (JSON):
+        ```json
+        {
+          "type": "notification",
+          "payload": {
+            "id": "uuid",
+            "type": "NEW_FOLLOWER",
+            "title": "Bạn có follower mới",
+            "body": "Alice started following you",
+            "data": { "userId": "uuid" },
+            "createdAt": "2025-01-01T00:00:00Z"
+          }
+        }
+        ```
+
+        Client → Server messages (JSON):
+        ```json
+        { "type": "ack", "notificationId": "uuid" }
+        { "type": "ping" }
+        ```
+      responses:
+        '101':
+          description: WebSocket upgrade
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    size:
+      name: size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 20
+
+  schemas:
+    NotificationType:
+      type: string
+      enum:
+        - NEW_FOLLOWER
+        - PLAYLIST_SHARED
+        - COLLABORATOR_ADDED
+        - TRACK_ADDED_TO_PLAYLIST
+        - NEW_RELEASE
+        - SYSTEM
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/NotificationType'
+        title:
+          type: string
+        body:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+          description: "Context-specific data (userId, playlistId, trackId, etc.)"
+        read:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    NotificationPreferences:
+      type: object
+      properties:
+        emailEnabled:
+          type: boolean
+          default: true
+        pushEnabled:
+          type: boolean
+          default: true
+        newFollower:
+          type: boolean
+          default: true
+        playlistShared:
+          type: boolean
+          default: true
+        newRelease:
+          type: boolean
+          default: true
+        collaboratorActivity:
+          type: boolean
+          default: true
+
+    PaginatedNotifications:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        unreadCount:
+          type: integer

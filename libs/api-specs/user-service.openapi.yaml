@@ -1,0 +1,673 @@
+openapi: 3.1.0
+info:
+  title: User & Identity Service
+  description: |
+    Bounded Context: Identity & Access (Generic Domain).
+    Quản lý user accounts, authentication (JWT + refresh token),
+    OAuth2 login, profile, role-based access control.
+    Language: Java (Spring Boot 3.3 + Spring Security 6).
+  version: 1.0.0
+  contact:
+    name: Music Streaming Team
+
+servers:
+  - url: http://localhost:8081
+    description: Local dev
+  - url: http://user-service:8081
+    description: K8s internal
+
+tags:
+  - name: Auth
+    description: Register, login, token refresh, logout
+  - name: OAuth2
+    description: Social login (Google)
+  - name: Profile
+    description: User profile CRUD
+  - name: Admin
+    description: Admin-only user management
+
+paths:
+  /api/v1/auth/register:
+    post:
+      operationId: registerUser
+      tags: [Auth]
+      summary: Đăng ký tài khoản mới
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Đăng ký thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Email đã tồn tại
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/login:
+    post:
+      operationId: loginUser
+      tags: [Auth]
+      summary: Đăng nhập bằng email + password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Đăng nhập thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Sai email hoặc password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/refresh:
+    post:
+      operationId: refreshToken
+      tags: [Auth]
+      summary: Làm mới access token bằng refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token mới
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Refresh token không hợp lệ hoặc hết hạn
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/logout:
+    post:
+      operationId: logoutUser
+      tags: [Auth]
+      summary: Revoke refresh token
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '204':
+          description: Đã logout
+
+  /api/v1/auth/oauth2/google:
+    post:
+      operationId: loginWithGoogle
+      tags: [OAuth2]
+      summary: Đăng nhập / đăng ký bằng Google OAuth2
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OAuth2GoogleRequest'
+      responses:
+        '200':
+          description: Đăng nhập thành công (tài khoản có sẵn hoặc tạo mới)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /api/v1/users/me:
+    get:
+      operationId: getCurrentUser
+      tags: [Profile]
+      summary: Lấy thông tin user hiện tại
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Thông tin user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    patch:
+      operationId: updateCurrentUser
+      tags: [Profile]
+      summary: Cập nhật profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Profile đã cập nhật
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+
+  /api/v1/users/me/avatar:
+    put:
+      operationId: uploadAvatar
+      tags: [Profile]
+      summary: Upload ảnh đại diện
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Ảnh JPG/PNG, tối đa 5MB
+      responses:
+        '200':
+          description: Avatar URL mới
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  avatarUrl:
+                    type: string
+                    format: uri
+
+  /api/v1/users/me/password:
+    put:
+      operationId: changePassword
+      tags: [Profile]
+      summary: Đổi mật khẩu
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '204':
+          description: Mật khẩu đã thay đổi
+        '400':
+          description: Mật khẩu cũ không đúng
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/users/{userId}:
+    get:
+      operationId: getUserById
+      tags: [Profile]
+      summary: Xem profile user khác (public info)
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      responses:
+        '200':
+          description: Public profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicUserProfile'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/users/{userId}/follow:
+    post:
+      operationId: followUser
+      tags: [Profile]
+      summary: Follow một user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      responses:
+        '204':
+          description: Đã follow
+        '409':
+          description: Đã follow rồi
+
+    delete:
+      operationId: unfollowUser
+      tags: [Profile]
+      summary: Unfollow một user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      responses:
+        '204':
+          description: Đã unfollow
+
+  /api/v1/users/{userId}/followers:
+    get:
+      operationId: getUserFollowers
+      tags: [Profile]
+      summary: Danh sách followers
+      parameters:
+        - $ref: '#/components/parameters/userId'
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+      responses:
+        '200':
+          description: Danh sách followers
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUsers'
+
+  /api/v1/users/{userId}/following:
+    get:
+      operationId: getUserFollowing
+      tags: [Profile]
+      summary: Danh sách đang follow
+      parameters:
+        - $ref: '#/components/parameters/userId'
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+      responses:
+        '200':
+          description: Danh sách following
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUsers'
+
+  /api/v1/admin/users:
+    get:
+      operationId: listAllUsers
+      tags: [Admin]
+      summary: "[ADMIN] Danh sách tất cả users"
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+        - name: role
+          in: query
+          schema:
+            $ref: '#/components/schemas/Role'
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Danh sách users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUsers'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/v1/admin/users/{userId}/role:
+    put:
+      operationId: updateUserRole
+      tags: [Admin]
+      summary: "[ADMIN] Thay đổi role"
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role:
+                  $ref: '#/components/schemas/Role'
+      responses:
+        '200':
+          description: Role đã cập nhật
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+
+  /api/v1/internal/users/{userId}:
+    get:
+      operationId: getInternalUserById
+      tags: [Admin]
+      summary: "[INTERNAL] Lấy user info cho inter-service call"
+      description: Chỉ dùng cho inter-service communication, không expose qua Gateway.
+      parameters:
+        - $ref: '#/components/parameters/userId'
+      responses:
+        '200':
+          description: User data cho internal use
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalUserDto'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/internal/users/batch:
+    post:
+      operationId: getInternalUsersBatch
+      tags: [Admin]
+      summary: "[INTERNAL] Batch lấy nhiều users"
+      description: Cho Playlist service resolve owner/collaborator names.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userIds]
+              properties:
+                userIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  maxItems: 100
+      responses:
+        '200':
+          description: Map userId → user info
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/InternalUserDto'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    userId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    size:
+      name: size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  responses:
+    Unauthorized:
+      description: Token không hợp lệ hoặc hết hạn
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Không có quyền truy cập
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Không tìm thấy resource
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ValidationError:
+      description: Dữ liệu đầu vào không hợp lệ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'
+
+  schemas:
+    Role:
+      type: string
+      enum: [LISTENER, ARTIST, ADMIN]
+      default: LISTENER
+
+    RegisterRequest:
+      type: object
+      required: [email, password, displayName]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 100
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    OAuth2GoogleRequest:
+      type: object
+      required: [idToken]
+      properties:
+        idToken:
+          type: string
+          description: Google ID token từ client-side OAuth2 flow
+
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+          description: Thời gian hết hạn access token (giây)
+          example: 3600
+        tokenType:
+          type: string
+          example: Bearer
+        user:
+          $ref: '#/components/schemas/UserProfile'
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+        role:
+          $ref: '#/components/schemas/Role'
+        followerCount:
+          type: integer
+        followingCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    PublicUserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+        role:
+          $ref: '#/components/schemas/Role'
+        followerCount:
+          type: integer
+        followingCount:
+          type: integer
+        isFollowing:
+          type: boolean
+          description: Có đang follow user này không (nếu đã login)
+
+    InternalUserDto:
+      type: object
+      description: Minimal user info cho inter-service calls
+      properties:
+        id:
+          type: string
+          format: uuid
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+        role:
+          $ref: '#/components/schemas/Role'
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        bio:
+          type: string
+          maxLength: 500
+
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 128
+
+    PaginatedUsers:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicUserProfile'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 400
+        error:
+          type: string
+          example: Validation Failed
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+        timestamp:
+          type: string
+          format: date-time

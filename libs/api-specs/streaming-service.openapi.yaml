@@ -1,0 +1,419 @@
+openapi: 3.1.0
+info:
+  title: Streaming Service
+  description: |
+    Bounded Context: Playback & Streaming (Core Domain).
+    Serve audio chunks via HTTP Range Requests, track play sessions,
+    manage play queue. Emits TrackPlayed events.
+    Language: Go (Gin + net/http).
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8084
+    description: Local dev
+  - url: http://streaming-service:8084
+    description: K8s internal
+
+tags:
+  - name: Stream
+    description: Audio streaming endpoints
+  - name: Play History
+    description: Listening history & stats
+
+paths:
+  /api/v1/stream/{trackId}:
+    get:
+      operationId: streamTrack
+      tags: [Stream]
+      summary: Stream audio file (HTTP Range Requests)
+      description: |
+        Trả về audio data với support cho:
+        - 206 Partial Content (Range header)
+        - Adaptive bitrate (query param)
+        - Accept-Ranges: bytes
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/trackId'
+        - name: bitrate
+          in: query
+          description: Bitrate mong muốn (kbps). Nếu không có, trả cao nhất.
+          schema:
+            type: integer
+            enum: [128, 256, 320]
+            default: 320
+        - name: Range
+          in: header
+          description: "Byte range (ví dụ: bytes=0-1048575)"
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Full audio file
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: audio/mpeg
+            Content-Length:
+              schema:
+                type: integer
+            Accept-Ranges:
+              schema:
+                type: string
+                example: bytes
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+            audio/aac:
+              schema:
+                type: string
+                format: binary
+        '206':
+          description: Partial content (range request)
+          headers:
+            Content-Range:
+              schema:
+                type: string
+                example: bytes 0-1048575/5242880
+            Content-Length:
+              schema:
+                type: integer
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Track không tồn tại hoặc chưa có audio asset
+
+  /api/v1/stream/{trackId}/hls:
+    get:
+      operationId: getHlsPlaylist
+      tags: [Stream]
+      summary: HLS master playlist (.m3u8)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/trackId'
+      responses:
+        '200':
+          description: HLS master playlist
+          content:
+            application/vnd.apple.mpegurl:
+              schema:
+                type: string
+
+  /api/v1/play-sessions:
+    post:
+      operationId: startPlaySession
+      tags: [Stream]
+      summary: Bắt đầu phiên nghe
+      description: |
+        Gọi khi user bấm play. Tạo play session mới.
+        Nếu nghe >= 30s hoặc >= 50% track → tính 1 play.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartPlaySessionRequest'
+      responses:
+        '201':
+          description: Session đã tạo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaySession'
+
+  /api/v1/play-sessions/{sessionId}/heartbeat:
+    post:
+      operationId: playSessionHeartbeat
+      tags: [Stream]
+      summary: Cập nhật thời gian đã nghe
+      description: Client gửi mỗi 10-15 giây để track listening progress.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HeartbeatRequest'
+      responses:
+        '200':
+          description: Heartbeat accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaySession'
+
+  /api/v1/play-sessions/{sessionId}/end:
+    post:
+      operationId: endPlaySession
+      tags: [Stream]
+      summary: Kết thúc phiên nghe
+      description: |
+        Gọi khi track kết thúc, user skip, hoặc pause > 5 phút.
+        Nếu đạt ngưỡng → emit TrackPlayedEvent qua RabbitMQ.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EndPlaySessionRequest'
+      responses:
+        '200':
+          description: Session ended
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlaySession'
+
+  /api/v1/history:
+    get:
+      operationId: getPlayHistory
+      tags: [Play History]
+      summary: Lịch sử nghe của user hiện tại
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+      responses:
+        '200':
+          description: Lịch sử nghe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPlayHistory'
+
+  /api/v1/history/recently-played:
+    get:
+      operationId: getRecentlyPlayed
+      tags: [Play History]
+      summary: Tracks nghe gần đây (unique, no duplicate)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        '200':
+          description: Recently played tracks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlayHistoryEntry'
+
+  /api/v1/history/stats:
+    get:
+      operationId: getListeningStats
+      tags: [Play History]
+      summary: Thống kê nghe nhạc
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month, year, all]
+            default: month
+      responses:
+        '200':
+          description: Listening statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListeningStats'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    trackId:
+      name: trackId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    size:
+      name: size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  schemas:
+    StartPlaySessionRequest:
+      type: object
+      required: [trackId]
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        bitrate:
+          type: integer
+          enum: [128, 256, 320]
+        source:
+          type: string
+          enum: [BROWSE, PLAYLIST, SEARCH, RECOMMENDATION, ALBUM, ARTIST]
+          description: Nơi user bấm play
+
+    HeartbeatRequest:
+      type: object
+      required: [positionMs]
+      properties:
+        positionMs:
+          type: integer
+          description: Vị trí hiện tại trong track (ms)
+
+    EndPlaySessionRequest:
+      type: object
+      required: [positionMs, reason]
+      properties:
+        positionMs:
+          type: integer
+        reason:
+          type: string
+          enum: [COMPLETED, SKIPPED, PAUSED_TIMEOUT, ERROR]
+
+    PlaySession:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        trackId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        startedAt:
+          type: string
+          format: date-time
+        positionMs:
+          type: integer
+        durationMs:
+          type: integer
+          description: Tổng thời gian đã nghe
+        completed:
+          type: boolean
+          description: Đã đạt ngưỡng tính 1 play chưa
+        status:
+          type: string
+          enum: [PLAYING, PAUSED, ENDED]
+
+    PlayHistoryEntry:
+      type: object
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        trackTitle:
+          type: string
+        artistName:
+          type: string
+        coverUrl:
+          type: string
+          format: uri
+          nullable: true
+        durationMs:
+          type: integer
+        playedAt:
+          type: string
+          format: date-time
+        listenedMs:
+          type: integer
+
+    ListeningStats:
+      type: object
+      properties:
+        totalListeningMs:
+          type: integer
+          format: int64
+        totalTracks:
+          type: integer
+        totalSessions:
+          type: integer
+        topGenres:
+          type: array
+          items:
+            type: object
+            properties:
+              genre:
+                type: string
+              count:
+                type: integer
+        topArtists:
+          type: array
+          items:
+            type: object
+            properties:
+              artistId:
+                type: string
+                format: uuid
+              artistName:
+                type: string
+              count:
+                type: integer
+
+    PaginatedPlayHistory:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayHistoryEntry'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer

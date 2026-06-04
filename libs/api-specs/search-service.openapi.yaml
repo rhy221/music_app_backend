@@ -1,0 +1,332 @@
+openapi: 3.1.0
+info:
+  title: Search Service
+  description: |
+    Bounded Context: Discovery (Supporting Domain).
+    Full-text search over tracks, artists, albums, playlists via Elasticsearch.
+    Thin proxy: nhận query → ES → trả kết quả. CQRS read side.
+    Language: TypeScript (Fastify + @elastic/elasticsearch).
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8085
+    description: Local dev
+  - url: http://search-service:8085
+    description: K8s internal
+
+tags:
+  - name: Search
+    description: Full-text search
+  - name: Autocomplete
+    description: Search suggestions
+
+paths:
+  /api/v1/search:
+    get:
+      operationId: search
+      tags: [Search]
+      summary: Tìm kiếm tổng hợp (tracks, artists, albums, playlists)
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Chuỗi tìm kiếm (hỗ trợ tiếng Việt, fuzzy matching)
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+        - name: type
+          in: query
+          description: Giới hạn loại kết quả. Mặc định tìm tất cả.
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [track, artist, album, playlist]
+        - name: genre
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+      responses:
+        '200':
+          description: Kết quả tìm kiếm
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+
+  /api/v1/search/tracks:
+    get:
+      operationId: searchTracks
+      tags: [Search]
+      summary: Tìm kiếm chỉ tracks
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: genre
+          in: query
+          schema:
+            type: string
+        - name: artistId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [relevance, newest, popular, title]
+            default: relevance
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+      responses:
+        '200':
+          description: Track results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSearchTracks'
+
+  /api/v1/search/artists:
+    get:
+      operationId: searchArtists
+      tags: [Search]
+      summary: Tìm kiếm artists
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+      responses:
+        '200':
+          description: Artist results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSearchArtists'
+
+  /api/v1/search/autocomplete:
+    get:
+      operationId: autocomplete
+      tags: [Autocomplete]
+      summary: Search suggestions (gõ tới đâu gợi ý tới đó)
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+            default: 5
+      responses:
+        '200':
+          description: Autocomplete suggestions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutocompleteResponse'
+
+components:
+  parameters:
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    size:
+      name: size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 20
+
+  schemas:
+    SearchResponse:
+      type: object
+      properties:
+        tracks:
+          $ref: '#/components/schemas/SearchSection'
+        artists:
+          $ref: '#/components/schemas/SearchSection'
+        albums:
+          $ref: '#/components/schemas/SearchSection'
+        playlists:
+          $ref: '#/components/schemas/SearchSection'
+        totalResults:
+          type: integer
+        queryTimeMs:
+          type: integer
+          description: Thời gian xử lý query (ms)
+
+    SearchSection:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchHit'
+        total:
+          type: integer
+
+    SearchHit:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [track, artist, album, playlist]
+        title:
+          type: string
+          description: Track title, artist name, album title, hoặc playlist name
+        subtitle:
+          type: string
+          nullable: true
+          description: Artist name (cho track/album), track count (cho playlist)
+        imageUrl:
+          type: string
+          format: uri
+          nullable: true
+        score:
+          type: number
+          format: float
+          description: Relevance score từ Elasticsearch
+        highlights:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: "Highlighted text fragments (key: field name, value: fragments)"
+
+    SearchTrackHit:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        durationMs:
+          type: integer
+        coverUrl:
+          type: string
+          format: uri
+          nullable: true
+        genre:
+          type: string
+        playCount:
+          type: integer
+          format: int64
+        artistId:
+          type: string
+          format: uuid
+        artistName:
+          type: string
+        albumId:
+          type: string
+          format: uuid
+          nullable: true
+        albumTitle:
+          type: string
+          nullable: true
+        score:
+          type: number
+          format: float
+
+    SearchArtistHit:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+        trackCount:
+          type: integer
+        followerCount:
+          type: integer
+        score:
+          type: number
+          format: float
+
+    AutocompleteResponse:
+      type: object
+      properties:
+        suggestions:
+          type: array
+          items:
+            type: object
+            properties:
+              text:
+                type: string
+                description: Gợi ý hoàn chỉnh
+              type:
+                type: string
+                enum: [track, artist, album]
+              id:
+                type: string
+                format: uuid
+              imageUrl:
+                type: string
+                format: uri
+                nullable: true
+
+    PaginatedSearchTracks:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchTrackHit'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    PaginatedSearchArtists:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchArtistHit'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer

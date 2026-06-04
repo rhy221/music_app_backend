@@ -2,5 +2,18 @@
   "extends": "./tsconfig.base.json",
   "compileOnSave": false,
   "files": [],
-  "references": []
+  "references": [
+    {
+      "path": "./services/notification-service-e2e"
+    },
+    {
+      "path": "./services/notification-service"
+    },
+    {
+      "path": "./services/search-service-e2e"
+    },
+    {
+      "path": "./services/search-service"
+    }
+  ]
 }

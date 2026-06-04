@@ -1,0 +1,300 @@
+openapi: 3.1.0
+info:
+  title: Recommendation Service
+  description: |
+    Bounded Context: Discovery (Supporting Domain).
+    Gợi ý bài hát dựa trên listening history, collaborative filtering.
+    Consume TrackPlayed events → build taste profile → serve recommendations.
+    Language: Python (FastAPI + scikit-learn).
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8000
+    description: Local dev
+  - url: http://recommend-service:8000
+    description: K8s internal
+
+tags:
+  - name: Recommendations
+    description: Personalized music recommendations
+  - name: Taste Profile
+    description: User taste profile management
+
+paths:
+  /api/v1/recommendations:
+    get:
+      operationId: getRecommendations
+      tags: [Recommendations]
+      summary: Gợi ý bài hát cho user hiện tại
+      description: |
+        Trả về tracks gợi ý dựa trên:
+        - Listening history (collaborative filtering)
+        - Genre preferences
+        - Artist affinity
+        Cached 1 giờ, regenerate khi có đủ new play events.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+        - name: seed
+          in: query
+          description: Seed type cho recommendation
+          schema:
+            type: string
+            enum: [mixed, genre, artist, recent]
+            default: mixed
+      responses:
+        '200':
+          description: Recommended tracks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationResponse'
+
+  /api/v1/recommendations/discover-weekly:
+    get:
+      operationId: getDiscoverWeekly
+      tags: [Recommendations]
+      summary: "Discover Weekly — playlist gợi ý hàng tuần"
+      description: Generated mỗi tuần dựa trên taste profile.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Weekly recommendations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationResponse'
+
+  /api/v1/recommendations/similar/{trackId}:
+    get:
+      operationId: getSimilarTracks
+      tags: [Recommendations]
+      summary: Tracks tương tự (content-based)
+      parameters:
+        - name: trackId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 30
+            default: 10
+      responses:
+        '200':
+          description: Similar tracks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationResponse'
+        '404':
+          description: Track không tồn tại trong recommendation index
+
+  /api/v1/recommendations/radio/{trackId}:
+    get:
+      operationId: getTrackRadio
+      tags: [Recommendations]
+      summary: "Radio mode — endless queue từ seed track"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: trackId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 50
+            default: 25
+      responses:
+        '200':
+          description: Radio queue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecommendationResponse'
+
+  /api/v1/taste-profile:
+    get:
+      operationId: getTasteProfile
+      tags: [Taste Profile]
+      summary: Xem taste profile của user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Taste profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TasteProfile'
+
+  /api/v1/taste-profile/refresh:
+    post:
+      operationId: refreshTasteProfile
+      tags: [Taste Profile]
+      summary: Force rebuild taste profile
+      description: Normally auto-updated từ play events. Dùng endpoint này để force refresh.
+      security:
+        - bearerAuth: []
+      responses:
+        '202':
+          description: Rebuild queued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Taste profile rebuild queued
+                  estimatedMs:
+                    type: integer
+
+  /api/v1/recommendations/feedback:
+    post:
+      operationId: submitFeedback
+      tags: [Recommendations]
+      summary: Feedback cho recommendation (like/dislike/skip)
+      description: Improve future recommendations.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecommendationFeedback'
+      responses:
+        '204':
+          description: Feedback recorded
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    RecommendedTrack:
+      type: object
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        durationMs:
+          type: integer
+        coverUrl:
+          type: string
+          format: uri
+          nullable: true
+        genre:
+          type: string
+        artistId:
+          type: string
+          format: uuid
+        artistName:
+          type: string
+        score:
+          type: number
+          format: float
+          description: Recommendation confidence (0.0 - 1.0)
+        reason:
+          type: string
+          description: "Why recommended (e.g. 'Because you listen to Sơn Tùng MTP')"
+          nullable: true
+
+    RecommendationResponse:
+      type: object
+      properties:
+        tracks:
+          type: array
+          items:
+            $ref: '#/components/schemas/RecommendedTrack'
+        generatedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        algorithm:
+          type: string
+          description: Algorithm used
+          enum: [collaborative_filtering, content_based, hybrid, popular_fallback]
+
+    TasteProfile:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        genreWeights:
+          type: object
+          additionalProperties:
+            type: number
+            format: float
+          description: "Genre → weight (0.0 - 1.0). Example: { 'POP': 0.4, 'ROCK': 0.3 }"
+          example:
+            POP: 0.4
+            ROCK: 0.3
+            VPOP: 0.2
+            INDIE: 0.1
+        topArtists:
+          type: array
+          items:
+            type: object
+            properties:
+              artistId:
+                type: string
+                format: uuid
+              artistName:
+                type: string
+              affinity:
+                type: number
+                format: float
+        totalPlays:
+          type: integer
+        totalListeningMs:
+          type: integer
+          format: int64
+        lastUpdatedAt:
+          type: string
+          format: date-time
+        profileStrength:
+          type: string
+          enum: [WEAK, MODERATE, STRONG]
+          description: Đủ data chưa để recommend tốt
+
+    RecommendationFeedback:
+      type: object
+      required: [trackId, action]
+      properties:
+        trackId:
+          type: string
+          format: uuid
+        action:
+          type: string
+          enum: [LIKE, DISLIKE, SKIP, SAVE_TO_PLAYLIST]
+        context:
+          type: string
+          enum: [DISCOVER_WEEKLY, SIMILAR, RADIO, HOME_FEED]

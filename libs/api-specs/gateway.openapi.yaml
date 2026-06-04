@@ -1,0 +1,234 @@
+openapi: 3.1.0
+info:
+  title: API Gateway
+  description: |
+    Reverse proxy + cross-cutting concerns.
+    JWT validation, rate limiting, CORS, routing.
+    Language: Go (custom / KrakenD).
+    Tất cả /api/v1/** requests từ frontend đi qua đây.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Local dev gateway
+  - url: https://api.music-app.example.com
+    description: Production
+
+tags:
+  - name: Health
+    description: Gateway health & info
+  - name: Routing
+    description: Route documentation (proxied to services)
+
+paths:
+  /health:
+    get:
+      operationId: healthCheck
+      tags: [Health]
+      summary: Gateway health check
+      responses:
+        '200':
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: UP
+                  uptime:
+                    type: integer
+                    description: Uptime in seconds
+                  services:
+                    type: object
+                    additionalProperties:
+                      type: string
+                      enum: [UP, DOWN, UNKNOWN]
+                    example:
+                      user-service: UP
+                      catalog-service: UP
+                      streaming-service: UP
+
+  /metrics:
+    get:
+      operationId: getMetrics
+      tags: [Health]
+      summary: Prometheus metrics endpoint
+      responses:
+        '200':
+          description: Prometheus text format
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /api/v1/auth/{path}:
+    get:
+      operationId: proxyAuth
+      tags: [Routing]
+      summary: "→ User Service (auth endpoints)"
+      description: "Register, login, refresh, OAuth2. No JWT required."
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proxied response
+
+  /api/v1/users/{path}:
+    get:
+      operationId: proxyUsers
+      tags: [Routing]
+      summary: "→ User Service (profile endpoints)"
+      description: "JWT required for /me. Public for /{userId}."
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proxied response
+
+  /api/v1/tracks/{path}:
+    get:
+      operationId: proxyTracks
+      tags: [Routing]
+      summary: "→ Catalog Service"
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proxied response
+
+  /api/v1/albums/{path}:
+    get:
+      operationId: proxyAlbums
+      tags: [Routing]
+      summary: "→ Catalog Service"
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proxied response
+
+  /api/v1/artists/{path}:
+    get:
+      operationId: proxyArtists
+      tags: [Routing]
+      summary: "→ Catalog Service"
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proxied response
+
+  /api/v1/playlists/{path}:
+    get:
+      operationId: proxyPlaylists
+      tags: [Routing]
+      summary: "→ Playlist Service"
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proxied response
+
+  /api/v1/stream/{path}:
+    get:
+      operationId: proxyStream
+      tags: [Routing]
+      summary: "→ Streaming Service (audio chunks)"
+      description: "JWT required. Supports HTTP Range Requests."
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proxied response
+        '206':
+          description: Partial content
+
+  /api/v1/search/{path}:
+    get:
+      operationId: proxySearch
+      tags: [Routing]
+      summary: "→ Search Service"
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proxied response
+
+  /api/v1/upload/{path}:
+    get:
+      operationId: proxyUpload
+      tags: [Routing]
+      summary: "→ Upload Service (artist role required)"
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proxied response
+
+  /api/v1/recommendations/{path}:
+    get:
+      operationId: proxyRecommendations
+      tags: [Routing]
+      summary: "→ Recommendation Service"
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proxied response
+
+  /api/v1/notifications/{path}:
+    get:
+      operationId: proxyNotifications
+      tags: [Routing]
+      summary: "→ Notification Service"
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Proxied response

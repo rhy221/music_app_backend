@@ -1,0 +1,7 @@
+{
+  "name": "streaming-service",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "services/streaming-service",
+  "tags": []
+}

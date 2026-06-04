@@ -1,0 +1,283 @@
+openapi: 3.1.0
+info:
+  title: Upload & Transcode Service
+  description: |
+    Bounded Context: Content Ingestion (Supporting Domain).
+    Upload audio files, track transcode jobs, Saga choreography participant.
+    Language: Go (Fiber + FFmpeg via os/exec).
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8086
+    description: Local dev
+  - url: http://upload-service:8086
+    description: K8s internal
+
+tags:
+  - name: Upload
+    description: File upload & job management
+  - name: Jobs
+    description: Transcode job tracking
+
+paths:
+  /api/v1/upload:
+    post:
+      operationId: uploadTrack
+      tags: [Upload]
+      summary: Upload audio file
+      description: |
+        Nhận file audio (MP3, FLAC, WAV, AAC), lưu vào MinIO,
+        tạo upload job, trigger transcode pipeline.
+        Saga step 1: file_received → transcoding.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, title]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Audio file (max 200MB)
+                title:
+                  type: string
+                  minLength: 1
+                  maxLength: 255
+                genre:
+                  type: string
+                  enum: [POP, ROCK, HIPHOP, RNB, ELECTRONIC, JAZZ, CLASSICAL, COUNTRY, LATIN, KPOP, VPOP, INDIE, OTHER]
+                albumId:
+                  type: string
+                  format: uuid
+                  description: Album để gán track vào (optional)
+      responses:
+        '202':
+          description: Upload accepted, processing started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadJob'
+        '400':
+          description: File format không hỗ trợ hoặc quá lớn
+        '413':
+          description: File quá 200MB
+
+  /api/v1/upload/jobs:
+    get:
+      operationId: getMyUploadJobs
+      tags: [Jobs]
+      summary: Danh sách upload jobs của user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/JobStatus'
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/size'
+      responses:
+        '200':
+          description: Upload jobs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUploadJobs'
+
+  /api/v1/upload/jobs/{jobId}:
+    get:
+      operationId: getUploadJobById
+      tags: [Jobs]
+      summary: Chi tiết upload job + transcode tasks
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/jobId'
+      responses:
+        '200':
+          description: Job detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadJobDetail'
+        '404':
+          description: Job không tồn tại
+
+  /api/v1/upload/jobs/{jobId}/retry:
+    post:
+      operationId: retryUploadJob
+      tags: [Jobs]
+      summary: Retry job bị lỗi
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/jobId'
+      responses:
+        '202':
+          description: Retry accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadJob'
+        '400':
+          description: Job không ở trạng thái FAILED
+
+  /api/v1/upload/jobs/{jobId}/cancel:
+    post:
+      operationId: cancelUploadJob
+      tags: [Jobs]
+      summary: Hủy job đang processing
+      description: "Saga compensating action: xóa file MinIO, update status."
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/jobId'
+      responses:
+        '200':
+          description: Job đã hủy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadJob'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    jobId:
+      name: jobId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    size:
+      name: size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 10
+
+  schemas:
+    JobStatus:
+      type: string
+      enum: [UPLOADING, TRANSCODING, PUBLISHING, PUBLISHED, FAILED, CANCELLED]
+
+    TranscodeTaskStatus:
+      type: string
+      enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+
+    UploadJob:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        uploaderId:
+          type: string
+          format: uuid
+        originalFilename:
+          type: string
+        title:
+          type: string
+        genre:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        errorMessage:
+          type: string
+          nullable: true
+        trackId:
+          type: string
+          format: uuid
+          nullable: true
+          description: ID của track trong Catalog sau khi publish thành công
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UploadJobDetail:
+      allOf:
+        - $ref: '#/components/schemas/UploadJob'
+        - type: object
+          properties:
+            originalSizeBytes:
+              type: integer
+              format: int64
+            originalFormat:
+              type: string
+            originalDurationMs:
+              type: integer
+            tasks:
+              type: array
+              items:
+                $ref: '#/components/schemas/TranscodeTask'
+
+    TranscodeTask:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        targetBitrate:
+          type: integer
+          example: 320
+        status:
+          $ref: '#/components/schemas/TranscodeTaskStatus'
+        outputUrl:
+          type: string
+          format: uri
+          nullable: true
+        outputSizeBytes:
+          type: integer
+          format: int64
+          nullable: true
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        errorMessage:
+          type: string
+          nullable: true
+
+    PaginatedUploadJobs:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/UploadJob'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer

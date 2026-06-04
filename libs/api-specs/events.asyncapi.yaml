@@ -1,0 +1,530 @@
+asyncapi: 3.0.0
+info:
+  title: Music Streaming Domain Events
+  description: |
+    RabbitMQ event contracts cho cross-service communication.
+    Tất cả events dùng JSON format. Mỗi event có header chung
+    (eventId, eventType, timestamp, sourceService).
+    Dùng AsyncAPI Generator hoặc manual DTO generation từ schemas.
+  version: 1.0.0
+
+channels:
+  track.uploaded:
+    address: events.track.uploaded
+    description: Upload service → khi file được upload thành công lên MinIO
+    messages:
+      trackUploaded:
+        $ref: '#/components/messages/TrackUploadedEvent'
+
+  transcode.completed:
+    address: events.transcode.completed
+    description: Upload service → khi tất cả bitrate đã transcode xong
+    messages:
+      transcodeCompleted:
+        $ref: '#/components/messages/TranscodeCompletedEvent'
+
+  transcode.failed:
+    address: events.transcode.failed
+    description: Upload service → khi transcode thất bại (saga compensation)
+    messages:
+      transcodeFailed:
+        $ref: '#/components/messages/TranscodeFailedEvent'
+
+  track.published:
+    address: events.track.published
+    description: Catalog service → khi track mới được publish
+    messages:
+      trackPublished:
+        $ref: '#/components/messages/TrackPublishedEvent'
+
+  track.updated:
+    address: events.track.updated
+    description: Catalog service → khi track metadata thay đổi
+    messages:
+      trackUpdated:
+        $ref: '#/components/messages/TrackUpdatedEvent'
+
+  track.deleted:
+    address: events.track.deleted
+    description: Catalog service → khi track bị xóa
+    messages:
+      trackDeleted:
+        $ref: '#/components/messages/TrackDeletedEvent'
+
+  track.played:
+    address: events.track.played
+    description: Streaming service → khi user nghe đạt ngưỡng tính 1 play
+    messages:
+      trackPlayed:
+        $ref: '#/components/messages/TrackPlayedEvent'
+
+  user.registered:
+    address: events.user.registered
+    description: User service → khi user mới đăng ký
+    messages:
+      userRegistered:
+        $ref: '#/components/messages/UserRegisteredEvent'
+
+  user.followed:
+    address: events.user.followed
+    description: User service → khi user A follow user B
+    messages:
+      userFollowed:
+        $ref: '#/components/messages/UserFollowedEvent'
+
+  playlist.shared:
+    address: events.playlist.shared
+    description: Playlist service → khi playlist được share
+    messages:
+      playlistShared:
+        $ref: '#/components/messages/PlaylistSharedEvent'
+
+  playlist.collaborator.added:
+    address: events.playlist.collaborator.added
+    description: Playlist service → khi thêm collaborator
+    messages:
+      collaboratorAdded:
+        $ref: '#/components/messages/CollaboratorAddedEvent'
+
+  playlist.track.added:
+    address: events.playlist.track.added
+    description: Playlist service → khi thêm track vào playlist
+    messages:
+      playlistTrackAdded:
+        $ref: '#/components/messages/PlaylistTrackAddedEvent'
+
+components:
+  messages:
+    TrackUploadedEvent:
+      name: TrackUploadedEvent
+      payload:
+        $ref: '#/components/schemas/TrackUploadedPayload'
+
+    TranscodeCompletedEvent:
+      name: TranscodeCompletedEvent
+      payload:
+        $ref: '#/components/schemas/TranscodeCompletedPayload'
+
+    TranscodeFailedEvent:
+      name: TranscodeFailedEvent
+      payload:
+        $ref: '#/components/schemas/TranscodeFailedPayload'
+
+    TrackPublishedEvent:
+      name: TrackPublishedEvent
+      payload:
+        $ref: '#/components/schemas/TrackPublishedPayload'
+
+    TrackUpdatedEvent:
+      name: TrackUpdatedEvent
+      payload:
+        $ref: '#/components/schemas/TrackUpdatedPayload'
+
+    TrackDeletedEvent:
+      name: TrackDeletedEvent
+      payload:
+        $ref: '#/components/schemas/TrackDeletedPayload'
+
+    TrackPlayedEvent:
+      name: TrackPlayedEvent
+      payload:
+        $ref: '#/components/schemas/TrackPlayedPayload'
+
+    UserRegisteredEvent:
+      name: UserRegisteredEvent
+      payload:
+        $ref: '#/components/schemas/UserRegisteredPayload'
+
+    UserFollowedEvent:
+      name: UserFollowedEvent
+      payload:
+        $ref: '#/components/schemas/UserFollowedPayload'
+
+    PlaylistSharedEvent:
+      name: PlaylistSharedEvent
+      payload:
+        $ref: '#/components/schemas/PlaylistSharedPayload'
+
+    CollaboratorAddedEvent:
+      name: CollaboratorAddedEvent
+      payload:
+        $ref: '#/components/schemas/CollaboratorAddedPayload'
+
+    PlaylistTrackAddedEvent:
+      name: PlaylistTrackAddedEvent
+      payload:
+        $ref: '#/components/schemas/PlaylistTrackAddedPayload'
+
+  schemas:
+    EventHeader:
+      type: object
+      description: Header chung cho tất cả events
+      required: [eventId, eventType, timestamp, sourceService]
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        sourceService:
+          type: string
+        correlationId:
+          type: string
+          format: uuid
+          description: Dùng cho distributed tracing
+
+    TrackUploadedPayload:
+      allOf:
+        - $ref: '#/components/schemas/EventHeader'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: TRACK_UPLOADED
+            data:
+              type: object
+              properties:
+                uploadJobId:
+                  type: string
+                  format: uuid
+                uploaderId:
+                  type: string
+                  format: uuid
+                originalFilename:
+                  type: string
+                title:
+                  type: string
+                genre:
+                  type: string
+                  nullable: true
+                storageUrl:
+                  type: string
+                  format: uri
+                sizeBytes:
+                  type: integer
+                  format: int64
+
+    TranscodeCompletedPayload:
+      allOf:
+        - $ref: '#/components/schemas/EventHeader'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: TRANSCODE_COMPLETED
+            data:
+              type: object
+              properties:
+                uploadJobId:
+                  type: string
+                  format: uuid
+                uploaderId:
+                  type: string
+                  format: uuid
+                title:
+                  type: string
+                genre:
+                  type: string
+                  nullable: true
+                albumId:
+                  type: string
+                  format: uuid
+                  nullable: true
+                durationMs:
+                  type: integer
+                waveformUrl:
+                  type: string
+                  format: uri
+                  nullable: true
+                assets:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      bitrate:
+                        type: integer
+                      format:
+                        type: string
+                        enum: [MP3, AAC, FLAC, OGG]
+                      storageUrl:
+                        type: string
+                        format: uri
+                      sizeBytes:
+                        type: integer
+                        format: int64
+
+    TranscodeFailedPayload:
+      allOf:
+        - $ref: '#/components/schemas/EventHeader'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: TRANSCODE_FAILED
+            data:
+              type: object
+              properties:
+                uploadJobId:
+                  type: string
+                  format: uuid
+                uploaderId:
+                  type: string
+                  format: uuid
+                errorMessage:
+                  type: string
+                originalStorageUrl:
+                  type: string
+                  format: uri
+                  description: URL file gốc cần cleanup
+
+    TrackPublishedPayload:
+      allOf:
+        - $ref: '#/components/schemas/EventHeader'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: TRACK_PUBLISHED
+            data:
+              type: object
+              description: Full track info cho consumers sync local data
+              properties:
+                trackId:
+                  type: string
+                  format: uuid
+                title:
+                  type: string
+                durationMs:
+                  type: integer
+                coverUrl:
+                  type: string
+                  format: uri
+                  nullable: true
+                genre:
+                  type: string
+                artistId:
+                  type: string
+                  format: uuid
+                artistName:
+                  type: string
+                albumId:
+                  type: string
+                  format: uuid
+                  nullable: true
+                albumTitle:
+                  type: string
+                  nullable: true
+                assets:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      bitrate:
+                        type: integer
+                      format:
+                        type: string
+                      storageUrl:
+                        type: string
+                        format: uri
+
+    TrackUpdatedPayload:
+      allOf:
+        - $ref: '#/components/schemas/EventHeader'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: TRACK_UPDATED
+            data:
+              type: object
+              properties:
+                trackId:
+                  type: string
+                  format: uuid
+                title:
+                  type: string
+                genre:
+                  type: string
+                coverUrl:
+                  type: string
+                  format: uri
+                  nullable: true
+                artistName:
+                  type: string
+
+    TrackDeletedPayload:
+      allOf:
+        - $ref: '#/components/schemas/EventHeader'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: TRACK_DELETED
+            data:
+              type: object
+              properties:
+                trackId:
+                  type: string
+                  format: uuid
+
+    TrackPlayedPayload:
+      allOf:
+        - $ref: '#/components/schemas/EventHeader'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: TRACK_PLAYED
+            data:
+              type: object
+              description: Enriched event — embed genre/artistId để consumer không cần query Catalog
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                trackId:
+                  type: string
+                  format: uuid
+                genre:
+                  type: string
+                artistId:
+                  type: string
+                  format: uuid
+                durationMs:
+                  type: integer
+                  description: Thời gian đã nghe thực tế
+                source:
+                  type: string
+                  enum: [BROWSE, PLAYLIST, SEARCH, RECOMMENDATION, ALBUM, ARTIST]
+                completedFull:
+                  type: boolean
+                playedAt:
+                  type: string
+                  format: date-time
+
+    UserRegisteredPayload:
+      allOf:
+        - $ref: '#/components/schemas/EventHeader'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: USER_REGISTERED
+            data:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                displayName:
+                  type: string
+                email:
+                  type: string
+                  format: email
+
+    UserFollowedPayload:
+      allOf:
+        - $ref: '#/components/schemas/EventHeader'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: USER_FOLLOWED
+            data:
+              type: object
+              properties:
+                followerId:
+                  type: string
+                  format: uuid
+                followerName:
+                  type: string
+                followingId:
+                  type: string
+                  format: uuid
+
+    PlaylistSharedPayload:
+      allOf:
+        - $ref: '#/components/schemas/EventHeader'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: PLAYLIST_SHARED
+            data:
+              type: object
+              properties:
+                playlistId:
+                  type: string
+                  format: uuid
+                playlistName:
+                  type: string
+                ownerId:
+                  type: string
+                  format: uuid
+                ownerName:
+                  type: string
+                sharedWithUserId:
+                  type: string
+                  format: uuid
+
+    CollaboratorAddedPayload:
+      allOf:
+        - $ref: '#/components/schemas/EventHeader'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: COLLABORATOR_ADDED
+            data:
+              type: object
+              properties:
+                playlistId:
+                  type: string
+                  format: uuid
+                playlistName:
+                  type: string
+                ownerId:
+                  type: string
+                  format: uuid
+                collaboratorId:
+                  type: string
+                  format: uuid
+                role:
+                  type: string
+                  enum: [EDITOR, VIEWER]
+
+    PlaylistTrackAddedPayload:
+      allOf:
+        - $ref: '#/components/schemas/EventHeader'
+        - type: object
+          properties:
+            eventType:
+              type: string
+              const: PLAYLIST_TRACK_ADDED
+            data:
+              type: object
+              properties:
+                playlistId:
+                  type: string
+                  format: uuid
+                playlistName:
+                  type: string
+                trackId:
+                  type: string
+                  format: uuid
+                trackTitle:
+                  type: string
+                addedBy:
+                  type: string
+                  format: uuid
+                addedByName:
+                  type: string
+                collaboratorIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                  description: IDs of collaborators to notify
