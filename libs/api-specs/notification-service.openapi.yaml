@@ -5,7 +5,7 @@ info:
     Bounded Context: Notification (Generic Domain).
     Push notifications qua WebSocket, email, REST history.
     Consume events từ RabbitMQ, broadcast qua WS.
-    Language: TypeScript (Fastify + ws).
+    Language: TypeScript (Nestjs + ws).
 
     WebSocket: ws://localhost:8087/ws?token={jwt}
     STOMP-like protocol qua native WebSocket.

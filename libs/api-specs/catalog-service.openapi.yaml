@@ -5,7 +5,7 @@ info:
     Bounded Context: Music Catalog (Core Domain).
     CRUD tracks, albums, artists, assets. CQRS write side — command endpoints.
     Read queries delegate to Search Service (Elasticsearch).
-    Language: Java (Spring Boot 3.3 + Spring Data JPA).
+    Language: Java (Spring Boot 4.0.6 + Spring Data JPA).
   version: 1.0.0
 
 servers:

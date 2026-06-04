@@ -1,7 +1,10 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "namedInputs": {
-    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "default": [
+      "{projectRoot}/**/*",
+      "sharedGlobals"
+    ],
     "production": [
       "default",
       "!{projectRoot}/.eslintrc.json",
@@ -10,7 +13,8 @@
       "!{projectRoot}/tsconfig.spec.json",
       "!{projectRoot}/jest.config.[jt]s",
       "!{projectRoot}/src/test-setup.[jt]s",
-      "!{projectRoot}/test-setup.[jt]s"
+      "!{projectRoot}/test-setup.[jt]s",
+      "!{projectRoot}/src/test/**/*"
     ],
     "sharedGlobals": []
   },
@@ -71,12 +75,28 @@
         "services/notification-service-e2e/**/*",
         "services/search-service-e2e/**/*"
       ]
+    },
+    {
+      "plugin": "@jnxplus/nx-gradle",
+      "options": {}
     }
   ],
   "analytics": false,
   "targetDefaults": {
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": [
+        "^build"
+      ]
+    },
+    "build": {
+      "cache": true,
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "production",
+        "^production"
+      ]
     }
   }
 }

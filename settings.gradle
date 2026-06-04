@@ -1,0 +1,7 @@
+rootProject.name = 'root-project'
+include(':libs:libs-catalog-api-client')
+include(':libs:libs-playlist-api-client')
+include(':libs:libs-user-api-client')
+include 'services:user-service'
+include 'services:catalog-service'
+include 'services:playlist-service'

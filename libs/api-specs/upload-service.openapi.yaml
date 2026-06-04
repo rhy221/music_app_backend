@@ -4,7 +4,7 @@ info:
   description: |
     Bounded Context: Content Ingestion (Supporting Domain).
     Upload audio files, track transcode jobs, Saga choreography participant.
-    Language: Go (Fiber + FFmpeg via os/exec).
+    Language: Go (Gin + FFmpeg via os/exec).
   version: 1.0.0
 
 servers:

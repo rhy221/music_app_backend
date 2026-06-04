@@ -5,7 +5,7 @@ info:
     Bounded Context: Discovery (Supporting Domain).
     Full-text search over tracks, artists, albums, playlists via Elasticsearch.
     Thin proxy: nhận query → ES → trả kết quả. CQRS read side.
-    Language: TypeScript (Fastify + @elastic/elasticsearch).
+    Language: TypeScript (Nestjs + @elastic/elasticsearch).
   version: 1.0.0
 
 servers:

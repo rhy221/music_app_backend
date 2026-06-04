@@ -6,6 +6,7 @@
   "private": true,
   "devDependencies": {
     "@eslint/js": "^9.8.0",
+    "@jnxplus/nx-gradle": "^2.3.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.0",
     "@nx-go/nx-go": "^4.0.0",
@@ -33,6 +34,7 @@
     "jest-util": "~30.3.0",
     "nx": "22.6.5",
     "prettier": "^3.8.1",
+    "prettier-plugin-java": "2.5.0",
     "ts-jest": "^29.4.0",
     "ts-node": "10.9.1",
     "tslib": "^2.3.0",
@@ -42,7 +44,8 @@
   },
   "workspaces": [
     "packages/*",
-    "services/*"
+    "services/*",
+    "libs/*"
   ],
   "dependencies": {
     "@nestjs/common": "^11.0.0",
