@@ -4,6 +4,19 @@
   "projectType": "application",
   "sourceRoot": "libs/recommend-api-client/libs/recommend_api_client",
   "targets": {
+    "generate": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/generated"],
+      "inputs": [
+        "{workspaceRoot}/libs/api-specs/recommend-service.openapi.yaml",
+        "{projectRoot}/openapi-python-client-config.yaml"
+      ],
+      "options": {
+        "command": ".venv\\Scripts\\openapi-python-client generate --path ../api-specs/recommend-service.openapi.yaml --config openapi-python-client-config.yaml --output-path ./generated --meta none --overwrite",
+        "cwd": "{projectRoot}"
+      },
+      "cache": true
+    },
     "lock": {
       "executor": "@nxlv/python:lock",
       "options": {

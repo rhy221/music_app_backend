@@ -1,0 +1,5 @@
+package: uploadclient
+output: generated/client.gen.go
+generate:
+  models: true
+  client: true

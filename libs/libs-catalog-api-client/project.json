@@ -4,6 +4,17 @@
   "projectType": "library",
   "sourceRoot": "./libs/libs-catalog-api-client/src",
   "targets": {
+    "generate": {
+      "executor": "@jnxplus/nx-gradle:run-task",
+      "outputs": ["{projectRoot}/generated"],
+      "inputs": [
+        "{workspaceRoot}/libs/api-specs/catalog-service.openapi.yaml"
+      ],
+      "options": {
+        "task": "openApiGenerate"
+      },
+      "cache": true
+    },
     "build": {
       "executor": "@jnxplus/nx-gradle:run-task",
       "outputs": ["{projectRoot}/build"],

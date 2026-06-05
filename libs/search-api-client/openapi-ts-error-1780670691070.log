@@ -1,0 +1,12 @@
+Error opening file "C:\Projects\music_app_backend\api-specs\search-service.openapi.yaml" 
+ENOENT: no such file or directory, open 'C:\Projects\music_app_backend\api-specs\search-service.openapi.yaml'
+ResolverError: Error opening file "C:\Projects\music_app_backend\api-specs\search-service.openapi.yaml" 
+ENOENT: no such file or directory, open 'C:\Projects\music_app_backend\api-specs\search-service.openapi.yaml'
+    at Object.handler (C:\Projects\music_app_backend\node_modules\.pnpm\@hey-api+json-schema-ref-parser@1.0.3\node_modules\@hey-api\json-schema-ref-parser\dist\lib\resolvers\file.js:58:19)
+    at async $RefParser.parse (C:\Projects\music_app_backend\node_modules\.pnpm\@hey-api+json-schema-ref-parser@1.0.3\node_modules\@hey-api\json-schema-ref-parser\dist\lib\index.js:187:17)
+    at async $RefParser.bundle (C:\Projects\music_app_backend\node_modules\.pnpm\@hey-api+json-schema-ref-parser@1.0.3\node_modules\@hey-api\json-schema-ref-parser\dist\lib\index.js:122:9)
+    at async Zs (c:\Projects\music_app_backend\node_modules\.pnpm\@hey-api+openapi-ts@0.64.15_typescript@5.9.3\node_modules\@hey-api\openapi-ts\dist\index.cjs:12:1572)
+    at async uo (c:\Projects\music_app_backend\node_modules\.pnpm\@hey-api+openapi-ts@0.64.15_typescript@5.9.3\node_modules\@hey-api\openapi-ts\dist\index.cjs:14:90599)
+    at async Promise.all (index 0)
+    at async pj (c:\Projects\music_app_backend\node_modules\.pnpm\@hey-api+openapi-ts@0.64.15_typescript@5.9.3\node_modules\@hey-api\openapi-ts\dist\index.cjs:1311:4503)
+    at async start (c:\Projects\music_app_backend\node_modules\.pnpm\@hey-api+openapi-ts@0.64.15_typescript@5.9.3\node_modules\@hey-api\openapi-ts\bin\index.cjs:124:21)

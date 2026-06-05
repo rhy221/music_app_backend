@@ -2,6 +2,7 @@ plugins {
 	id 'java'
   alias libs.plugins.springframework.boot apply false
   alias libs.plugins.spring.dependency.management
+  alias libs.plugins.openapi.generator
 }
 
 group = 'com.company'
@@ -18,12 +19,44 @@ repositories {
 dependencyManagement {
   imports {
     mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+    mavenBom 'org.springframework.cloud:spring-cloud-dependencies:2023.0.3'
   }
 }
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter'
+	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+	implementation 'io.swagger.core.v3:swagger-annotations:2.2.20'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+openApiGenerate {
+  generatorName = 'spring'
+  library = 'spring-cloud'
+  inputSpec = project.file("$rootDir/libs/api-specs/user-service.openapi.yaml").toURI().toString()
+  outputDir = "$projectDir/generated"
+  apiPackage = 'com.company.user.client.api'
+  modelPackage = 'com.company.user.client.model'
+  invokerPackage = 'com.company.user.client'
+  configOptions = [
+    'interfaceOnly': 'true',
+    'useSpringBoot3': 'true',
+    'useTags': 'true',
+    'dateLibrary': 'java8',
+    'openApiNullable': 'false'
+  ]
+}
+
+sourceSets {
+  main {
+    java {
+      srcDir "$projectDir/generated/src/main/java"
+    }
+  }
+}
+
+tasks.named('compileJava') {
+  dependsOn tasks.named('openApiGenerate')
 }
 
 tasks.named('test') {

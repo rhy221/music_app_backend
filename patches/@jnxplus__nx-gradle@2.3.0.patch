@@ -1,0 +1,13 @@
+diff --git a/src/utils/index.js b/src/utils/index.js
+index eaf39c113aae643ef1427a5a8dfa8d07818530cc..2a8c1c1d58e09d17ce24ad0065b981c9399ae30d 100644
+--- a/src/utils/index.js
++++ b/src/utils/index.js
+@@ -69,7 +69,7 @@ function getExecutable() {
+         const isWrapperExists = isWrapperExistsFunction();
+         if (isWrapperExists) {
+             executable = process.platform.startsWith('win')
+-                ? 'gradlew.bat'
++                ? '.\\gradlew.bat'
+                 : './gradlew';
+         }
+         else {

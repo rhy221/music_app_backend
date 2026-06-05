@@ -316,6 +316,7 @@ paths:
         - $ref: '#/components/parameters/trackId'
       responses:
         '200':
+          description: Internal track info
           content:
             application/json:
               schema:
@@ -345,6 +346,7 @@ paths:
                   maxItems: 200
       responses:
         '200':
+          description: Map of trackId to internal track info
           content:
             application/json:
               schema:

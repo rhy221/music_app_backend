@@ -18,6 +18,9 @@
     ],
     "sharedGlobals": []
   },
+  "cli": {
+    "packageManager": "pnpm"
+  },
   "plugins": [
     {
       "plugin": "@nx/js/typescript",

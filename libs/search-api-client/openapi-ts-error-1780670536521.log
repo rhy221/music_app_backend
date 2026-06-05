@@ -1,0 +1,12 @@
+🚫 client needs to be set to generate SDKs - which HTTP client do you want to use?
+Error: 🚫 client needs to be set to generate SDKs - which HTTP client do you want to use?
+    at Object.pluginByTag (C:\Projects\music_app_backend\node_modules\.pnpm\@hey-api+openapi-ts@0.64.15_typescript@5.9.3\node_modules\@hey-api\openapi-ts\dist\index.cjs:15:59226)
+    at Object._infer (C:\Projects\music_app_backend\node_modules\.pnpm\@hey-api+openapi-ts@0.64.15_typescript@5.9.3\node_modules\@hey-api\openapi-ts\dist\index.cjs:15:5665)
+    at i (C:\Projects\music_app_backend\node_modules\.pnpm\@hey-api+openapi-ts@0.64.15_typescript@5.9.3\node_modules\@hey-api\openapi-ts\dist\index.cjs:15:59305)
+    at td (C:\Projects\music_app_backend\node_modules\.pnpm\@hey-api+openapi-ts@0.64.15_typescript@5.9.3\node_modules\@hey-api\openapi-ts\dist\index.cjs:15:59398)
+    at nd (C:\Projects\music_app_backend\node_modules\.pnpm\@hey-api+openapi-ts@0.64.15_typescript@5.9.3\node_modules\@hey-api\openapi-ts\dist\index.cjs:15:60016)
+    at C:\Projects\music_app_backend\node_modules\.pnpm\@hey-api+openapi-ts@0.64.15_typescript@5.9.3\node_modules\@hey-api\openapi-ts\dist\index.cjs:15:61287
+    at Array.map (<anonymous>)
+    at oc (C:\Projects\music_app_backend\node_modules\.pnpm\@hey-api+openapi-ts@0.64.15_typescript@5.9.3\node_modules\@hey-api\openapi-ts\dist\index.cjs:15:60575)
+    at async pj (C:\Projects\music_app_backend\node_modules\.pnpm\@hey-api+openapi-ts@0.64.15_typescript@5.9.3\node_modules\@hey-api\openapi-ts\dist\index.cjs:1311:4415)
+    at async start (C:\Projects\music_app_backend\node_modules\.pnpm\@hey-api+openapi-ts@0.64.15_typescript@5.9.3\node_modules\@hey-api\openapi-ts\bin\index.cjs:124:21)

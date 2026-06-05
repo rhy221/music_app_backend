@@ -55,3 +55,6 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 !gradle/wrapper/gradle-wrapper.jar
+
+# OpenAPI generated code
+libs/**/generated/
