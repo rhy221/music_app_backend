@@ -4,6 +4,13 @@
   "projectType": "application",
   "sourceRoot": "services/recommend-service/recommend_service",
   "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "poetry run uvicorn recommend_service.app:app --host 0.0.0.0 --port 8000 --reload",
+        "cwd": "{projectRoot}"
+      }
+    },
     "lock": {
       "executor": "@nxlv/python:lock",
       "options": {

@@ -1,0 +1,37 @@
+### Base URL (local dev)
+@baseUrl = http://localhost:8084
+
+### =========================================================
+### 1. Process a new payment (POST /payments)
+### =========================================================
+POST {{baseUrl}}/payments
+Content-Type: application/json
+
+{
+  "payment": {
+    "id": "00000000-0000-0000-0000-000000000002",
+    "orderId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "amount": 199.99,
+    "cardName": "Nguyen Van A",
+    "cardNumber": "4111111111111111",
+    "expiration": "12/26",
+    "cvv": "123",
+    "paymentMethod": 1,
+    "status": "Pending"
+  }
+}
+
+### =========================================================
+### 2. Get all payments (GET /payments) — paginated
+### =========================================================
+GET {{baseUrl}}/api/v1/history
+Content-Type: application/json
+
+### =========================================================
+### 3. Get payment by ID (GET /payments/{id})
+###    Replace the GUID below with the Id returned from step 1
+### =========================================================
+@RETURNED-ID = e30b736a-0ace-47a6-a1d1-99ec1bd9dd74
+
+GET {{baseUrl}}/payments/{{RETURNED-ID}}
+Content-Type: application/json
