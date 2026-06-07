@@ -1,0 +1,31 @@
+plugins {
+    id 'java'
+    alias libs.plugins.springframework.boot apply false
+    alias libs.plugins.spring.dependency.management
+}
+
+group = 'com.company'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    sourceCompatibility = libs.versions.java.get()
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencyManagement {
+    imports {
+        mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+    }
+}
+
+dependencies {
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+}
+
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

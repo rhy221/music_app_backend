@@ -1,0 +1,22 @@
+{
+  "name": "search-api-client",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/api-clients/typescript/search-api-client/src",
+  "targets": {
+    "generate": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/generated"],
+      "inputs": [
+        "{workspaceRoot}/libs/api-specs/search-service.openapi.yaml",
+        "{projectRoot}/openapi-ts.config.ts"
+      ],
+      "options": {
+        "command": "npx @hey-api/openapi-ts",
+        "cwd": "{projectRoot}"
+      },
+      "cache": true
+    }
+  },
+  "tags": []
+}

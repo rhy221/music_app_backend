@@ -20,6 +20,9 @@
     },
     {
       "path": "./libs/notification-api-client"
+    },
+    {
+      "path": "./libs/ts-common"
     }
   ]
 }

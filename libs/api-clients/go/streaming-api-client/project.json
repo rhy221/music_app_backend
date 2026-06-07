@@ -1,0 +1,22 @@
+{
+  "name": "streaming-api-client",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/api-clients/go/streaming-api-client",
+  "targets": {
+    "generate": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/generated"],
+      "inputs": [
+        "{workspaceRoot}/libs/api-specs/streaming-service.openapi.yaml",
+        "{projectRoot}/oapi-codegen.yaml"
+      ],
+      "options": {
+        "command": "go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest --config oapi-codegen.yaml ../../../api-specs/streaming-service.openapi.yaml",
+        "cwd": "{projectRoot}"
+      },
+      "cache": true
+    }
+  },
+  "tags": []
+}

@@ -1,7 +1,18 @@
 rootProject.name = 'root-project'
-include(':libs:libs-catalog-api-client')
-include(':libs:libs-playlist-api-client')
-include(':libs:libs-user-api-client')
+include(':libs:libs-java-common')
+
+include(':catalog-api-client')
+project(':catalog-api-client').projectDir = file('libs/api-clients/java/catalog-api-client')
+
+include(':playlist-api-client')
+project(':playlist-api-client').projectDir = file('libs/api-clients/java/playlist-api-client')
+
+include(':user-api-client')
+project(':user-api-client').projectDir = file('libs/api-clients/java/user-api-client')
+
+include(':music-events')
+project(':music-events').projectDir = file('libs/events/java/music-events')
+
 include 'services:user-service'
 include 'services:catalog-service'
 include 'services:playlist-service'

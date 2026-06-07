@@ -1,0 +1,22 @@
+{
+  "name": "music-events-java",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "libs/events/java/music-events/src",
+  "targets": {
+    "build": {
+      "executor": "@jnxplus/nx-gradle:run-task",
+      "outputs": ["{projectRoot}/build"],
+      "options": {
+        "task": "jar"
+      }
+    },
+    "test": {
+      "executor": "@jnxplus/nx-gradle:run-task",
+      "options": {
+        "task": "test"
+      }
+    }
+  },
+  "tags": ["lang:java", "type:events"]
+}

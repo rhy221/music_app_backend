@@ -58,3 +58,4 @@ build/
 
 # OpenAPI generated code
 libs/**/generated/
+vitest.config.*.timestamp*

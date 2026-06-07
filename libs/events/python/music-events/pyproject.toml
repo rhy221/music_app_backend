@@ -1,0 +1,41 @@
+[tool.coverage.run]
+branch = true
+source = [ "music_events" ]
+
+[tool.coverage.report]
+exclude_lines = ['if TYPE_CHECKING:']
+show_missing = true
+
+[tool.pytest.ini_options]
+addopts = """
+ --cov
+ --cov-report html:'../../../../coverage/libs/events/python/music-events/html'
+ --cov-report xml:'../../../../coverage/libs/events/python/music-events/coverage.xml'
+ --html='../../../../reports/libs/events/python/music-events/unittests/html/index.html'
+ --junitxml='../../../../reports/libs/events/python/music-events/unittests/junit.xml'
+"""
+
+[tool.poetry]
+name = "music-events"
+version = "1.0.0"
+description = "RabbitMQ event DTOs generated from libs/api-specs/events.asyncapi.yaml"
+authors = []
+license = "Proprietary"
+readme = "README.md"
+
+  [[tool.poetry.packages]]
+  include = "music_events"
+
+  [tool.poetry.dependencies]
+  python = ">=3.10,<3.13"
+  pydantic = "^2.0"
+
+  [tool.poetry.group.dev.dependencies]
+  pytest = "8.3.4"
+  pytest-cov = "6.0.0"
+  pytest-html = "4.1.1"
+  flake8 = "7.1.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
