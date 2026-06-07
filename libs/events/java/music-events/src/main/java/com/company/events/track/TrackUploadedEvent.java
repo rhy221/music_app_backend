@@ -3,16 +3,10 @@ package com.company.events.track;
 import com.company.events.EventHeader;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-// Generated from libs/api-specs/events.asyncapi.yaml
 public record TrackUploadedEvent(
-        @JsonProperty("eventId")       String eventId,
-        @JsonProperty("eventType")     String eventType,
-        @JsonProperty("timestamp")     String timestamp,
-        @JsonProperty("sourceService") String sourceService,
-        @JsonProperty("correlationId") String correlationId,
-        @JsonProperty("data")          Data data
-) implements EventHeader {
-
+        @JsonProperty("header") EventHeader header,
+        @JsonProperty("data")   Data data
+) {
     public static final String EVENT_TYPE = "TRACK_UPLOADED";
 
     public record Data(

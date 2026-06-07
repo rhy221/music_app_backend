@@ -7,7 +7,7 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "go run main.go",
+        "command": "env $(cat .env | grep -v '^#' | xargs) go run .",
         "cwd": "{projectRoot}"
       }
     },
@@ -19,6 +19,20 @@
         "cwd": "{projectRoot}"
       },
       "cache": true
+    },
+    "migrate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "migrate -path internal/db/migrations -database \"$DATABASE_URL\" up",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "migrate:down": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "migrate -path internal/db/migrations -database \"$DATABASE_URL\" down 1",
+        "cwd": "{projectRoot}"
+      }
     }
   },
   "tags": []

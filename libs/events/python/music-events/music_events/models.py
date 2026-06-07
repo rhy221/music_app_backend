@@ -1,7 +1,7 @@
 from __future__ import annotations
 from datetime import datetime
 from typing import Literal, Optional, Union, Annotated
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Discriminator, Field, Tag
 
 
 class EventHeader(BaseModel):
@@ -12,6 +12,8 @@ class EventHeader(BaseModel):
     correlation_id: Optional[str] = Field(None, alias="correlationId")
     model_config = {"populate_by_name": True}
 
+
+# ─── Upload events ────────────────────────────────────────────────────────────
 
 class TrackUploadedData(BaseModel):
     upload_job_id: str = Field(alias="uploadJobId")
@@ -24,8 +26,8 @@ class TrackUploadedData(BaseModel):
     model_config = {"populate_by_name": True}
 
 
-class TrackUploadedEvent(EventHeader):
-    event_type: Literal["TRACK_UPLOADED"] = Field("TRACK_UPLOADED", alias="eventType")
+class TrackUploadedEvent(BaseModel):
+    header: EventHeader
     data: TrackUploadedData
 
 
@@ -49,8 +51,8 @@ class TranscodeCompletedData(BaseModel):
     model_config = {"populate_by_name": True}
 
 
-class TranscodeCompletedEvent(EventHeader):
-    event_type: Literal["TRANSCODE_COMPLETED"] = Field("TRANSCODE_COMPLETED", alias="eventType")
+class TranscodeCompletedEvent(BaseModel):
+    header: EventHeader
     data: TranscodeCompletedData
 
 
@@ -62,10 +64,12 @@ class TranscodeFailedData(BaseModel):
     model_config = {"populate_by_name": True}
 
 
-class TranscodeFailedEvent(EventHeader):
-    event_type: Literal["TRANSCODE_FAILED"] = Field("TRANSCODE_FAILED", alias="eventType")
+class TranscodeFailedEvent(BaseModel):
+    header: EventHeader
     data: TranscodeFailedData
 
+
+# ─── Catalog events ───────────────────────────────────────────────────────────
 
 class PublishedAsset(BaseModel):
     bitrate: int
@@ -88,8 +92,8 @@ class TrackPublishedData(BaseModel):
     model_config = {"populate_by_name": True}
 
 
-class TrackPublishedEvent(EventHeader):
-    event_type: Literal["TRACK_PUBLISHED"] = Field("TRACK_PUBLISHED", alias="eventType")
+class TrackPublishedEvent(BaseModel):
+    header: EventHeader
     data: TrackPublishedData
 
 
@@ -102,8 +106,8 @@ class TrackUpdatedData(BaseModel):
     model_config = {"populate_by_name": True}
 
 
-class TrackUpdatedEvent(EventHeader):
-    event_type: Literal["TRACK_UPDATED"] = Field("TRACK_UPDATED", alias="eventType")
+class TrackUpdatedEvent(BaseModel):
+    header: EventHeader
     data: TrackUpdatedData
 
 
@@ -112,10 +116,12 @@ class TrackDeletedData(BaseModel):
     model_config = {"populate_by_name": True}
 
 
-class TrackDeletedEvent(EventHeader):
-    event_type: Literal["TRACK_DELETED"] = Field("TRACK_DELETED", alias="eventType")
+class TrackDeletedEvent(BaseModel):
+    header: EventHeader
     data: TrackDeletedData
 
+
+# ─── Streaming events ─────────────────────────────────────────────────────────
 
 class TrackPlayedData(BaseModel):
     user_id: str = Field(alias="userId")
@@ -129,10 +135,12 @@ class TrackPlayedData(BaseModel):
     model_config = {"populate_by_name": True}
 
 
-class TrackPlayedEvent(EventHeader):
-    event_type: Literal["TRACK_PLAYED"] = Field("TRACK_PLAYED", alias="eventType")
+class TrackPlayedEvent(BaseModel):
+    header: EventHeader
     data: TrackPlayedData
 
+
+# ─── User events ──────────────────────────────────────────────────────────────
 
 class UserRegisteredData(BaseModel):
     user_id: str = Field(alias="userId")
@@ -141,8 +149,8 @@ class UserRegisteredData(BaseModel):
     model_config = {"populate_by_name": True}
 
 
-class UserRegisteredEvent(EventHeader):
-    event_type: Literal["USER_REGISTERED"] = Field("USER_REGISTERED", alias="eventType")
+class UserRegisteredEvent(BaseModel):
+    header: EventHeader
     data: UserRegisteredData
 
 
@@ -153,10 +161,12 @@ class UserFollowedData(BaseModel):
     model_config = {"populate_by_name": True}
 
 
-class UserFollowedEvent(EventHeader):
-    event_type: Literal["USER_FOLLOWED"] = Field("USER_FOLLOWED", alias="eventType")
+class UserFollowedEvent(BaseModel):
+    header: EventHeader
     data: UserFollowedData
 
+
+# ─── Playlist events ──────────────────────────────────────────────────────────
 
 class PlaylistSharedData(BaseModel):
     playlist_id: str = Field(alias="playlistId")
@@ -167,8 +177,8 @@ class PlaylistSharedData(BaseModel):
     model_config = {"populate_by_name": True}
 
 
-class PlaylistSharedEvent(EventHeader):
-    event_type: Literal["PLAYLIST_SHARED"] = Field("PLAYLIST_SHARED", alias="eventType")
+class PlaylistSharedEvent(BaseModel):
+    header: EventHeader
     data: PlaylistSharedData
 
 
@@ -181,8 +191,8 @@ class CollaboratorAddedData(BaseModel):
     model_config = {"populate_by_name": True}
 
 
-class CollaboratorAddedEvent(EventHeader):
-    event_type: Literal["COLLABORATOR_ADDED"] = Field("COLLABORATOR_ADDED", alias="eventType")
+class CollaboratorAddedEvent(BaseModel):
+    header: EventHeader
     data: CollaboratorAddedData
 
 
@@ -197,17 +207,35 @@ class PlaylistTrackAddedData(BaseModel):
     model_config = {"populate_by_name": True}
 
 
-class PlaylistTrackAddedEvent(EventHeader):
-    event_type: Literal["PLAYLIST_TRACK_ADDED"] = Field("PLAYLIST_TRACK_ADDED", alias="eventType")
+class PlaylistTrackAddedEvent(BaseModel):
+    header: EventHeader
     data: PlaylistTrackAddedData
+
+
+# ─── Union type ───────────────────────────────────────────────────────────────
+
+def _event_discriminator(v: object) -> str | None:
+    if isinstance(v, dict):
+        h = v.get("header", {})
+        return h.get("eventType") if isinstance(h, dict) else None
+    h = getattr(v, "header", None)
+    return getattr(h, "event_type", None) if h else None
 
 
 MusicEvent = Annotated[
     Union[
-        TrackUploadedEvent, TranscodeCompletedEvent, TranscodeFailedEvent,
-        TrackPublishedEvent, TrackUpdatedEvent, TrackDeletedEvent, TrackPlayedEvent,
-        UserRegisteredEvent, UserFollowedEvent,
-        PlaylistSharedEvent, CollaboratorAddedEvent, PlaylistTrackAddedEvent,
+        Annotated[TrackUploadedEvent,      Tag("TRACK_UPLOADED")],
+        Annotated[TranscodeCompletedEvent, Tag("TRANSCODE_COMPLETED")],
+        Annotated[TranscodeFailedEvent,    Tag("TRANSCODE_FAILED")],
+        Annotated[TrackPublishedEvent,     Tag("TRACK_PUBLISHED")],
+        Annotated[TrackUpdatedEvent,       Tag("TRACK_UPDATED")],
+        Annotated[TrackDeletedEvent,       Tag("TRACK_DELETED")],
+        Annotated[TrackPlayedEvent,        Tag("TRACK_PLAYED")],
+        Annotated[UserRegisteredEvent,     Tag("USER_REGISTERED")],
+        Annotated[UserFollowedEvent,       Tag("USER_FOLLOWED")],
+        Annotated[PlaylistSharedEvent,     Tag("PLAYLIST_SHARED")],
+        Annotated[CollaboratorAddedEvent,  Tag("COLLABORATOR_ADDED")],
+        Annotated[PlaylistTrackAddedEvent, Tag("PLAYLIST_TRACK_ADDED")],
     ],
-    Field(discriminator="event_type"),
+    Discriminator(_event_discriminator),
 ]

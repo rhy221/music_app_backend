@@ -1,0 +1,12 @@
+DROP TABLE IF EXISTS track_cache;
+
+DROP TABLE IF EXISTS play_sessions_default;
+DROP TABLE IF EXISTS play_sessions_2027_01;
+DROP TABLE IF EXISTS play_sessions_2026_12;
+DROP TABLE IF EXISTS play_sessions_2026_11;
+DROP TABLE IF EXISTS play_sessions_2026_10;
+DROP TABLE IF EXISTS play_sessions_2026_09;
+DROP TABLE IF EXISTS play_sessions_2026_08;
+DROP TABLE IF EXISTS play_sessions_2026_07;
+DROP TABLE IF EXISTS play_sessions_2026_06;
+DROP TABLE IF EXISTS play_sessions;

@@ -5,13 +5,13 @@ export interface EventHeader {
   eventType: string;
   timestamp: string;      // ISO 8601 date-time
   sourceService: string;
-  correlationId?: string; // uuid — distributed tracing
+  correlationId?: string;
 }
 
 // ─── Upload events ────────────────────────────────────────────────────────────
 
-export interface TrackUploadedEvent extends EventHeader {
-  eventType: 'TRACK_UPLOADED';
+export interface TrackUploadedEvent {
+  header: EventHeader & { eventType: 'TRACK_UPLOADED' };
   data: {
     uploadJobId: string;
     uploaderId: string;
@@ -30,8 +30,8 @@ export interface AudioAsset {
   sizeBytes: number;
 }
 
-export interface TranscodeCompletedEvent extends EventHeader {
-  eventType: 'TRANSCODE_COMPLETED';
+export interface TranscodeCompletedEvent {
+  header: EventHeader & { eventType: 'TRANSCODE_COMPLETED' };
   data: {
     uploadJobId: string;
     uploaderId: string;
@@ -44,8 +44,8 @@ export interface TranscodeCompletedEvent extends EventHeader {
   };
 }
 
-export interface TranscodeFailedEvent extends EventHeader {
-  eventType: 'TRANSCODE_FAILED';
+export interface TranscodeFailedEvent {
+  header: EventHeader & { eventType: 'TRANSCODE_FAILED' };
   data: {
     uploadJobId: string;
     uploaderId: string;
@@ -56,8 +56,8 @@ export interface TranscodeFailedEvent extends EventHeader {
 
 // ─── Catalog events ───────────────────────────────────────────────────────────
 
-export interface TrackPublishedEvent extends EventHeader {
-  eventType: 'TRACK_PUBLISHED';
+export interface TrackPublishedEvent {
+  header: EventHeader & { eventType: 'TRACK_PUBLISHED' };
   data: {
     trackId: string;
     title: string;
@@ -72,8 +72,8 @@ export interface TrackPublishedEvent extends EventHeader {
   };
 }
 
-export interface TrackUpdatedEvent extends EventHeader {
-  eventType: 'TRACK_UPDATED';
+export interface TrackUpdatedEvent {
+  header: EventHeader & { eventType: 'TRACK_UPDATED' };
   data: {
     trackId: string;
     title: string;
@@ -83,8 +83,8 @@ export interface TrackUpdatedEvent extends EventHeader {
   };
 }
 
-export interface TrackDeletedEvent extends EventHeader {
-  eventType: 'TRACK_DELETED';
+export interface TrackDeletedEvent {
+  header: EventHeader & { eventType: 'TRACK_DELETED' };
   data: { trackId: string };
 }
 
@@ -92,8 +92,8 @@ export interface TrackDeletedEvent extends EventHeader {
 
 export type PlaySource = 'BROWSE' | 'PLAYLIST' | 'SEARCH' | 'RECOMMENDATION' | 'ALBUM' | 'ARTIST';
 
-export interface TrackPlayedEvent extends EventHeader {
-  eventType: 'TRACK_PLAYED';
+export interface TrackPlayedEvent {
+  header: EventHeader & { eventType: 'TRACK_PLAYED' };
   data: {
     userId: string;
     trackId: string;
@@ -108,20 +108,20 @@ export interface TrackPlayedEvent extends EventHeader {
 
 // ─── User events ──────────────────────────────────────────────────────────────
 
-export interface UserRegisteredEvent extends EventHeader {
-  eventType: 'USER_REGISTERED';
+export interface UserRegisteredEvent {
+  header: EventHeader & { eventType: 'USER_REGISTERED' };
   data: { userId: string; displayName: string; email: string };
 }
 
-export interface UserFollowedEvent extends EventHeader {
-  eventType: 'USER_FOLLOWED';
+export interface UserFollowedEvent {
+  header: EventHeader & { eventType: 'USER_FOLLOWED' };
   data: { followerId: string; followerName: string; followingId: string };
 }
 
 // ─── Playlist events ──────────────────────────────────────────────────────────
 
-export interface PlaylistSharedEvent extends EventHeader {
-  eventType: 'PLAYLIST_SHARED';
+export interface PlaylistSharedEvent {
+  header: EventHeader & { eventType: 'PLAYLIST_SHARED' };
   data: {
     playlistId: string;
     playlistName: string;
@@ -131,8 +131,8 @@ export interface PlaylistSharedEvent extends EventHeader {
   };
 }
 
-export interface CollaboratorAddedEvent extends EventHeader {
-  eventType: 'COLLABORATOR_ADDED';
+export interface CollaboratorAddedEvent {
+  header: EventHeader & { eventType: 'COLLABORATOR_ADDED' };
   data: {
     playlistId: string;
     playlistName: string;
@@ -142,8 +142,8 @@ export interface CollaboratorAddedEvent extends EventHeader {
   };
 }
 
-export interface PlaylistTrackAddedEvent extends EventHeader {
-  eventType: 'PLAYLIST_TRACK_ADDED';
+export interface PlaylistTrackAddedEvent {
+  header: EventHeader & { eventType: 'PLAYLIST_TRACK_ADDED' };
   data: {
     playlistId: string;
     playlistName: string;

@@ -1,0 +1,308 @@
+### Streaming Service — REST Client test file
+### Requires VS Code extension: REST Client (humao.rest-client)
+###
+### Prerequisites:
+###   1. cd infra && docker compose up -d postgres redis minio rabbitmq
+###   2. nx run streaming-service:migrate
+###   3. nx run streaming-service:serve
+###
+### Auth: service trusts X-User-Id / X-User-Role set by gateway — no JWT needed here
+### Note: trackId must exist in track_cache (seeded by Catalog events) before streaming
+
+@baseUrl    = http://localhost:8084
+@userId     = 00000000-0000-0000-0000-000000000001
+@userId2    = 00000000-0000-0000-0000-000000000002
+@trackId    = 00000000-0000-0000-0000-000000000010
+
+# Set after [7] Start session
+@sessionId = REPLACE_WITH_SESSION_ID
+
+###
+### ─── HEALTH ──────────────────────────────────────────────────────────────────
+###
+
+### [1] Health check — expects 200 with postgres/redis/minio status
+GET {{baseUrl}}/health
+
+###
+### ─── AUDIO STREAMING ─────────────────────────────────────────────────────────
+###
+
+### [2] Stream full file — default bitrate (320), expects 200 or 206
+GET {{baseUrl}}/api/v1/stream/{{trackId}}
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+
+### [3] Stream with explicit bitrate — expects 200 or 206
+GET {{baseUrl}}/api/v1/stream/{{trackId}}?bitrate=128
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+
+### [4] Stream with Range header — expects 206 Partial Content
+GET {{baseUrl}}/api/v1/stream/{{trackId}}
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+Range: bytes=0-1048575
+
+### [5] Stream — suffix range (last 512 KB), expects 206
+GET {{baseUrl}}/api/v1/stream/{{trackId}}
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+Range: bytes=524288-
+
+### [6] Stream — no auth (expects 401)
+GET {{baseUrl}}/api/v1/stream/{{trackId}}
+
+### [7] Stream — track not in cache (expects 404)
+GET {{baseUrl}}/api/v1/stream/00000000-0000-0000-0000-000000000000
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+
+###
+### ─── HLS PLAYLIST ────────────────────────────────────────────────────────────
+###
+
+### [8] HLS master playlist — expects 200, Content-Type: application/vnd.apple.mpegurl
+GET {{baseUrl}}/api/v1/stream/{{trackId}}/hls
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+
+### [9] HLS — no auth (expects 401)
+GET {{baseUrl}}/api/v1/stream/{{trackId}}/hls
+
+### [10] HLS — track not found (expects 404)
+GET {{baseUrl}}/api/v1/stream/00000000-0000-0000-0000-000000000000/hls
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+
+###
+### ─── PLAY SESSIONS ───────────────────────────────────────────────────────────
+###
+
+### [11] Start session — expects 201, body contains session id
+# @name startSession
+POST {{baseUrl}}/api/v1/play-sessions
+Content-Type: application/json
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+
+{
+  "trackId": "{{trackId}}",
+  "bitrate": 320,
+  "source": "BROWSE"
+}
+
+###
+
+### [12] Start session — minimal body (no bitrate/source), expects 201
+POST {{baseUrl}}/api/v1/play-sessions
+Content-Type: application/json
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+
+{
+  "trackId": "{{trackId}}"
+}
+
+### [13] Start session — no auth (expects 401)
+POST {{baseUrl}}/api/v1/play-sessions
+Content-Type: application/json
+
+{
+  "trackId": "{{trackId}}"
+}
+
+### [14] Start session — missing trackId (expects 400)
+POST {{baseUrl}}/api/v1/play-sessions
+Content-Type: application/json
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+
+{}
+
+###
+### ─── HEARTBEAT ───────────────────────────────────────────────────────────────
+### Replace @sessionId above with value from [11] response before running these
+###
+
+### [15] Heartbeat at 10s — below threshold, expects 200, completed=false
+POST {{baseUrl}}/api/v1/play-sessions/{{sessionId}}/heartbeat
+Content-Type: application/json
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+
+{
+  "positionMs": 10000
+}
+
+### [16] Heartbeat at 20s
+POST {{baseUrl}}/api/v1/play-sessions/{{sessionId}}/heartbeat
+Content-Type: application/json
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+
+{
+  "positionMs": 20000
+}
+
+### [17] Heartbeat at 32s — crosses 30s threshold, expects 200, completed=true
+### Also fires TrackPlayedEvent to RabbitMQ and increments Redis playcount:{trackId}
+POST {{baseUrl}}/api/v1/play-sessions/{{sessionId}}/heartbeat
+Content-Type: application/json
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+
+{
+  "positionMs": 32000
+}
+
+### [18] Heartbeat after completed — idempotent, expects 200, no duplicate event
+POST {{baseUrl}}/api/v1/play-sessions/{{sessionId}}/heartbeat
+Content-Type: application/json
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+
+{
+  "positionMs": 60000
+}
+
+### [19] Heartbeat — no auth (expects 401)
+POST {{baseUrl}}/api/v1/play-sessions/{{sessionId}}/heartbeat
+Content-Type: application/json
+
+{
+  "positionMs": 15000
+}
+
+### [20] Heartbeat — wrong user (expects 404, ownership check)
+POST {{baseUrl}}/api/v1/play-sessions/{{sessionId}}/heartbeat
+Content-Type: application/json
+X-User-Id: {{userId2}}
+X-User-Role: LISTENER
+
+{
+  "positionMs": 15000
+}
+
+### [21] Heartbeat — session not found (expects 404)
+POST {{baseUrl}}/api/v1/play-sessions/00000000-0000-0000-0000-000000000000/heartbeat
+Content-Type: application/json
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+
+{
+  "positionMs": 15000
+}
+
+###
+### ─── END SESSION ─────────────────────────────────────────────────────────────
+###
+
+### [22] End session — COMPLETED reason, expects 200, status=ENDED
+POST {{baseUrl}}/api/v1/play-sessions/{{sessionId}}/end
+Content-Type: application/json
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+
+{
+  "positionMs": 215000,
+  "reason": "COMPLETED"
+}
+
+### [23] End session — SKIPPED (user pressed next), expects 200
+POST {{baseUrl}}/api/v1/play-sessions/{{sessionId}}/end
+Content-Type: application/json
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+
+{
+  "positionMs": 5000,
+  "reason": "SKIPPED"
+}
+
+### [24] End session — no auth (expects 401)
+POST {{baseUrl}}/api/v1/play-sessions/{{sessionId}}/end
+Content-Type: application/json
+
+{
+  "positionMs": 215000,
+  "reason": "COMPLETED"
+}
+
+### [25] End session — wrong user (expects 404)
+POST {{baseUrl}}/api/v1/play-sessions/{{sessionId}}/end
+Content-Type: application/json
+X-User-Id: {{userId2}}
+X-User-Role: LISTENER
+
+{
+  "positionMs": 215000,
+  "reason": "COMPLETED"
+}
+
+### [26] End session — not found (expects 404)
+POST {{baseUrl}}/api/v1/play-sessions/00000000-0000-0000-0000-000000000000/end
+Content-Type: application/json
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+
+{
+  "positionMs": 0,
+  "reason": "ERROR"
+}
+
+###
+### ─── PLAY HISTORY ────────────────────────────────────────────────────────────
+###
+
+### [27] Play history — first page, expects 200 with items + totalPages
+GET {{baseUrl}}/api/v1/history?page=0&size=20
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+
+### [28] Play history — second page
+GET {{baseUrl}}/api/v1/history?page=1&size=10
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+
+### [29] Play history — size clamped to 100 max (expects 200, not error)
+GET {{baseUrl}}/api/v1/history?page=0&size=999
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+
+### [30] Play history — no auth (expects 401)
+GET {{baseUrl}}/api/v1/history
+
+###
+### ─── RECENTLY PLAYED ─────────────────────────────────────────────────────────
+###
+
+### [31] Recently played — unique tracks, expects up to 20 items
+GET {{baseUrl}}/api/v1/history/recently-played
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+
+### [32] Recently played — different user (expects 200, empty or their own data)
+GET {{baseUrl}}/api/v1/history/recently-played
+X-User-Id: {{userId2}}
+X-User-Role: LISTENER
+
+### [33] Recently played — no auth (expects 401)
+GET {{baseUrl}}/api/v1/history/recently-played
+
+###
+### ─── LISTENING STATS ─────────────────────────────────────────────────────────
+###
+
+### [34] Listening stats — expects totalListeningMs, totalTracks, topGenres, topArtists
+GET {{baseUrl}}/api/v1/history/stats
+X-User-Id: {{userId}}
+X-User-Role: LISTENER
+
+### [35] Listening stats — user with no history (expects 200 with zeroed counters)
+GET {{baseUrl}}/api/v1/history/stats
+X-User-Id: {{userId2}}
+X-User-Role: LISTENER
+
+### [36] Listening stats — no auth (expects 401)
+GET {{baseUrl}}/api/v1/history/stats

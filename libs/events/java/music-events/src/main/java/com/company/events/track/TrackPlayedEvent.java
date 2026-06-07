@@ -2,17 +2,12 @@ package com.company.events.track;
 
 import com.company.events.EventHeader;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.time.Instant;
 
-// Generated from libs/api-specs/events.asyncapi.yaml
 public record TrackPlayedEvent(
-        @JsonProperty("eventId")       String eventId,
-        @JsonProperty("eventType")     String eventType,
-        @JsonProperty("timestamp")     String timestamp,
-        @JsonProperty("sourceService") String sourceService,
-        @JsonProperty("correlationId") String correlationId,
-        @JsonProperty("data")          Data data
-) implements EventHeader {
-
+        @JsonProperty("header") EventHeader header,
+        @JsonProperty("data")   Data data
+) {
     public static final String EVENT_TYPE = "TRACK_PLAYED";
 
     public record Data(
@@ -23,6 +18,6 @@ public record TrackPlayedEvent(
             @JsonProperty("durationMs")    Integer durationMs,
             @JsonProperty("source")        String source,
             @JsonProperty("completedFull") Boolean completedFull,
-            @JsonProperty("playedAt")      String playedAt
+            @JsonProperty("playedAt")      Instant playedAt
     ) {}
 }

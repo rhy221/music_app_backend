@@ -4,16 +4,10 @@ import com.company.events.EventHeader;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
-// Generated from libs/api-specs/events.asyncapi.yaml
 public record TranscodeCompletedEvent(
-        @JsonProperty("eventId")       String eventId,
-        @JsonProperty("eventType")     String eventType,
-        @JsonProperty("timestamp")     String timestamp,
-        @JsonProperty("sourceService") String sourceService,
-        @JsonProperty("correlationId") String correlationId,
-        @JsonProperty("data")          Data data
-) implements EventHeader {
-
+        @JsonProperty("header") EventHeader header,
+        @JsonProperty("data")   Data data
+) {
     public static final String EVENT_TYPE = "TRANSCODE_COMPLETED";
 
     public record Data(

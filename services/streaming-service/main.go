@@ -1,144 +1,154 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"net/http"
-	"strings"
-	"time"
+	"os"
+
+	commonminio "github.com/team/music-app/libs/go-common/minio"
+	"github.com/team/music-app/libs/go-common/observability"
+	"github.com/team/music-app/libs/go-common/postgres"
+	commonredis "github.com/team/music-app/libs/go-common/redis"
+	"github.com/team/music-app/libs/go-common/rabbitmq"
+	"github.com/team/music-app/libs/go-common/server"
+	musicevents "music-app/music-events/events"
+	infraevent "music-app/streaming-service/internal/infrastructure/event"
+	infracatalog "music-app/streaming-service/internal/infrastructure/catalog"
+	inframinio "music-app/streaming-service/internal/infrastructure/minio"
+	infraredis "music-app/streaming-service/internal/infrastructure/redis"
+	"music-app/streaming-service/internal/handler"
+	"music-app/streaming-service/internal/repository"
+	"music-app/streaming-service/internal/usecase"
 )
 
-func jsonResponse(w http.ResponseWriter, status int, data any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
-}
-
-func handleStream(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(r.URL.Path, "/")
-	trackId := parts[len(parts)-1]
-
-	w.Header().Set("Content-Type", "audio/mpeg")
-	w.Header().Set("Accept-Ranges", "bytes")
-	w.Header().Set("X-Track-Id", trackId)
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "mock-audio-stream-for-%s", trackId)
-}
-
-func handlePlaySessions(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodPost:
-		jsonResponse(w, http.StatusCreated, map[string]any{
-			"sessionId": fmt.Sprintf("session-%d", time.Now().UnixMilli()),
-			"trackId":   "track-001",
-			"userId":    "user-001",
-			"startedAt": time.Now().UTC().Format(time.RFC3339),
-			"status":    "ACTIVE",
-		})
-	default:
-		http.NotFound(w, r)
-	}
-}
-
-func handleHeartbeat(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(strings.TrimSuffix(r.URL.Path, "/heartbeat"), "/")
-	sessionId := parts[len(parts)-1]
-	jsonResponse(w, http.StatusOK, map[string]any{
-		"sessionId": sessionId,
-		"position":  30,
-		"accepted":  true,
-	})
-}
-
-func handleEndSession(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(strings.TrimSuffix(r.URL.Path, "/end"), "/")
-	sessionId := parts[len(parts)-1]
-	jsonResponse(w, http.StatusOK, map[string]any{
-		"sessionId":    sessionId,
-		"status":       "COMPLETED",
-		"duration":     180,
-		"completedAt":  time.Now().UTC().Format(time.RFC3339),
-	})
-}
-
-func handleHistory(w http.ResponseWriter, r *http.Request) {
-	if strings.HasSuffix(r.URL.Path, "/recently-played") {
-		jsonResponse(w, http.StatusOK, map[string]any{
-			"items": []map[string]any{
-				{
-					"trackId":  "track-001",
-					"title":    "Starlight Serenade",
-					"artist":   map[string]any{"artistId": "artist-001", "displayName": "Luna Echo"},
-					"playedAt": "2024-06-05T07:30:00Z",
-				},
-			},
-			"total": 1,
-		})
-		return
-	}
-
-	if strings.HasSuffix(r.URL.Path, "/stats") {
-		jsonResponse(w, http.StatusOK, map[string]any{
-			"userId":        "user-001",
-			"totalPlayTime": 3600,
-			"totalTracks":   42,
-			"topGenres":     []string{"POP", "ELECTRONIC", "AMBIENT"},
-			"period":        "last_30_days",
-		})
-		return
-	}
-
-	jsonResponse(w, http.StatusOK, map[string]any{
-		"items": []map[string]any{
-			{
-				"entryId":  "history-001",
-				"trackId":  "track-001",
-				"title":    "Starlight Serenade",
-				"duration": 215,
-				"playedAt": "2024-06-05T07:30:00Z",
-			},
-		},
-		"total": 1,
-		"page":  0,
-		"size":  20,
-	})
-}
-
 func main() {
+	// ── Config ────────────────────────────────────────────────────────────────
+	cfg, err := server.LoadConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "config error: %v\n", err)
+		os.Exit(1)
+	}
+
+	redisURL := getEnv("REDIS_URL", "localhost:6379")
+	catalogURL := getEnv("CATALOG_SERVICE_URL", "http://localhost:8082")
+
+	log := observability.NewLogger(cfg.ServiceName)
+
+	// ── PostgreSQL ────────────────────────────────────────────────────────────
+	pool, err := postgres.NewPool(cfg.DatabaseURL)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to connect to postgres")
+	}
+	defer pool.Close()
+
+	// ── Redis ─────────────────────────────────────────────────────────────────
+	redisClient, err := commonredis.NewClient(redisURL)
+	if err != nil {
+		log.Fatal().Err(err).Str("addr", redisURL).Msg("failed to connect to redis")
+	}
+	defer redisClient.Close()
+
+	// ── MinIO ─────────────────────────────────────────────────────────────────
+	mc, err := commonminio.NewMinioClient(cfg.MinioEndpoint, cfg.MinioAccessKey, cfg.MinioSecretKey, cfg.MinioUseSSL)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create minio client")
+	}
+
+	// ── RabbitMQ ──────────────────────────────────────────────────────────────
+	amqpConn, err := rabbitmq.NewConnection(cfg.RabbitURL)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to connect to rabbitmq")
+	}
+	defer amqpConn.Close()
+
+	pub := rabbitmq.NewPublisher(amqpConn)
+
+	if err := amqpConn.Channel().ExchangeDeclare(
+		musicevents.Exchanges.Streaming, "topic", true, false, false, false, nil,
+	); err != nil {
+		log.Fatal().Err(err).Msg("failed to declare streaming exchange")
+	}
+
+	// ── Repositories ──────────────────────────────────────────────────────────
+	sessionRepo := repository.NewSessionRepository(pool)
+	trackCacheRepo := repository.NewTrackCacheRepository(pool)
+
+	// ── Infrastructure adapters ───────────────────────────────────────────────
+	audioStore := inframinio.NewAudioStore(mc)
+	catalogClient := infracatalog.NewHTTPCatalogClient(catalogURL)
+	eventPublisher := infraevent.NewRabbitMQEventPublisher(pub)
+	playCounter := infraredis.NewPlayCounter(redisClient)
+
+	// ── Catalog event consumer ────────────────────────────────────────────────
+	catalogConsumer := infraevent.NewCatalogConsumer(amqpConn, trackCacheRepo, log)
+	if err := catalogConsumer.Setup(); err != nil {
+		log.Fatal().Err(err).Msg("failed to setup catalog consumer")
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go catalogConsumer.Start(ctx)
+
+	// ── Use cases ─────────────────────────────────────────────────────────────
+	streamUC := usecase.NewStreamUseCase(trackCacheRepo, catalogClient, audioStore, log)
+	sessionUC := usecase.NewSessionUseCase(sessionRepo, trackCacheRepo, catalogClient, eventPublisher, playCounter, log)
+	historyUC := usecase.NewHistoryUseCase(sessionRepo, log)
+
+	// ── HTTP mux ──────────────────────────────────────────────────────────────
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/api/v1/stream/", func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.URL.Path, "/hls") {
-			trackId := strings.Split(r.URL.Path, "/")[5]
-			jsonResponse(w, http.StatusOK, map[string]any{
-				"trackId":  trackId,
-				"manifest": "#EXTM3U\n#EXT-X-VERSION:3\nmock.m3u8",
-			})
-			return
+	metrics := observability.SetupMetrics(mux)
+
+	health := observability.NewHealthChecker()
+	health.AddCheck("postgres", func(ctx context.Context) error {
+		return postgres.Ping(ctx, pool)
+	})
+	health.AddCheck("redis", func(ctx context.Context) error {
+		return commonredis.Ping(ctx, redisClient)
+	})
+	health.AddCheck("minio", func(ctx context.Context) error {
+		_, err := mc.BucketExists(ctx, "audio-transcoded")
+		return err
+	})
+	mux.HandleFunc("/health", health.Handler())
+
+	chain := func(h http.Handler) http.Handler {
+		return metrics.MetricsMiddleware(observability.RequestLogger(log)(h))
+	}
+
+	mux.Handle("/api/v1/stream/", chain(handler.NewStreamHandler(streamUC, log)))
+	mux.Handle("/api/v1/play-sessions", chain(handler.NewSessionHandler(sessionUC, log)))
+	mux.Handle("/api/v1/play-sessions/", chain(handler.NewSessionHandler(sessionUC, log)))
+	mux.Handle("/api/v1/history", chain(handler.NewHistoryHandler(historyUC, log)))
+	mux.Handle("/api/v1/history/", chain(handler.NewHistoryHandler(historyUC, log)))
+
+	srv := &http.Server{
+		Addr:    ":" + cfg.Port,
+		Handler: mux,
+	}
+
+	log.Info().
+		Str("port", cfg.Port).
+		Str("catalogURL", catalogURL).
+		Str("redisURL", redisURL).
+		Msg("streaming-service starting")
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal().Err(err).Msg("server error")
 		}
-		handleStream(w, r)
+	}()
+
+	server.GracefulShutdown(srv, func() {
+		cancel()
+		log.Info().Msg("cleanup complete")
 	})
+}
 
-	mux.HandleFunc("/api/v1/play-sessions", handlePlaySessions)
-
-	mux.HandleFunc("/api/v1/play-sessions/", func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.URL.Path, "/heartbeat") {
-			handleHeartbeat(w, r)
-		} else if strings.HasSuffix(r.URL.Path, "/end") {
-			handleEndSession(w, r)
-		} else {
-			http.NotFound(w, r)
-		}
-	})
-
-	mux.HandleFunc("/api/v1/history", handleHistory)
-	mux.HandleFunc("/api/v1/history/", handleHistory)
-
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		jsonResponse(w, http.StatusOK, map[string]any{"status": "ok", "service": "streaming-service"})
-	})
-
-	port := "8084"
-	fmt.Printf("streaming-service listening on :%s\n", port)
-	http.ListenAndServe(":"+port, mux)
+func getEnv(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
 }

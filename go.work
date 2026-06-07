@@ -1,0 +1,10 @@
+go 1.23
+
+use (
+	./libs/go-common
+	./libs/events/go/music-events
+	./libs/api-clients/go/upload-api-client
+	./libs/api-clients/go/streaming-api-client
+	./services/upload-service
+	./services/streaming-service
+)

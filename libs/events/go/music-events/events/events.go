@@ -54,24 +54,24 @@ type TrackUploadedData struct {
 }
 
 type TrackUploadedEvent struct {
-	EventHeader
-	Data TrackUploadedData `json:"data"`
+	Header EventHeader       `json:"header"`
+	Data   TrackUploadedData `json:"data"`
 }
 
 type TranscodeCompletedData struct {
-	UploadJobID string      `json:"uploadJobId"`
-	UploaderID  string      `json:"uploaderId"`
-	Title       string      `json:"title"`
-	Genre       *string     `json:"genre,omitempty"`
-	AlbumID     *string     `json:"albumId,omitempty"`
-	DurationMs  int         `json:"durationMs"`
-	WaveformURL *string     `json:"waveformUrl,omitempty"`
+	UploadJobID string       `json:"uploadJobId"`
+	UploaderID  string       `json:"uploaderId"`
+	Title       string       `json:"title"`
+	Genre       *string      `json:"genre,omitempty"`
+	AlbumID     *string      `json:"albumId,omitempty"`
+	DurationMs  int          `json:"durationMs"`
+	WaveformURL *string      `json:"waveformUrl,omitempty"`
 	Assets      []AudioAsset `json:"assets"`
 }
 
 type TranscodeCompletedEvent struct {
-	EventHeader
-	Data TranscodeCompletedData `json:"data"`
+	Header EventHeader            `json:"header"`
+	Data   TranscodeCompletedData `json:"data"`
 }
 
 type TranscodeFailedData struct {
@@ -82,8 +82,8 @@ type TranscodeFailedData struct {
 }
 
 type TranscodeFailedEvent struct {
-	EventHeader
-	Data TranscodeFailedData `json:"data"`
+	Header EventHeader         `json:"header"`
+	Data   TranscodeFailedData `json:"data"`
 }
 
 // ─── Catalog events ───────────────────────────────────────────────────────────
@@ -95,21 +95,22 @@ type PublishedAsset struct {
 }
 
 type TrackPublishedData struct {
-	TrackID    string           `json:"trackId"`
-	Title      string           `json:"title"`
-	DurationMs int              `json:"durationMs"`
-	CoverURL   *string          `json:"coverUrl,omitempty"`
-	Genre      string           `json:"genre"`
-	ArtistID   string           `json:"artistId"`
-	ArtistName string           `json:"artistName"`
-	AlbumID    *string          `json:"albumId,omitempty"`
-	AlbumTitle *string          `json:"albumTitle,omitempty"`
-	Assets     []PublishedAsset `json:"assets"`
+	TrackID     string           `json:"trackId"`
+	UploadJobID *string          `json:"uploadJobId,omitempty"` // Saga correlation: Upload service uses this to update job status
+	Title       string           `json:"title"`
+	DurationMs  int              `json:"durationMs"`
+	CoverURL    *string          `json:"coverUrl,omitempty"`
+	Genre       string           `json:"genre"`
+	ArtistID    string           `json:"artistId"`
+	ArtistName  string           `json:"artistName"`
+	AlbumID     *string          `json:"albumId,omitempty"`
+	AlbumTitle  *string          `json:"albumTitle,omitempty"`
+	Assets      []PublishedAsset `json:"assets"`
 }
 
 type TrackPublishedEvent struct {
-	EventHeader
-	Data TrackPublishedData `json:"data"`
+	Header EventHeader        `json:"header"`
+	Data   TrackPublishedData `json:"data"`
 }
 
 type TrackUpdatedData struct {
@@ -121,8 +122,8 @@ type TrackUpdatedData struct {
 }
 
 type TrackUpdatedEvent struct {
-	EventHeader
-	Data TrackUpdatedData `json:"data"`
+	Header EventHeader      `json:"header"`
+	Data   TrackUpdatedData `json:"data"`
 }
 
 type TrackDeletedData struct {
@@ -130,8 +131,8 @@ type TrackDeletedData struct {
 }
 
 type TrackDeletedEvent struct {
-	EventHeader
-	Data TrackDeletedData `json:"data"`
+	Header EventHeader      `json:"header"`
+	Data   TrackDeletedData `json:"data"`
 }
 
 // ─── Streaming events ─────────────────────────────────────────────────────────
@@ -148,8 +149,8 @@ type TrackPlayedData struct {
 }
 
 type TrackPlayedEvent struct {
-	EventHeader
-	Data TrackPlayedData `json:"data"`
+	Header EventHeader     `json:"header"`
+	Data   TrackPlayedData `json:"data"`
 }
 
 // ─── User events ──────────────────────────────────────────────────────────────
@@ -161,8 +162,8 @@ type UserRegisteredData struct {
 }
 
 type UserRegisteredEvent struct {
-	EventHeader
-	Data UserRegisteredData `json:"data"`
+	Header EventHeader        `json:"header"`
+	Data   UserRegisteredData `json:"data"`
 }
 
 type UserFollowedData struct {
@@ -172,8 +173,8 @@ type UserFollowedData struct {
 }
 
 type UserFollowedEvent struct {
-	EventHeader
-	Data UserFollowedData `json:"data"`
+	Header EventHeader      `json:"header"`
+	Data   UserFollowedData `json:"data"`
 }
 
 // ─── Playlist events ──────────────────────────────────────────────────────────
@@ -187,8 +188,8 @@ type PlaylistSharedData struct {
 }
 
 type PlaylistSharedEvent struct {
-	EventHeader
-	Data PlaylistSharedData `json:"data"`
+	Header EventHeader        `json:"header"`
+	Data   PlaylistSharedData `json:"data"`
 }
 
 type CollaboratorRole string
@@ -207,21 +208,21 @@ type CollaboratorAddedData struct {
 }
 
 type CollaboratorAddedEvent struct {
-	EventHeader
-	Data CollaboratorAddedData `json:"data"`
+	Header EventHeader           `json:"header"`
+	Data   CollaboratorAddedData `json:"data"`
 }
 
 type PlaylistTrackAddedData struct {
-	PlaylistID       string   `json:"playlistId"`
-	PlaylistName     string   `json:"playlistName"`
-	TrackID          string   `json:"trackId"`
-	TrackTitle       string   `json:"trackTitle"`
-	AddedBy          string   `json:"addedBy"`
-	AddedByName      string   `json:"addedByName"`
-	CollaboratorIDs  []string `json:"collaboratorIds"`
+	PlaylistID      string   `json:"playlistId"`
+	PlaylistName    string   `json:"playlistName"`
+	TrackID         string   `json:"trackId"`
+	TrackTitle      string   `json:"trackTitle"`
+	AddedBy         string   `json:"addedBy"`
+	AddedByName     string   `json:"addedByName"`
+	CollaboratorIDs []string `json:"collaboratorIds"`
 }
 
 type PlaylistTrackAddedEvent struct {
-	EventHeader
-	Data PlaylistTrackAddedData `json:"data"`
+	Header EventHeader            `json:"header"`
+	Data   PlaylistTrackAddedData `json:"data"`
 }

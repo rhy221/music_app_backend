@@ -1,0 +1,149 @@
+### Upload Service — REST Client test file
+### Requires VS Code extension: REST Client (humao.rest-client)
+###
+### Prerequisites:
+###   1. cd infra && docker compose up -d postgres minio rabbitmq
+###   2. cd services/upload-service && go run . (with .env loaded)
+###
+### Auth: service trusts X-User-Id / X-User-Role set by gateway — no JWT needed here
+
+@baseUrl    = http://localhost:8086
+@artistId   = 00000000-0000-0000-0000-000000000001
+@listenerId = 00000000-0000-0000-0000-000000000002
+
+# Set this to a jobId returned from the upload request
+@jobId = REPLACE_WITH_JOB_ID
+
+###
+### ─── HEALTH ─────────────────────────────────────────────────────────────────
+###
+
+### [1] Health check
+GET {{baseUrl}}/health
+
+###
+### ─── UPLOAD ──────────────────────────────────────────────────────────────────
+###
+
+### [2] Upload a track (ARTIST role required)
+### Change the file path below to a real audio file on your machine
+POST {{baseUrl}}/api/v1/upload
+X-User-Id: {{artistId}}
+X-User-Role: ARTIST
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="title"
+
+My Test Track
+------Boundary
+Content-Disposition: form-data; name="genre"
+
+POP
+------Boundary
+Content-Disposition: form-data; name="file"; filename="test.mp3"
+Content-Type: audio/mpeg
+
+< ./test.mp3
+------Boundary--
+
+### [3] Upload rejected — missing ARTIST role (expects 403)
+POST {{baseUrl}}/api/v1/upload
+X-User-Id: {{listenerId}}
+X-User-Role: LISTENER
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="title"
+
+Should Fail
+------Boundary
+Content-Disposition: form-data; name="file"; filename="test.mp3"
+Content-Type: audio/mpeg
+
+< ./test.mp3
+------Boundary--
+
+### [4] Upload rejected — no auth (expects 401)
+POST {{baseUrl}}/api/v1/upload
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="title"
+
+No Auth
+------Boundary
+Content-Disposition: form-data; name="file"; filename="test.mp3"
+Content-Type: audio/mpeg
+
+< ./test.mp3
+------Boundary--
+
+###
+### ─── LIST JOBS ───────────────────────────────────────────────────────────────
+###
+
+### [5] List all jobs (any auth)
+GET {{baseUrl}}/api/v1/upload/jobs
+X-User-Id: {{artistId}}
+X-User-Role: ARTIST
+
+### [6] List jobs — filter by status
+GET {{baseUrl}}/api/v1/upload/jobs?status=TRANSCODING&page=0&size=10
+X-User-Id: {{artistId}}
+X-User-Role: ARTIST
+
+### [7] List jobs — pagination
+GET {{baseUrl}}/api/v1/upload/jobs?page=0&size=5
+X-User-Id: {{artistId}}
+X-User-Role: ARTIST
+
+### [8] List jobs — no auth (expects 401)
+GET {{baseUrl}}/api/v1/upload/jobs
+
+###
+### ─── JOB DETAIL ──────────────────────────────────────────────────────────────
+###
+
+### [9] Get job by ID (replace @jobId above first)
+GET {{baseUrl}}/api/v1/upload/jobs/{{jobId}}
+X-User-Id: {{artistId}}
+X-User-Role: ARTIST
+
+### [10] Get job — not found (expects 404)
+GET {{baseUrl}}/api/v1/upload/jobs/00000000-0000-0000-0000-000000000000
+X-User-Id: {{artistId}}
+X-User-Role: ARTIST
+
+### [11] Get job owned by another user (expects 404)
+GET {{baseUrl}}/api/v1/upload/jobs/{{jobId}}
+X-User-Id: {{listenerId}}
+X-User-Role: LISTENER
+
+###
+### ─── RETRY ───────────────────────────────────────────────────────────────────
+###
+
+### [12] Retry a FAILED job (ARTIST role required)
+POST {{baseUrl}}/api/v1/upload/jobs/{{jobId}}/retry
+X-User-Id: {{artistId}}
+X-User-Role: ARTIST
+
+### [13] Retry — non-FAILED job (expects 409)
+POST {{baseUrl}}/api/v1/upload/jobs/{{jobId}}/retry
+X-User-Id: {{artistId}}
+X-User-Role: ARTIST
+
+###
+### ─── CANCEL ──────────────────────────────────────────────────────────────────
+###
+
+### [14] Cancel a job
+POST {{baseUrl}}/api/v1/upload/jobs/{{jobId}}/cancel
+X-User-Id: {{artistId}}
+X-User-Role: ARTIST
+
+### [15] Cancel already-cancelled job (expects 409)
+POST {{baseUrl}}/api/v1/upload/jobs/{{jobId}}/cancel
+X-User-Id: {{artistId}}
+X-User-Role: ARTIST
