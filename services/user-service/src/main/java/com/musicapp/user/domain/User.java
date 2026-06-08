@@ -30,7 +30,7 @@ public class User extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private UserRole role = UserRole.LISTENER;
+    private UserRole role = UserRole.USER;
 
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified = false;

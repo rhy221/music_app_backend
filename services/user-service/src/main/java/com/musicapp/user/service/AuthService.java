@@ -54,7 +54,7 @@ public class AuthService {
         user.setEmail(req.email());
         user.setPasswordHash(passwordEncoder.encode(req.password()));
         user.setDisplayName(req.displayName());
-        user.setRole(UserRole.LISTENER);
+        user.setRole(UserRole.USER);
         userRepository.save(user);
 
         AuthResponse response = issueTokens(user);
@@ -146,7 +146,7 @@ public class AuthService {
                     newUser.setDisplayName(name);
                     newUser.setAvatarUrl(picture);
                     newUser.setEmailVerified(true);
-                    newUser.setRole(UserRole.LISTENER);
+                    newUser.setRole(UserRole.USER);
                     userRepository.save(newUser);
 
                     OAuthAccount account = new OAuthAccount();

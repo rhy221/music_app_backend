@@ -4,10 +4,7 @@ import (
 	"net/http"
 )
 
-const (
-	headerUserID   = "X-User-Id"
-	headerUserRole = "X-User-Role"
-)
+const headerUserID = "X-User-Id"
 
 func requireAuth(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -17,17 +14,6 @@ func requireAuth(next http.HandlerFunc) http.HandlerFunc {
 		}
 		next(w, r)
 	}
-}
-
-func requireArtist(next http.HandlerFunc) http.HandlerFunc {
-	return requireAuth(func(w http.ResponseWriter, r *http.Request) {
-		role := r.Header.Get(headerUserRole)
-		if role != "ARTIST" && role != "ADMIN" {
-			jsonError(w, http.StatusForbidden, "artist role required")
-			return
-		}
-		next(w, r)
-	})
 }
 
 func userIDFromRequest(r *http.Request) string {

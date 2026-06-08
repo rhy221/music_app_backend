@@ -30,7 +30,7 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
-	requireArtist(h.handle)(w, r)
+	requireAuth(h.handle)(w, r)
 }
 
 func (h *UploadHandler) handle(w http.ResponseWriter, r *http.Request) {
