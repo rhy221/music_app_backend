@@ -17,6 +17,7 @@ import (
 	pgadapter "music-app/upload-service/internal/adapter/postgres"
 	minioadapter "music-app/upload-service/internal/adapter/minio"
 	httpadapter "music-app/upload-service/internal/adapter/http"
+	"music-app/upload-service/internal/db"
 	"music-app/upload-service/internal/usecase"
 	"music-app/upload-service/internal/worker"
 )
@@ -36,6 +37,10 @@ func main() {
 		log.Fatal().Err(err).Msg("postgres connect")
 	}
 	defer pool.Close()
+
+	if err := db.AutoMigrate(context.Background(), pool, log); err != nil {
+		log.Fatal().Err(err).Msg("auto migrate")
+	}
 
 	// ── MinIO ─────────────────────────────────────────────────────────────────
 	mc, err := commonminio.NewMinioClient(cfg.MinioEndpoint, cfg.MinioAccessKey, cfg.MinioSecretKey, cfg.MinioUseSSL)

@@ -1,0 +1,11 @@
+{
+  "groups": [
+    {
+      "name": "management",
+      "type": "com.musicapp.common.config.ActuatorConfig",
+      "sourceType": "com.musicapp.common.config.ActuatorConfig"
+    }
+  ],
+  "properties": [],
+  "hints": []
+}

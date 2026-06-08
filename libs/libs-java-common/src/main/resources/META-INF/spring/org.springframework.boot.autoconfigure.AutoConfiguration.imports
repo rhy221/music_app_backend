@@ -1,5 +1,0 @@
-com.musicapp.common.security.SecurityConfig
-com.musicapp.common.messaging.RabbitConfig
-com.musicapp.common.persistence.AuditConfig
-com.musicapp.common.config.CorsConfig
-com.musicapp.common.config.ActuatorConfig

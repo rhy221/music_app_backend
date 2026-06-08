@@ -1,0 +1,243 @@
+### Catalog Service — HTTP Tests
+### Base URL: http://localhost:8082
+### Start service: pnpm nx run catalog-service:serve
+
+@baseUrl = http://localhost:8082
+@authToken = Bearer <paste-jwt-token-here>
+@artistId = 00000000-0000-0000-0000-000000000001
+@albumId  = 00000000-0000-0000-0000-000000000002
+@trackId  = 00000000-0000-0000-0000-000000000003
+
+
+# ─────────────────────────────────────────────────────────────
+# ARTISTS
+# ─────────────────────────────────────────────────────────────
+
+### GET all artists (paginated)
+GET {{baseUrl}}/api/v1/artists?page=0&size=10
+Accept: application/json
+
+###
+
+### GET all artists — page 2
+GET {{baseUrl}}/api/v1/artists?page=1&size=5
+Accept: application/json
+
+###
+
+### GET artist by ID
+GET {{baseUrl}}/api/v1/artists/{{artistId}}
+Accept: application/json
+
+###
+
+### PUT update artist (auth required)
+PUT {{baseUrl}}/api/v1/artists/{{artistId}}
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "name": "Updated Artist Name",
+  "bio": "A short biography of the artist.",
+  "avatarUrl": "https://cdn.example.com/avatars/artist1.jpg"
+}
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# ALBUMS
+# ─────────────────────────────────────────────────────────────
+
+### GET all albums (paginated)
+GET {{baseUrl}}/api/v1/albums?page=0&size=10
+Accept: application/json
+
+###
+
+### GET albums filtered by artist
+GET {{baseUrl}}/api/v1/albums?artistId={{artistId}}&page=0&size=10
+Accept: application/json
+
+###
+
+### POST create album (auth required — ARTIST role)
+POST {{baseUrl}}/api/v1/albums
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "title": "My First Album",
+  "releaseDate": "2025-06-01",
+  "coverUrl": "https://cdn.example.com/covers/album1.jpg"
+}
+
+###
+
+### GET album by ID
+GET {{baseUrl}}/api/v1/albums/{{albumId}}
+Accept: application/json
+
+###
+
+### PUT update album (auth required)
+PUT {{baseUrl}}/api/v1/albums/{{albumId}}
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "title": "Updated Album Title",
+  "coverUrl": "https://cdn.example.com/covers/album1-v2.jpg",
+  "releaseDate": "2025-07-15"
+}
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# TRACKS
+# ─────────────────────────────────────────────────────────────
+
+### GET all tracks (paginated)
+GET {{baseUrl}}/api/v1/tracks?page=0&size=20
+Accept: application/json
+
+###
+
+### GET tracks filtered by genre
+GET {{baseUrl}}/api/v1/tracks?genre=pop&page=0&size=20
+Accept: application/json
+
+###
+
+### GET tracks filtered by artist
+GET {{baseUrl}}/api/v1/tracks?artistId={{artistId}}&page=0&size=20
+Accept: application/json
+
+###
+
+### GET tracks filtered by album
+GET {{baseUrl}}/api/v1/tracks?albumId={{albumId}}&page=0&size=20
+Accept: application/json
+
+###
+
+### GET popular tracks
+GET {{baseUrl}}/api/v1/tracks/popular?limit=10&genre=pop&period=week
+Accept: application/json
+
+###
+
+### GET popular tracks — all genres, all time
+GET {{baseUrl}}/api/v1/tracks/popular?limit=20&period=all
+Accept: application/json
+
+###
+
+### GET new releases
+GET {{baseUrl}}/api/v1/tracks/new-releases?limit=10
+Accept: application/json
+
+###
+
+### GET track by ID
+GET {{baseUrl}}/api/v1/tracks/{{trackId}}
+Accept: application/json
+
+###
+
+### PUT update track (auth required)
+PUT {{baseUrl}}/api/v1/tracks/{{trackId}}
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "title": "Updated Track Title",
+  "genre": "electronic",
+  "albumId": "{{albumId}}",
+  "releaseDate": "2025-06-08"
+}
+
+###
+
+### DELETE track — soft delete / archive (auth required)
+DELETE {{baseUrl}}/api/v1/tracks/{{trackId}}
+Authorization: {{authToken}}
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# INTERNAL — inter-service endpoints (no auth)
+# ─────────────────────────────────────────────────────────────
+
+### GET internal track by ID
+GET {{baseUrl}}/api/v1/internal/tracks/{{trackId}}
+Accept: application/json
+
+###
+
+### POST batch fetch tracks by IDs (max 200)
+POST {{baseUrl}}/api/v1/internal/tracks/batch
+Content-Type: application/json
+
+[
+  "{{trackId}}",
+  "00000000-0000-0000-0000-000000000004",
+  "00000000-0000-0000-0000-000000000005"
+]
+
+###
+
+### POST publish track from upload (Saga step / TranscodeCompletedEvent)
+POST {{baseUrl}}/api/v1/internal/tracks/publish
+Content-Type: application/json
+
+{
+  "uploadJobId": "job-abc-123",
+  "uploaderId": "{{artistId}}",
+  "title": "Brand New Track",
+  "durationMs": 213000,
+  "genre": "hip-hop",
+  "albumId": null,
+  "waveformUrl": "https://cdn.example.com/waveforms/track1.json",
+  "assets": [
+    {
+      "bitrate": 128,
+      "format": "mp3",
+      "storageUrl": "https://cdn.example.com/audio/track1-128.mp3",
+      "sizeBytes": 3407872
+    },
+    {
+      "bitrate": 320,
+      "format": "mp3",
+      "storageUrl": "https://cdn.example.com/audio/track1-320.mp3",
+      "sizeBytes": 8519680
+    },
+    {
+      "bitrate": 0,
+      "format": "flac",
+      "storageUrl": "https://cdn.example.com/audio/track1.flac",
+      "sizeBytes": 27262976
+    }
+  ]
+}
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# ACTUATOR
+# ─────────────────────────────────────────────────────────────
+
+### Health check
+GET {{baseUrl}}/actuator/health
+Accept: application/json
+
+###
+
+### Metrics
+GET {{baseUrl}}/actuator/metrics
+Accept: application/json
+
+###

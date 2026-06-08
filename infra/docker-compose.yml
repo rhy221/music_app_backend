@@ -171,7 +171,7 @@ services:
 
   # RabbitMQ — init: create topic exchanges after broker is ready
   rabbitmq-init:
-    image: curlimages/curl:8
+    image: curlimages/curl:latest
     container_name: music-rabbitmq-init
     depends_on:
       rabbitmq:

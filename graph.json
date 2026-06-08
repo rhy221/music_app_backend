@@ -1,0 +1,3274 @@
+{
+  "graph": {
+    "nodes": {
+      "notification-api-client": {
+        "name": "notification-api-client",
+        "type": "lib",
+        "data": {
+          "root": "libs/api-clients/typescript/notification-api-client",
+          "targets": {
+            "typecheck": {
+              "dependsOn": [
+                "build",
+                "^typecheck"
+              ],
+              "options": {
+                "cwd": "libs/api-clients/typescript/notification-api-client",
+                "command": "tsc --build tsconfig.json --emitDeclarationOnly"
+              },
+              "cache": true,
+              "inputs": [
+                "production",
+                {
+                  "dependentTasksOutputFiles": "**/*.{d.ts,d.cts,d.mts,tsbuildinfo}",
+                  "transitive": true
+                },
+                {
+                  "fileset": "{projectRoot}/**/*.{d.ts,d.cts,d.mts}",
+                  "dependencies": true
+                },
+                "^{projectRoot}/../../../../../../../libs/api-clients/typescript/notification-api-client/tsconfig.lib.json"
+              ],
+              "outputs": [
+                "{projectRoot}/tsconfig.tsbuildinfo"
+              ],
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "metadata": {
+                "technologies": [
+                  "typescript"
+                ],
+                "description": "Runs type-checking for the project.",
+                "help": {
+                  "command": "pnpm exec tsc --build --help",
+                  "example": {
+                    "args": [
+                      "--force"
+                    ]
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "build": {
+              "dependsOn": [
+                "^build"
+              ],
+              "options": {
+                "cwd": "libs/api-clients/typescript/notification-api-client",
+                "command": "tsc --build tsconfig.lib.json"
+              },
+              "cache": true,
+              "inputs": [
+                "production",
+                "^production"
+              ],
+              "outputs": [
+                "{projectRoot}/dist/**/*.{js,cjs,mjs,jsx,d.ts,d.cts,d.mts}{,.map}",
+                "{projectRoot}/dist/tsconfig.lib.tsbuildinfo"
+              ],
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "metadata": {
+                "technologies": [
+                  "typescript"
+                ],
+                "description": "Builds the project with `tsc`.",
+                "help": {
+                  "command": "pnpm exec tsc --build --help",
+                  "example": {
+                    "args": [
+                      "--force"
+                    ]
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "build-deps": {
+              "dependsOn": [
+                "^build"
+              ],
+              "configurations": {},
+              "options": {},
+              "parallelism": true,
+              "executor": "nx:noop"
+            },
+            "watch-deps": {
+              "continuous": true,
+              "dependsOn": [
+                "build-deps"
+              ],
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "pnpm exec nx watch --projects notification-api-client --includeDependentProjects -- pnpm exec nx build-deps notification-api-client"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "lint": {
+              "cache": true,
+              "options": {
+                "cwd": "libs/api-clients/typescript/notification-api-client",
+                "command": "eslint ."
+              },
+              "inputs": [
+                "default",
+                "^default",
+                "{workspaceRoot}/eslint.config.mjs",
+                "{workspaceRoot}/tools/eslint-rules/**/*",
+                {
+                  "externalDependencies": [
+                    "eslint"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{options.outputFile}"
+              ],
+              "metadata": {
+                "technologies": [
+                  "eslint"
+                ],
+                "description": "Runs ESLint on project",
+                "help": {
+                  "command": "pnpm exec eslint --help",
+                  "example": {
+                    "options": {
+                      "max-warnings": 0
+                    }
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "generate": {
+              "executor": "nx:run-commands",
+              "outputs": [
+                "{projectRoot}/generated"
+              ],
+              "inputs": [
+                "{workspaceRoot}/libs/api-specs/notification-service.openapi.yaml",
+                "{projectRoot}/openapi-ts.config.ts"
+              ],
+              "options": {
+                "command": "npx @hey-api/openapi-ts",
+                "cwd": "libs/api-clients/typescript/notification-api-client"
+              },
+              "cache": true,
+              "configurations": {},
+              "parallelism": true
+            }
+          },
+          "name": "notification-api-client",
+          "tags": [
+            "npm:private"
+          ],
+          "metadata": {
+            "targetGroups": {},
+            "js": {
+              "packageName": "@org/notification-api-client",
+              "packageVersion": "0.0.1",
+              "packageExports": {
+                "./package.json": "./package.json",
+                ".": {
+                  "@org/source": "./src/index.ts",
+                  "types": "./dist/index.d.ts",
+                  "import": "./dist/index.js",
+                  "default": "./dist/index.js"
+                }
+              },
+              "packageMain": "./dist/index.js",
+              "isInPackageManagerWorkspaces": true
+            }
+          },
+          "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "library",
+          "sourceRoot": "libs/api-clients/typescript/notification-api-client/src",
+          "implicitDependencies": []
+        }
+      },
+      "search-api-client": {
+        "name": "search-api-client",
+        "type": "lib",
+        "data": {
+          "root": "libs/api-clients/typescript/search-api-client",
+          "targets": {
+            "typecheck": {
+              "dependsOn": [
+                "build",
+                "^typecheck"
+              ],
+              "options": {
+                "cwd": "libs/api-clients/typescript/search-api-client",
+                "command": "tsc --build tsconfig.json --emitDeclarationOnly"
+              },
+              "cache": true,
+              "inputs": [
+                "production",
+                {
+                  "dependentTasksOutputFiles": "**/*.{d.ts,d.cts,d.mts,tsbuildinfo}",
+                  "transitive": true
+                },
+                {
+                  "fileset": "{projectRoot}/**/*.{d.ts,d.cts,d.mts}",
+                  "dependencies": true
+                },
+                "^{projectRoot}/../../../../../../../libs/api-clients/typescript/search-api-client/tsconfig.lib.json"
+              ],
+              "outputs": [
+                "{projectRoot}/tsconfig.tsbuildinfo"
+              ],
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "metadata": {
+                "technologies": [
+                  "typescript"
+                ],
+                "description": "Runs type-checking for the project.",
+                "help": {
+                  "command": "pnpm exec tsc --build --help",
+                  "example": {
+                    "args": [
+                      "--force"
+                    ]
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "build": {
+              "dependsOn": [
+                "^build"
+              ],
+              "options": {
+                "cwd": "libs/api-clients/typescript/search-api-client",
+                "command": "tsc --build tsconfig.lib.json"
+              },
+              "cache": true,
+              "inputs": [
+                "production",
+                "^production"
+              ],
+              "outputs": [
+                "{projectRoot}/dist/**/*.{js,cjs,mjs,jsx,d.ts,d.cts,d.mts}{,.map}",
+                "{projectRoot}/dist/tsconfig.lib.tsbuildinfo"
+              ],
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "metadata": {
+                "technologies": [
+                  "typescript"
+                ],
+                "description": "Builds the project with `tsc`.",
+                "help": {
+                  "command": "pnpm exec tsc --build --help",
+                  "example": {
+                    "args": [
+                      "--force"
+                    ]
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "build-deps": {
+              "dependsOn": [
+                "^build"
+              ],
+              "configurations": {},
+              "options": {},
+              "parallelism": true,
+              "executor": "nx:noop"
+            },
+            "watch-deps": {
+              "continuous": true,
+              "dependsOn": [
+                "build-deps"
+              ],
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "pnpm exec nx watch --projects search-api-client --includeDependentProjects -- pnpm exec nx build-deps search-api-client"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "lint": {
+              "cache": true,
+              "options": {
+                "cwd": "libs/api-clients/typescript/search-api-client",
+                "command": "eslint ."
+              },
+              "inputs": [
+                "default",
+                "^default",
+                "{workspaceRoot}/eslint.config.mjs",
+                "{workspaceRoot}/tools/eslint-rules/**/*",
+                {
+                  "externalDependencies": [
+                    "eslint"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{options.outputFile}"
+              ],
+              "metadata": {
+                "technologies": [
+                  "eslint"
+                ],
+                "description": "Runs ESLint on project",
+                "help": {
+                  "command": "pnpm exec eslint --help",
+                  "example": {
+                    "options": {
+                      "max-warnings": 0
+                    }
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "generate": {
+              "executor": "nx:run-commands",
+              "outputs": [
+                "{projectRoot}/generated"
+              ],
+              "inputs": [
+                "{workspaceRoot}/libs/api-specs/search-service.openapi.yaml",
+                "{projectRoot}/openapi-ts.config.ts"
+              ],
+              "options": {
+                "command": "npx @hey-api/openapi-ts",
+                "cwd": "libs/api-clients/typescript/search-api-client"
+              },
+              "cache": true,
+              "configurations": {},
+              "parallelism": true
+            }
+          },
+          "name": "search-api-client",
+          "tags": [
+            "npm:private"
+          ],
+          "metadata": {
+            "targetGroups": {},
+            "js": {
+              "packageName": "@org/search-api-client",
+              "packageVersion": "0.0.1",
+              "packageExports": {
+                "./package.json": "./package.json",
+                ".": {
+                  "@org/source": "./src/index.ts",
+                  "types": "./dist/index.d.ts",
+                  "import": "./dist/index.js",
+                  "default": "./dist/index.js"
+                }
+              },
+              "packageMain": "./dist/index.js",
+              "isInPackageManagerWorkspaces": true
+            }
+          },
+          "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "library",
+          "sourceRoot": "libs/api-clients/typescript/search-api-client/src",
+          "implicitDependencies": []
+        }
+      },
+      "recommend-api-client": {
+        "name": "recommend-api-client",
+        "type": "app",
+        "data": {
+          "root": "libs/api-clients/python/recommend-api-client",
+          "name": "recommend-api-client",
+          "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "application",
+          "sourceRoot": "libs/api-clients/python/recommend-api-client/libs/recommend_api_client",
+          "release": {
+            "version": {
+              "versionActions": "@nxlv/python/release/version-actions"
+            }
+          },
+          "tags": [],
+          "targets": {
+            "generate": {
+              "executor": "nx:run-commands",
+              "outputs": [
+                "{projectRoot}/generated"
+              ],
+              "inputs": [
+                "{workspaceRoot}/libs/api-specs/recommend-service.openapi.yaml",
+                "{projectRoot}/openapi-python-client-config.yaml"
+              ],
+              "options": {
+                "command": ".venv\\Scripts\\openapi-python-client generate --path ../../../api-specs/recommend-service.openapi.yaml --config openapi-python-client-config.yaml --output-path ./generated --meta none --overwrite",
+                "cwd": "libs/api-clients/python/recommend-api-client"
+              },
+              "cache": true,
+              "configurations": {},
+              "parallelism": true
+            },
+            "lock": {
+              "executor": "@nxlv/python:lock",
+              "options": {
+                "update": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "sync": {
+              "executor": "@nxlv/python:sync",
+              "options": {},
+              "configurations": {},
+              "parallelism": true
+            },
+            "add": {
+              "executor": "@nxlv/python:add",
+              "options": {},
+              "configurations": {},
+              "parallelism": true
+            },
+            "update": {
+              "executor": "@nxlv/python:update",
+              "options": {},
+              "configurations": {},
+              "parallelism": true
+            },
+            "remove": {
+              "executor": "@nxlv/python:remove",
+              "options": {},
+              "configurations": {},
+              "parallelism": true
+            },
+            "build": {
+              "executor": "@nxlv/python:build",
+              "outputs": [
+                "{projectRoot}/dist"
+              ],
+              "options": {
+                "outputPath": "libs/api-clients/python/recommend-api-client/dist",
+                "publish": false,
+                "lockedVersions": true,
+                "bundleLocalDependencies": true
+              },
+              "cache": true,
+              "configurations": {},
+              "parallelism": true,
+              "dependsOn": [
+                "^build"
+              ],
+              "inputs": [
+                "production",
+                "^production"
+              ]
+            },
+            "lint": {
+              "executor": "@nxlv/python:flake8",
+              "outputs": [
+                "{workspaceRoot}/reports/{projectRoot}/pylint.txt"
+              ],
+              "options": {
+                "outputFile": "reports/libs/api-clients/python/recommend-api-client/pylint.txt"
+              },
+              "cache": true,
+              "configurations": {},
+              "parallelism": true
+            },
+            "test": {
+              "executor": "@nxlv/python:run-commands",
+              "outputs": [
+                "{workspaceRoot}/reports/{projectRoot}/unittests",
+                "{workspaceRoot}/coverage/{projectRoot}"
+              ],
+              "options": {
+                "command": "poetry run pytest tests/",
+                "cwd": "libs/api-clients/python/recommend-api-client"
+              },
+              "cache": true,
+              "configurations": {},
+              "parallelism": true,
+              "dependsOn": [
+                "^build"
+              ]
+            },
+            "install": {
+              "executor": "@nxlv/python:install",
+              "options": {
+                "silent": false,
+                "args": "",
+                "cacheDir": ".cache/pypoetry",
+                "verbose": false,
+                "debug": false
+              },
+              "configurations": {},
+              "parallelism": true
+            }
+          },
+          "implicitDependencies": []
+        }
+      },
+      "playlist-api-client": {
+        "name": "playlist-api-client",
+        "type": "lib",
+        "data": {
+          "root": "libs/api-clients/java/playlist-api-client",
+          "name": "playlist-api-client",
+          "tags": [
+            "nx-gradle"
+          ],
+          "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "library",
+          "sourceRoot": "libs/api-clients/java/playlist-api-client/src",
+          "targets": {
+            "generate": {
+              "executor": "@jnxplus/nx-gradle:run-task",
+              "outputs": [
+                "{projectRoot}/generated"
+              ],
+              "inputs": [
+                "{workspaceRoot}/libs/api-specs/playlist-service.openapi.yaml"
+              ],
+              "options": {
+                "task": "openApiGenerate"
+              },
+              "cache": true,
+              "configurations": {},
+              "parallelism": true
+            },
+            "build": {
+              "executor": "@jnxplus/nx-gradle:run-task",
+              "outputs": [
+                "{projectRoot}/build"
+              ],
+              "options": {
+                "task": "jar"
+              },
+              "configurations": {},
+              "parallelism": true,
+              "cache": true,
+              "dependsOn": [
+                "^build"
+              ],
+              "inputs": [
+                "production",
+                "^production"
+              ]
+            },
+            "test": {
+              "executor": "@jnxplus/nx-gradle:run-task",
+              "options": {
+                "task": "test"
+              },
+              "configurations": {},
+              "parallelism": true,
+              "dependsOn": [
+                "^build"
+              ]
+            }
+          },
+          "implicitDependencies": []
+        }
+      },
+      "catalog-api-client": {
+        "name": "catalog-api-client",
+        "type": "lib",
+        "data": {
+          "root": "libs/api-clients/java/catalog-api-client",
+          "name": "catalog-api-client",
+          "tags": [
+            "nx-gradle"
+          ],
+          "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "library",
+          "sourceRoot": "libs/api-clients/java/catalog-api-client/src",
+          "targets": {
+            "generate": {
+              "executor": "@jnxplus/nx-gradle:run-task",
+              "outputs": [
+                "{projectRoot}/generated"
+              ],
+              "inputs": [
+                "{workspaceRoot}/libs/api-specs/catalog-service.openapi.yaml"
+              ],
+              "options": {
+                "task": "openApiGenerate"
+              },
+              "cache": true,
+              "configurations": {},
+              "parallelism": true
+            },
+            "build": {
+              "executor": "@jnxplus/nx-gradle:run-task",
+              "outputs": [
+                "{projectRoot}/build"
+              ],
+              "options": {
+                "task": "jar"
+              },
+              "configurations": {},
+              "parallelism": true,
+              "cache": true,
+              "dependsOn": [
+                "^build"
+              ],
+              "inputs": [
+                "production",
+                "^production"
+              ]
+            },
+            "test": {
+              "executor": "@jnxplus/nx-gradle:run-task",
+              "options": {
+                "task": "test"
+              },
+              "configurations": {},
+              "parallelism": true,
+              "dependsOn": [
+                "^build"
+              ]
+            }
+          },
+          "implicitDependencies": []
+        }
+      },
+      "streaming-api-client": {
+        "name": "streaming-api-client",
+        "type": "lib",
+        "data": {
+          "root": "libs/api-clients/go/streaming-api-client",
+          "name": "streaming-api-client",
+          "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "library",
+          "sourceRoot": "libs/api-clients/go/streaming-api-client",
+          "tags": [],
+          "targets": {
+            "generate": {
+              "executor": "nx:run-commands",
+              "outputs": [
+                "{projectRoot}/generated"
+              ],
+              "inputs": [
+                "{workspaceRoot}/libs/api-specs/streaming-service.openapi.yaml",
+                "{projectRoot}/oapi-codegen.yaml"
+              ],
+              "options": {
+                "command": "go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest --config oapi-codegen.yaml ../../../api-specs/streaming-service.openapi.yaml",
+                "cwd": "libs/api-clients/go/streaming-api-client"
+              },
+              "cache": true,
+              "configurations": {},
+              "parallelism": true
+            }
+          },
+          "implicitDependencies": []
+        }
+      },
+      "upload-api-client": {
+        "name": "upload-api-client",
+        "type": "lib",
+        "data": {
+          "root": "libs/api-clients/go/upload-api-client",
+          "name": "upload-api-client",
+          "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "library",
+          "sourceRoot": "libs/api-clients/go/upload-api-client",
+          "tags": [],
+          "targets": {
+            "generate": {
+              "executor": "nx:run-commands",
+              "outputs": [
+                "{projectRoot}/generated"
+              ],
+              "inputs": [
+                "{workspaceRoot}/libs/api-specs/upload-service.openapi.yaml",
+                "{projectRoot}/oapi-codegen.yaml"
+              ],
+              "options": {
+                "command": "go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest --config oapi-codegen.yaml ../../../api-specs/upload-service.openapi.yaml",
+                "cwd": "libs/api-clients/go/upload-api-client"
+              },
+              "cache": true,
+              "configurations": {},
+              "parallelism": true
+            }
+          },
+          "implicitDependencies": []
+        }
+      },
+      "user-api-client": {
+        "name": "user-api-client",
+        "type": "lib",
+        "data": {
+          "root": "libs/api-clients/java/user-api-client",
+          "name": "user-api-client",
+          "tags": [
+            "nx-gradle"
+          ],
+          "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "library",
+          "sourceRoot": "libs/api-clients/java/user-api-client/src",
+          "targets": {
+            "generate": {
+              "executor": "@jnxplus/nx-gradle:run-task",
+              "outputs": [
+                "{projectRoot}/generated"
+              ],
+              "inputs": [
+                "{workspaceRoot}/libs/api-specs/user-service.openapi.yaml"
+              ],
+              "options": {
+                "task": "openApiGenerate"
+              },
+              "cache": true,
+              "configurations": {},
+              "parallelism": true
+            },
+            "build": {
+              "executor": "@jnxplus/nx-gradle:run-task",
+              "outputs": [
+                "{projectRoot}/build"
+              ],
+              "options": {
+                "task": "jar"
+              },
+              "configurations": {},
+              "parallelism": true,
+              "cache": true,
+              "dependsOn": [
+                "^build"
+              ],
+              "inputs": [
+                "production",
+                "^production"
+              ]
+            },
+            "test": {
+              "executor": "@jnxplus/nx-gradle:run-task",
+              "options": {
+                "task": "test"
+              },
+              "configurations": {},
+              "parallelism": true,
+              "dependsOn": [
+                "^build"
+              ]
+            }
+          },
+          "implicitDependencies": []
+        }
+      },
+      "music-events": {
+        "name": "music-events",
+        "type": "lib",
+        "data": {
+          "root": "libs/events/typescript/music-events",
+          "targets": {
+            "typecheck": {
+              "dependsOn": [
+                "build",
+                "^typecheck"
+              ],
+              "options": {
+                "cwd": "libs/events/typescript/music-events",
+                "command": "tsc --build tsconfig.json --emitDeclarationOnly"
+              },
+              "cache": true,
+              "inputs": [
+                "production",
+                {
+                  "dependentTasksOutputFiles": "**/*.{d.ts,d.cts,d.mts,tsbuildinfo}",
+                  "transitive": true
+                },
+                {
+                  "fileset": "{projectRoot}/**/*.{d.ts,d.cts,d.mts}",
+                  "dependencies": true
+                },
+                "^{projectRoot}/../../../../../../../libs/events/typescript/music-events/tsconfig.lib.json",
+                "^{projectRoot}/tsconfig.json"
+              ],
+              "outputs": [
+                "{projectRoot}/tsconfig.tsbuildinfo"
+              ],
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "metadata": {
+                "technologies": [
+                  "typescript"
+                ],
+                "description": "Runs type-checking for the project.",
+                "help": {
+                  "command": "pnpm exec tsc --build --help",
+                  "example": {
+                    "args": [
+                      "--force"
+                    ]
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "build": {
+              "dependsOn": [
+                "^build"
+              ],
+              "options": {
+                "cwd": "libs/events/typescript/music-events",
+                "command": "tsc --build tsconfig.lib.json"
+              },
+              "cache": true,
+              "inputs": [
+                "production",
+                "^production"
+              ],
+              "outputs": [
+                "{workspaceRoot}/dist/libs/events/typescript/music-events/**/*.{d.ts,d.cts,d.mts}",
+                "{workspaceRoot}/dist/libs/events/typescript/music-events/**/*.{d.ts,d.cts,d.mts}.map",
+                "{workspaceRoot}/dist/libs/events/typescript/music-events/tsconfig.lib.tsbuildinfo"
+              ],
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "metadata": {
+                "technologies": [
+                  "typescript"
+                ],
+                "description": "Builds the project with `tsc`.",
+                "help": {
+                  "command": "pnpm exec tsc --build --help",
+                  "example": {
+                    "args": [
+                      "--force"
+                    ]
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "build-deps": {
+              "dependsOn": [
+                "^build"
+              ],
+              "configurations": {},
+              "options": {},
+              "parallelism": true,
+              "executor": "nx:noop"
+            },
+            "watch-deps": {
+              "continuous": true,
+              "dependsOn": [
+                "build-deps"
+              ],
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "pnpm exec nx watch --projects music-events --includeDependentProjects -- pnpm exec nx build-deps music-events"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "lint": {
+              "cache": true,
+              "options": {
+                "cwd": "libs/events/typescript/music-events",
+                "command": "eslint ."
+              },
+              "inputs": [
+                "default",
+                "^default",
+                "{workspaceRoot}/eslint.config.mjs",
+                "{workspaceRoot}/tools/eslint-rules/**/*",
+                {
+                  "externalDependencies": [
+                    "eslint"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{options.outputFile}"
+              ],
+              "metadata": {
+                "technologies": [
+                  "eslint"
+                ],
+                "description": "Runs ESLint on project",
+                "help": {
+                  "command": "pnpm exec eslint --help",
+                  "example": {
+                    "options": {
+                      "max-warnings": 0
+                    }
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            }
+          },
+          "name": "music-events",
+          "tags": [
+            "npm:private",
+            "lang:typescript",
+            "type:events"
+          ],
+          "metadata": {
+            "targetGroups": {},
+            "js": {
+              "packageName": "@org/music-events",
+              "packageVersion": "0.0.1",
+              "packageExports": {
+                "./package.json": "./package.json",
+                ".": {
+                  "@org/source": "./src/index.ts",
+                  "types": "./dist/index.d.ts",
+                  "import": "./dist/index.js",
+                  "default": "./dist/index.js"
+                }
+              },
+              "packageMain": "./dist/index.js",
+              "isInPackageManagerWorkspaces": true
+            }
+          },
+          "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "library",
+          "sourceRoot": "libs/events/typescript/music-events/src",
+          "implicitDependencies": []
+        }
+      },
+      "@org/notification-service-e2e": {
+        "name": "@org/notification-service-e2e",
+        "type": "app",
+        "data": {
+          "root": "services/notification-service-e2e",
+          "targets": {
+            "typecheck": {
+              "dependsOn": [
+                "^typecheck"
+              ],
+              "options": {
+                "cwd": "services/notification-service-e2e",
+                "command": "tsc --build tsconfig.json --emitDeclarationOnly"
+              },
+              "cache": true,
+              "inputs": [
+                "{projectRoot}/package.json",
+                "{workspaceRoot}/tsconfig.base.json",
+                "{projectRoot}/tsconfig.json",
+                "{projectRoot}/jest.config.ts",
+                "{projectRoot}/src/**/*.ts",
+                {
+                  "dependentTasksOutputFiles": "**/*.{d.ts,d.cts,d.mts,tsbuildinfo}",
+                  "transitive": true
+                },
+                {
+                  "fileset": "{projectRoot}/**/*.{d.ts,d.cts,d.mts}",
+                  "dependencies": true
+                }
+              ],
+              "outputs": [
+                "{projectRoot}/out-tsc/@org/notification-service-e2e/**/*.{d.ts,d.cts,d.mts}",
+                "{projectRoot}/out-tsc/@org/notification-service-e2e/**/*.{d.ts,d.cts,d.mts}.map",
+                "{projectRoot}/out-tsc/@org/notification-service-e2e/tsconfig.tsbuildinfo"
+              ],
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "metadata": {
+                "technologies": [
+                  "typescript"
+                ],
+                "description": "Runs type-checking for the project.",
+                "help": {
+                  "command": "pnpm exec tsc --build --help",
+                  "example": {
+                    "args": [
+                      "--force"
+                    ]
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "lint": {
+              "cache": true,
+              "options": {
+                "cwd": "services/notification-service-e2e",
+                "command": "eslint ."
+              },
+              "inputs": [
+                "default",
+                "^default",
+                "{workspaceRoot}/eslint.config.mjs",
+                "{workspaceRoot}/services/notification-service-e2e/eslint.config.mjs",
+                "{workspaceRoot}/tools/eslint-rules/**/*",
+                {
+                  "externalDependencies": [
+                    "eslint"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{options.outputFile}"
+              ],
+              "metadata": {
+                "technologies": [
+                  "eslint"
+                ],
+                "description": "Runs ESLint on project",
+                "help": {
+                  "command": "pnpm exec eslint --help",
+                  "example": {
+                    "options": {
+                      "max-warnings": 0
+                    }
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "e2e": {
+              "executor": "@nx/jest:jest",
+              "outputs": [
+                "{projectRoot}/test-output/jest/coverage"
+              ],
+              "options": {
+                "jestConfig": "services/notification-service-e2e/jest.config.cts",
+                "passWithNoTests": true
+              },
+              "dependsOn": [
+                "@org/notification-service:build",
+                "@org/notification-service:serve"
+              ],
+              "configurations": {},
+              "parallelism": true
+            }
+          },
+          "name": "@org/notification-service-e2e",
+          "tags": [
+            "npm:private"
+          ],
+          "implicitDependencies": [
+            "@org/notification-service"
+          ],
+          "metadata": {
+            "targetGroups": {},
+            "js": {
+              "packageName": "@org/notification-service-e2e",
+              "packageVersion": "0.0.1",
+              "isInPackageManagerWorkspaces": true
+            }
+          }
+        }
+      },
+      "music-events-python": {
+        "name": "music-events-python",
+        "type": "lib",
+        "data": {
+          "root": "libs/events/python/music-events",
+          "name": "music-events-python",
+          "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "library",
+          "sourceRoot": "libs/events/python/music-events/music_events",
+          "tags": [
+            "lang:python",
+            "type:events"
+          ],
+          "targets": {
+            "install": {
+              "executor": "@nxlv/python:install",
+              "options": {
+                "silent": false,
+                "args": "",
+                "cacheDir": ".cache/pypoetry",
+                "verbose": false,
+                "debug": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "lint": {
+              "executor": "@nxlv/python:flake8",
+              "outputs": [
+                "{workspaceRoot}/reports/{projectRoot}/pylint.txt"
+              ],
+              "options": {
+                "outputFile": "reports/libs/events/python/music-events/pylint.txt"
+              },
+              "cache": true,
+              "configurations": {},
+              "parallelism": true
+            },
+            "test": {
+              "executor": "@nxlv/python:run-commands",
+              "outputs": [
+                "{workspaceRoot}/reports/{projectRoot}/unittests",
+                "{workspaceRoot}/coverage/{projectRoot}"
+              ],
+              "options": {
+                "command": "poetry run pytest tests/",
+                "cwd": "libs/events/python/music-events"
+              },
+              "cache": true,
+              "configurations": {},
+              "parallelism": true,
+              "dependsOn": [
+                "^build"
+              ]
+            }
+          },
+          "implicitDependencies": []
+        }
+      },
+      "@org/notification-service": {
+        "name": "@org/notification-service",
+        "type": "app",
+        "data": {
+          "root": "services/notification-service",
+          "targets": {
+            "typecheck": {
+              "dependsOn": [
+                "^typecheck"
+              ],
+              "options": {
+                "cwd": "services/notification-service",
+                "command": "tsc --build tsconfig.json --emitDeclarationOnly"
+              },
+              "cache": true,
+              "inputs": [
+                "production",
+                {
+                  "dependentTasksOutputFiles": "**/*.{d.ts,d.cts,d.mts,tsbuildinfo}",
+                  "transitive": true
+                },
+                {
+                  "fileset": "{projectRoot}/**/*.{d.ts,d.cts,d.mts}",
+                  "dependencies": true
+                },
+                "^{projectRoot}/../../../../../services/notification-service/tsconfig.app.json",
+                "^{projectRoot}/../../../../../services/notification-service/tsconfig.spec.json"
+              ],
+              "outputs": [
+                "{projectRoot}/tsconfig.tsbuildinfo"
+              ],
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "metadata": {
+                "technologies": [
+                  "typescript"
+                ],
+                "description": "Runs type-checking for the project.",
+                "help": {
+                  "command": "pnpm exec tsc --build --help",
+                  "example": {
+                    "args": [
+                      "--force"
+                    ]
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "build": {
+              "cache": true,
+              "dependsOn": [
+                "^build"
+              ],
+              "inputs": [
+                "production",
+                "^production"
+              ],
+              "outputs": [
+                "{workspaceRoot}/services\\notification-service\\dist"
+              ],
+              "metadata": {
+                "technologies": [
+                  "webpack"
+                ],
+                "description": "Runs Webpack build",
+                "help": {
+                  "command": "pnpm exec webpack-cli build --help",
+                  "example": {
+                    "options": {
+                      "json": "stats.json"
+                    },
+                    "args": [
+                      "--profile"
+                    ]
+                  }
+                }
+              },
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "executor": "nx:run-commands",
+              "options": {
+                "cwd": "services/notification-service",
+                "args": [
+                  "--node-env=production"
+                ],
+                "command": "webpack-cli build"
+              },
+              "configurations": {
+                "development": {
+                  "args": [
+                    "--node-env=development"
+                  ]
+                }
+              },
+              "parallelism": true
+            },
+            "serve": {
+              "continuous": true,
+              "executor": "@nx/js:node",
+              "defaultConfiguration": "development",
+              "dependsOn": [
+                "build"
+              ],
+              "options": {
+                "buildTarget": "@org/notification-service:build",
+                "runBuildTargetDependencies": false
+              },
+              "configurations": {
+                "development": {
+                  "buildTarget": "@org/notification-service:build:development"
+                },
+                "production": {
+                  "buildTarget": "@org/notification-service:build:production"
+                }
+              },
+              "parallelism": true
+            },
+            "preview": {
+              "continuous": true,
+              "options": {
+                "cwd": "services/notification-service",
+                "args": [
+                  "--node-env=production"
+                ],
+                "command": "webpack-cli serve"
+              },
+              "metadata": {
+                "technologies": [
+                  "webpack"
+                ],
+                "description": "Starts Webpack dev server in production mode",
+                "help": {
+                  "command": "pnpm exec webpack-cli serve --help",
+                  "example": {
+                    "options": {
+                      "args": [
+                        "--client-progress",
+                        "--history-api-fallback "
+                      ]
+                    }
+                  }
+                }
+              },
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "serve-static": {
+              "continuous": true,
+              "dependsOn": [
+                "build"
+              ],
+              "executor": "@nx/web:file-server",
+              "options": {
+                "buildTarget": "build",
+                "spa": true
+              },
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "configurations": {},
+              "parallelism": true
+            },
+            "build-deps": {
+              "dependsOn": [
+                "^build"
+              ],
+              "configurations": {},
+              "options": {},
+              "parallelism": true,
+              "executor": "nx:noop"
+            },
+            "watch-deps": {
+              "continuous": true,
+              "dependsOn": [
+                "build-deps"
+              ],
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "pnpm exec nx watch --projects @org/notification-service --includeDependentProjects -- pnpm exec nx build-deps @org/notification-service"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "lint": {
+              "cache": true,
+              "options": {
+                "cwd": "services/notification-service",
+                "command": "eslint ."
+              },
+              "inputs": [
+                "default",
+                "^default",
+                "{workspaceRoot}/eslint.config.mjs",
+                "{workspaceRoot}/services/notification-service/eslint.config.mjs",
+                "{workspaceRoot}/tools/eslint-rules/**/*",
+                {
+                  "externalDependencies": [
+                    "eslint"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{options.outputFile}"
+              ],
+              "metadata": {
+                "technologies": [
+                  "eslint"
+                ],
+                "description": "Runs ESLint on project",
+                "help": {
+                  "command": "pnpm exec eslint --help",
+                  "example": {
+                    "options": {
+                      "max-warnings": 0
+                    }
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "test": {
+              "metadata": {
+                "technologies": [
+                  "jest"
+                ],
+                "description": "Run Jest Tests",
+                "help": {
+                  "command": "pnpm exec jest --help",
+                  "example": {
+                    "options": {
+                      "coverage": true
+                    }
+                  }
+                }
+              },
+              "cache": true,
+              "inputs": [
+                "default",
+                "^production",
+                "{workspaceRoot}/jest.preset.js",
+                {
+                  "externalDependencies": [
+                    "jest",
+                    "@nx/jest",
+                    "ts-jest",
+                    "@swc/jest"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{projectRoot}\\test-output\\jest\\coverage"
+              ],
+              "executor": "nx:run-commands",
+              "options": {
+                "cwd": "services/notification-service",
+                "env": {
+                  "TS_NODE_COMPILER_OPTIONS": "{\"moduleResolution\":\"node10\",\"module\":\"commonjs\",\"customConditions\":null}"
+                },
+                "command": "jest",
+                "passWithNoTests": true
+              },
+              "configurations": {},
+              "parallelism": true,
+              "dependsOn": [
+                "^build"
+              ]
+            },
+            "prune-lockfile": {
+              "dependsOn": [
+                "build"
+              ],
+              "cache": true,
+              "executor": "@nx/js:prune-lockfile",
+              "outputs": [
+                "{workspaceRoot}/services/notification-service/dist/package.json",
+                "{workspaceRoot}/services/notification-service/dist/package-lock.json"
+              ],
+              "options": {
+                "buildTarget": "build"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "copy-workspace-modules": {
+              "dependsOn": [
+                "build"
+              ],
+              "cache": true,
+              "outputs": [
+                "{workspaceRoot}/services/notification-service/dist/workspace_modules"
+              ],
+              "executor": "@nx/js:copy-workspace-modules",
+              "options": {
+                "buildTarget": "build"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "prune": {
+              "dependsOn": [
+                "prune-lockfile",
+                "copy-workspace-modules"
+              ],
+              "executor": "nx:noop",
+              "configurations": {},
+              "options": {},
+              "parallelism": true
+            }
+          },
+          "projectType": "application",
+          "metadata": {
+            "targetGroups": {},
+            "js": {
+              "packageName": "@org/notification-service",
+              "packageVersion": "0.0.1",
+              "isInPackageManagerWorkspaces": true
+            }
+          },
+          "name": "@org/notification-service",
+          "tags": [
+            "npm:private"
+          ],
+          "implicitDependencies": []
+        }
+      },
+      "music-events-java": {
+        "name": "music-events-java",
+        "type": "lib",
+        "data": {
+          "root": "libs/events/java/music-events",
+          "name": "music-events-java",
+          "tags": [
+            "nx-gradle",
+            "lang:java",
+            "type:events"
+          ],
+          "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "library",
+          "sourceRoot": "libs/events/java/music-events/src",
+          "targets": {
+            "build": {
+              "executor": "@jnxplus/nx-gradle:run-task",
+              "outputs": [
+                "{projectRoot}/build"
+              ],
+              "options": {
+                "task": "jar"
+              },
+              "configurations": {},
+              "parallelism": true,
+              "cache": true,
+              "dependsOn": [
+                "^build"
+              ],
+              "inputs": [
+                "production",
+                "^production"
+              ]
+            },
+            "test": {
+              "executor": "@jnxplus/nx-gradle:run-task",
+              "options": {
+                "task": "test"
+              },
+              "configurations": {},
+              "parallelism": true,
+              "dependsOn": [
+                "^build"
+              ]
+            }
+          },
+          "implicitDependencies": []
+        }
+      },
+      "@org/search-service-e2e": {
+        "name": "@org/search-service-e2e",
+        "type": "app",
+        "data": {
+          "root": "services/search-service-e2e",
+          "targets": {
+            "typecheck": {
+              "dependsOn": [
+                "^typecheck"
+              ],
+              "options": {
+                "cwd": "services/search-service-e2e",
+                "command": "tsc --build tsconfig.json --emitDeclarationOnly"
+              },
+              "cache": true,
+              "inputs": [
+                "{projectRoot}/package.json",
+                "{workspaceRoot}/tsconfig.base.json",
+                "{projectRoot}/tsconfig.json",
+                "{projectRoot}/jest.config.ts",
+                "{projectRoot}/src/**/*.ts",
+                {
+                  "dependentTasksOutputFiles": "**/*.{d.ts,d.cts,d.mts,tsbuildinfo}",
+                  "transitive": true
+                },
+                {
+                  "fileset": "{projectRoot}/**/*.{d.ts,d.cts,d.mts}",
+                  "dependencies": true
+                }
+              ],
+              "outputs": [
+                "{projectRoot}/out-tsc/@org/search-service-e2e/**/*.{d.ts,d.cts,d.mts}",
+                "{projectRoot}/out-tsc/@org/search-service-e2e/**/*.{d.ts,d.cts,d.mts}.map",
+                "{projectRoot}/out-tsc/@org/search-service-e2e/tsconfig.tsbuildinfo"
+              ],
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "metadata": {
+                "technologies": [
+                  "typescript"
+                ],
+                "description": "Runs type-checking for the project.",
+                "help": {
+                  "command": "pnpm exec tsc --build --help",
+                  "example": {
+                    "args": [
+                      "--force"
+                    ]
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "lint": {
+              "cache": true,
+              "options": {
+                "cwd": "services/search-service-e2e",
+                "command": "eslint ."
+              },
+              "inputs": [
+                "default",
+                "^default",
+                "{workspaceRoot}/eslint.config.mjs",
+                "{workspaceRoot}/services/search-service-e2e/eslint.config.mjs",
+                "{workspaceRoot}/tools/eslint-rules/**/*",
+                {
+                  "externalDependencies": [
+                    "eslint"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{options.outputFile}"
+              ],
+              "metadata": {
+                "technologies": [
+                  "eslint"
+                ],
+                "description": "Runs ESLint on project",
+                "help": {
+                  "command": "pnpm exec eslint --help",
+                  "example": {
+                    "options": {
+                      "max-warnings": 0
+                    }
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "e2e": {
+              "executor": "@nx/jest:jest",
+              "outputs": [
+                "{projectRoot}/test-output/jest/coverage"
+              ],
+              "options": {
+                "jestConfig": "services/search-service-e2e/jest.config.cts",
+                "passWithNoTests": true
+              },
+              "dependsOn": [
+                "@org/search-service:build",
+                "@org/search-service:serve"
+              ],
+              "configurations": {},
+              "parallelism": true
+            }
+          },
+          "name": "@org/search-service-e2e",
+          "tags": [
+            "npm:private"
+          ],
+          "implicitDependencies": [
+            "@org/search-service"
+          ],
+          "metadata": {
+            "targetGroups": {},
+            "js": {
+              "packageName": "@org/search-service-e2e",
+              "packageVersion": "0.0.1",
+              "isInPackageManagerWorkspaces": true
+            }
+          }
+        }
+      },
+      "music-events-go": {
+        "name": "music-events-go",
+        "type": "lib",
+        "data": {
+          "root": "libs/events/go/music-events",
+          "name": "music-events-go",
+          "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "library",
+          "sourceRoot": "libs/events/go/music-events",
+          "tags": [
+            "lang:go",
+            "type:events"
+          ],
+          "targets": {
+            "build": {
+              "executor": "nx:run-commands",
+              "outputs": [
+                "{projectRoot}/dist"
+              ],
+              "options": {
+                "command": "go build ./...",
+                "cwd": "libs/events/go/music-events"
+              },
+              "cache": true,
+              "configurations": {},
+              "parallelism": true,
+              "dependsOn": [
+                "^build"
+              ],
+              "inputs": [
+                "production",
+                "^production"
+              ]
+            }
+          },
+          "implicitDependencies": []
+        }
+      },
+      "recommend-service": {
+        "name": "recommend-service",
+        "type": "app",
+        "data": {
+          "root": "services/recommend-service",
+          "name": "recommend-service",
+          "$schema": "../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "application",
+          "sourceRoot": "services/recommend-service/recommend_service",
+          "release": {
+            "version": {
+              "versionActions": "@nxlv/python/release/version-actions"
+            }
+          },
+          "tags": [],
+          "targets": {
+            "serve": {
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "poetry run uvicorn recommend_service.app:app --host 0.0.0.0 --port 8000 --reload",
+                "cwd": "services/recommend-service"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "lock": {
+              "executor": "@nxlv/python:lock",
+              "options": {
+                "update": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "sync": {
+              "executor": "@nxlv/python:sync",
+              "options": {},
+              "configurations": {},
+              "parallelism": true
+            },
+            "add": {
+              "executor": "@nxlv/python:add",
+              "options": {},
+              "configurations": {},
+              "parallelism": true
+            },
+            "update": {
+              "executor": "@nxlv/python:update",
+              "options": {},
+              "configurations": {},
+              "parallelism": true
+            },
+            "remove": {
+              "executor": "@nxlv/python:remove",
+              "options": {},
+              "configurations": {},
+              "parallelism": true
+            },
+            "build": {
+              "executor": "@nxlv/python:build",
+              "outputs": [
+                "{projectRoot}/dist"
+              ],
+              "options": {
+                "outputPath": "services/recommend-service/dist",
+                "publish": false,
+                "lockedVersions": true,
+                "bundleLocalDependencies": true
+              },
+              "cache": true,
+              "configurations": {},
+              "parallelism": true,
+              "dependsOn": [
+                "^build"
+              ],
+              "inputs": [
+                "production",
+                "^production"
+              ]
+            },
+            "lint": {
+              "executor": "@nxlv/python:flake8",
+              "outputs": [
+                "{workspaceRoot}/reports/{projectRoot}/pylint.txt"
+              ],
+              "options": {
+                "outputFile": "reports/services/recommend-service/pylint.txt"
+              },
+              "cache": true,
+              "configurations": {},
+              "parallelism": true
+            },
+            "test": {
+              "executor": "@nxlv/python:run-commands",
+              "outputs": [
+                "{workspaceRoot}/reports/{projectRoot}/unittests",
+                "{workspaceRoot}/coverage/{projectRoot}"
+              ],
+              "options": {
+                "command": "poetry run pytest tests/",
+                "cwd": "services/recommend-service"
+              },
+              "cache": true,
+              "configurations": {},
+              "parallelism": true,
+              "dependsOn": [
+                "^build"
+              ]
+            },
+            "install": {
+              "executor": "@nxlv/python:install",
+              "options": {
+                "silent": false,
+                "args": "",
+                "cacheDir": ".cache/pypoetry",
+                "verbose": false,
+                "debug": false
+              },
+              "configurations": {},
+              "parallelism": true
+            }
+          },
+          "implicitDependencies": []
+        }
+      },
+      "streaming-service": {
+        "name": "streaming-service",
+        "type": "app",
+        "data": {
+          "root": "services/streaming-service",
+          "name": "streaming-service",
+          "$schema": "../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "application",
+          "sourceRoot": "services/streaming-service",
+          "tags": [],
+          "targets": {
+            "serve": {
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "env $(cat .env | grep -v '^#' | xargs) go run .",
+                "cwd": "services/streaming-service"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "build": {
+              "executor": "nx:run-commands",
+              "outputs": [
+                "{projectRoot}/dist"
+              ],
+              "options": {
+                "command": "go build -o dist/streaming-service .",
+                "cwd": "services/streaming-service"
+              },
+              "cache": true,
+              "configurations": {},
+              "parallelism": true,
+              "dependsOn": [
+                "^build"
+              ],
+              "inputs": [
+                "production",
+                "^production"
+              ]
+            },
+            "migrate": {
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "migrate -path internal/db/migrations -database \"$DATABASE_URL\" up",
+                "cwd": "services/streaming-service"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "migrate:down": {
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "migrate -path internal/db/migrations -database \"$DATABASE_URL\" down 1",
+                "cwd": "services/streaming-service"
+              },
+              "configurations": {},
+              "parallelism": true
+            }
+          },
+          "implicitDependencies": []
+        }
+      },
+      "playlist-service": {
+        "name": "playlist-service",
+        "type": "app",
+        "data": {
+          "root": "services/playlist-service",
+          "name": "playlist-service",
+          "projectType": "application",
+          "tags": [
+            "type:nx-spring-boot",
+            "nx-gradle"
+          ],
+          "targets": {
+            "build": {
+              "executor": "@nxrocks/nx-spring-boot:build",
+              "cache": true,
+              "dependsOn": [
+                "^build"
+              ],
+              "outputs": [
+                "{workspaceRoot}/services/playlist-service/build"
+              ],
+              "options": {
+                "root": "services/playlist-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true,
+              "inputs": [
+                "production",
+                "^production"
+              ]
+            },
+            "install": {
+              "executor": "@nxrocks/nx-spring-boot:install",
+              "cache": true,
+              "dependsOn": [
+                "^install"
+              ],
+              "outputs": [
+                "{workspaceRoot}/services/playlist-service/build"
+              ],
+              "options": {
+                "root": "services/playlist-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "test": {
+              "executor": "@nxrocks/nx-spring-boot:test",
+              "outputs": [
+                "{workspaceRoot}/services/playlist-service/build"
+              ],
+              "options": {
+                "root": "services/playlist-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true,
+              "dependsOn": [
+                "^build"
+              ]
+            },
+            "clean": {
+              "executor": "@nxrocks/nx-spring-boot:clean",
+              "options": {
+                "root": "services/playlist-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "format": {
+              "executor": "@nxrocks/nx-spring-boot:format",
+              "options": {
+                "root": "services/playlist-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "apply-format": {
+              "executor": "@nxrocks/nx-spring-boot:apply-format",
+              "options": {
+                "root": "services/playlist-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "check-format": {
+              "executor": "@nxrocks/nx-spring-boot:check-format",
+              "options": {
+                "root": "services/playlist-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "run": {
+              "executor": "@nxrocks/nx-spring-boot:run",
+              "dependsOn": [
+                "^install"
+              ],
+              "options": {
+                "root": "services/playlist-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "serve": {
+              "executor": "@nxrocks/nx-spring-boot:serve",
+              "dependsOn": [
+                "^install"
+              ],
+              "options": {
+                "root": "services/playlist-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "build-image": {
+              "executor": "@nxrocks/nx-spring-boot:build-image",
+              "outputs": [
+                "{workspaceRoot}/services/playlist-service/build"
+              ],
+              "options": {
+                "root": "services/playlist-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "build-info": {
+              "executor": "@nxrocks/nx-spring-boot:build-info",
+              "options": {
+                "root": "services/playlist-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            }
+          },
+          "$schema": "../../node_modules/nx/schemas/project-schema.json",
+          "sourceRoot": "services/playlist-service/src",
+          "implicitDependencies": []
+        }
+      },
+      "catalog-service": {
+        "name": "catalog-service",
+        "type": "app",
+        "data": {
+          "root": "services/catalog-service",
+          "name": "catalog-service",
+          "projectType": "application",
+          "tags": [
+            "type:nx-spring-boot",
+            "nx-gradle"
+          ],
+          "targets": {
+            "build": {
+              "executor": "@nxrocks/nx-spring-boot:build",
+              "cache": true,
+              "dependsOn": [
+                "^build"
+              ],
+              "outputs": [
+                "{workspaceRoot}/services/catalog-service/build"
+              ],
+              "options": {
+                "root": "services/catalog-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true,
+              "inputs": [
+                "production",
+                "^production"
+              ]
+            },
+            "install": {
+              "executor": "@nxrocks/nx-spring-boot:install",
+              "cache": true,
+              "dependsOn": [
+                "^install"
+              ],
+              "outputs": [
+                "{workspaceRoot}/services/catalog-service/build"
+              ],
+              "options": {
+                "root": "services/catalog-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "test": {
+              "executor": "@nxrocks/nx-spring-boot:test",
+              "outputs": [
+                "{workspaceRoot}/services/catalog-service/build"
+              ],
+              "options": {
+                "root": "services/catalog-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true,
+              "dependsOn": [
+                "^build"
+              ]
+            },
+            "clean": {
+              "executor": "@nxrocks/nx-spring-boot:clean",
+              "options": {
+                "root": "services/catalog-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "format": {
+              "executor": "@nxrocks/nx-spring-boot:format",
+              "options": {
+                "root": "services/catalog-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "apply-format": {
+              "executor": "@nxrocks/nx-spring-boot:apply-format",
+              "options": {
+                "root": "services/catalog-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "check-format": {
+              "executor": "@nxrocks/nx-spring-boot:check-format",
+              "options": {
+                "root": "services/catalog-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "run": {
+              "executor": "@nxrocks/nx-spring-boot:run",
+              "dependsOn": [
+                "^install"
+              ],
+              "options": {
+                "root": "services/catalog-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "serve": {
+              "executor": "@nxrocks/nx-spring-boot:serve",
+              "dependsOn": [
+                "^install"
+              ],
+              "options": {
+                "root": "services/catalog-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "build-image": {
+              "executor": "@nxrocks/nx-spring-boot:build-image",
+              "outputs": [
+                "{workspaceRoot}/services/catalog-service/build"
+              ],
+              "options": {
+                "root": "services/catalog-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "build-info": {
+              "executor": "@nxrocks/nx-spring-boot:build-info",
+              "options": {
+                "root": "services/catalog-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            }
+          },
+          "$schema": "../../node_modules/nx/schemas/project-schema.json",
+          "sourceRoot": "services/catalog-service/src",
+          "implicitDependencies": []
+        }
+      },
+      "@org/search-service": {
+        "name": "@org/search-service",
+        "type": "app",
+        "data": {
+          "root": "services/search-service",
+          "targets": {
+            "typecheck": {
+              "dependsOn": [
+                "^typecheck"
+              ],
+              "options": {
+                "cwd": "services/search-service",
+                "command": "tsc --build tsconfig.json --emitDeclarationOnly"
+              },
+              "cache": true,
+              "inputs": [
+                "production",
+                {
+                  "dependentTasksOutputFiles": "**/*.{d.ts,d.cts,d.mts,tsbuildinfo}",
+                  "transitive": true
+                },
+                {
+                  "fileset": "{projectRoot}/**/*.{d.ts,d.cts,d.mts}",
+                  "dependencies": true
+                },
+                "^{projectRoot}/../../../../../services/search-service/tsconfig.app.json",
+                "^{projectRoot}/../../../../../services/search-service/tsconfig.spec.json"
+              ],
+              "outputs": [
+                "{projectRoot}/tsconfig.tsbuildinfo"
+              ],
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "metadata": {
+                "technologies": [
+                  "typescript"
+                ],
+                "description": "Runs type-checking for the project.",
+                "help": {
+                  "command": "pnpm exec tsc --build --help",
+                  "example": {
+                    "args": [
+                      "--force"
+                    ]
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "build": {
+              "cache": true,
+              "dependsOn": [
+                "^build"
+              ],
+              "inputs": [
+                "production",
+                "^production"
+              ],
+              "outputs": [
+                "{workspaceRoot}/services\\search-service\\dist"
+              ],
+              "metadata": {
+                "technologies": [
+                  "webpack"
+                ],
+                "description": "Runs Webpack build",
+                "help": {
+                  "command": "pnpm exec webpack-cli build --help",
+                  "example": {
+                    "options": {
+                      "json": "stats.json"
+                    },
+                    "args": [
+                      "--profile"
+                    ]
+                  }
+                }
+              },
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "executor": "nx:run-commands",
+              "options": {
+                "cwd": "services/search-service",
+                "args": [
+                  "--node-env=production"
+                ],
+                "command": "webpack-cli build"
+              },
+              "configurations": {
+                "development": {
+                  "args": [
+                    "--node-env=development"
+                  ]
+                }
+              },
+              "parallelism": true
+            },
+            "serve": {
+              "continuous": true,
+              "executor": "@nx/js:node",
+              "defaultConfiguration": "development",
+              "dependsOn": [
+                "build"
+              ],
+              "options": {
+                "buildTarget": "@org/search-service:build",
+                "runBuildTargetDependencies": false
+              },
+              "configurations": {
+                "development": {
+                  "buildTarget": "@org/search-service:build:development"
+                },
+                "production": {
+                  "buildTarget": "@org/search-service:build:production"
+                }
+              },
+              "parallelism": true
+            },
+            "preview": {
+              "continuous": true,
+              "options": {
+                "cwd": "services/search-service",
+                "args": [
+                  "--node-env=production"
+                ],
+                "command": "webpack-cli serve"
+              },
+              "metadata": {
+                "technologies": [
+                  "webpack"
+                ],
+                "description": "Starts Webpack dev server in production mode",
+                "help": {
+                  "command": "pnpm exec webpack-cli serve --help",
+                  "example": {
+                    "options": {
+                      "args": [
+                        "--client-progress",
+                        "--history-api-fallback "
+                      ]
+                    }
+                  }
+                }
+              },
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "serve-static": {
+              "continuous": true,
+              "dependsOn": [
+                "build"
+              ],
+              "executor": "@nx/web:file-server",
+              "options": {
+                "buildTarget": "build",
+                "spa": true
+              },
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "configurations": {},
+              "parallelism": true
+            },
+            "build-deps": {
+              "dependsOn": [
+                "^build"
+              ],
+              "configurations": {},
+              "options": {},
+              "parallelism": true,
+              "executor": "nx:noop"
+            },
+            "watch-deps": {
+              "continuous": true,
+              "dependsOn": [
+                "build-deps"
+              ],
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "pnpm exec nx watch --projects @org/search-service --includeDependentProjects -- pnpm exec nx build-deps @org/search-service"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "lint": {
+              "cache": true,
+              "options": {
+                "cwd": "services/search-service",
+                "command": "eslint ."
+              },
+              "inputs": [
+                "default",
+                "^default",
+                "{workspaceRoot}/eslint.config.mjs",
+                "{workspaceRoot}/services/search-service/eslint.config.mjs",
+                "{workspaceRoot}/tools/eslint-rules/**/*",
+                {
+                  "externalDependencies": [
+                    "eslint"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{options.outputFile}"
+              ],
+              "metadata": {
+                "technologies": [
+                  "eslint"
+                ],
+                "description": "Runs ESLint on project",
+                "help": {
+                  "command": "pnpm exec eslint --help",
+                  "example": {
+                    "options": {
+                      "max-warnings": 0
+                    }
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "test": {
+              "metadata": {
+                "technologies": [
+                  "jest"
+                ],
+                "description": "Run Jest Tests",
+                "help": {
+                  "command": "pnpm exec jest --help",
+                  "example": {
+                    "options": {
+                      "coverage": true
+                    }
+                  }
+                }
+              },
+              "cache": true,
+              "inputs": [
+                "default",
+                "^production",
+                "{workspaceRoot}/jest.preset.js",
+                {
+                  "externalDependencies": [
+                    "jest",
+                    "@nx/jest",
+                    "ts-jest",
+                    "@swc/jest"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{projectRoot}\\test-output\\jest\\coverage"
+              ],
+              "executor": "nx:run-commands",
+              "options": {
+                "cwd": "services/search-service",
+                "env": {
+                  "TS_NODE_COMPILER_OPTIONS": "{\"moduleResolution\":\"node10\",\"module\":\"commonjs\",\"customConditions\":null}"
+                },
+                "command": "jest",
+                "passWithNoTests": true
+              },
+              "configurations": {},
+              "parallelism": true,
+              "dependsOn": [
+                "^build"
+              ]
+            },
+            "prune-lockfile": {
+              "dependsOn": [
+                "build"
+              ],
+              "cache": true,
+              "executor": "@nx/js:prune-lockfile",
+              "outputs": [
+                "{workspaceRoot}/services/search-service/dist/package.json",
+                "{workspaceRoot}/services/search-service/dist/package-lock.json"
+              ],
+              "options": {
+                "buildTarget": "build"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "copy-workspace-modules": {
+              "dependsOn": [
+                "build"
+              ],
+              "cache": true,
+              "outputs": [
+                "{workspaceRoot}/services/search-service/dist/workspace_modules"
+              ],
+              "executor": "@nx/js:copy-workspace-modules",
+              "options": {
+                "buildTarget": "build"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "prune": {
+              "dependsOn": [
+                "prune-lockfile",
+                "copy-workspace-modules"
+              ],
+              "executor": "nx:noop",
+              "configurations": {},
+              "options": {},
+              "parallelism": true
+            }
+          },
+          "projectType": "application",
+          "metadata": {
+            "targetGroups": {},
+            "js": {
+              "packageName": "@org/search-service",
+              "packageVersion": "0.0.1",
+              "isInPackageManagerWorkspaces": true
+            }
+          },
+          "name": "@org/search-service",
+          "tags": [
+            "npm:private"
+          ],
+          "implicitDependencies": []
+        }
+      },
+      "upload-service": {
+        "name": "upload-service",
+        "type": "app",
+        "data": {
+          "root": "services/upload-service",
+          "name": "upload-service",
+          "$schema": "../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "application",
+          "sourceRoot": "services/upload-service",
+          "tags": [],
+          "targets": {
+            "serve": {
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "env $(cat .env | grep -v '^#' | xargs) go run .",
+                "cwd": "services/upload-service"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "build": {
+              "executor": "nx:run-commands",
+              "outputs": [
+                "{projectRoot}/dist"
+              ],
+              "options": {
+                "command": "go build -o dist/upload-service .",
+                "cwd": "services/upload-service"
+              },
+              "cache": true,
+              "configurations": {},
+              "parallelism": true,
+              "dependsOn": [
+                "^build"
+              ],
+              "inputs": [
+                "production",
+                "^production"
+              ]
+            },
+            "migrate": {
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "migrate -path internal/db/migrations -database \"$DATABASE_URL\" up",
+                "cwd": "services/upload-service"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "migrate:down": {
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "migrate -path internal/db/migrations -database \"$DATABASE_URL\" down 1",
+                "cwd": "services/upload-service"
+              },
+              "configurations": {},
+              "parallelism": true
+            }
+          },
+          "implicitDependencies": []
+        }
+      },
+      "user-service": {
+        "name": "user-service",
+        "type": "app",
+        "data": {
+          "root": "services/user-service",
+          "name": "user-service",
+          "projectType": "application",
+          "tags": [
+            "type:nx-spring-boot",
+            "nx-gradle"
+          ],
+          "targets": {
+            "build": {
+              "executor": "@nxrocks/nx-spring-boot:build",
+              "cache": true,
+              "dependsOn": [
+                "^build"
+              ],
+              "outputs": [
+                "{workspaceRoot}/services/user-service/build"
+              ],
+              "options": {
+                "root": "services/user-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true,
+              "inputs": [
+                "production",
+                "^production"
+              ]
+            },
+            "install": {
+              "executor": "@nxrocks/nx-spring-boot:install",
+              "cache": true,
+              "dependsOn": [
+                "^install"
+              ],
+              "outputs": [
+                "{workspaceRoot}/services/user-service/build"
+              ],
+              "options": {
+                "root": "services/user-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "test": {
+              "executor": "@nxrocks/nx-spring-boot:test",
+              "outputs": [
+                "{workspaceRoot}/services/user-service/build"
+              ],
+              "options": {
+                "root": "services/user-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true,
+              "dependsOn": [
+                "^build"
+              ]
+            },
+            "clean": {
+              "executor": "@nxrocks/nx-spring-boot:clean",
+              "options": {
+                "root": "services/user-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "format": {
+              "executor": "@nxrocks/nx-spring-boot:format",
+              "options": {
+                "root": "services/user-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "apply-format": {
+              "executor": "@nxrocks/nx-spring-boot:apply-format",
+              "options": {
+                "root": "services/user-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "check-format": {
+              "executor": "@nxrocks/nx-spring-boot:check-format",
+              "options": {
+                "root": "services/user-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "run": {
+              "executor": "@nxrocks/nx-spring-boot:run",
+              "dependsOn": [
+                "^install"
+              ],
+              "options": {
+                "root": "services/user-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "serve": {
+              "executor": "@nxrocks/nx-spring-boot:serve",
+              "dependsOn": [
+                "^install"
+              ],
+              "options": {
+                "root": "services/user-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "build-image": {
+              "executor": "@nxrocks/nx-spring-boot:build-image",
+              "outputs": [
+                "{workspaceRoot}/services/user-service/build"
+              ],
+              "options": {
+                "root": "services/user-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "build-info": {
+              "executor": "@nxrocks/nx-spring-boot:build-info",
+              "options": {
+                "root": "services/user-service",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            }
+          },
+          "$schema": "../../node_modules/nx/schemas/project-schema.json",
+          "sourceRoot": "services/user-service/src",
+          "implicitDependencies": []
+        }
+      },
+      "java-common": {
+        "name": "java-common",
+        "type": "lib",
+        "data": {
+          "root": "libs/java-common",
+          "name": "java-common",
+          "tags": [
+            "nx-gradle"
+          ],
+          "$schema": "../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "library",
+          "sourceRoot": "./libs/java-common/src",
+          "targets": {
+            "build": {
+              "executor": "@jnxplus/nx-gradle:run-task",
+              "outputs": [
+                "{projectRoot}/build"
+              ],
+              "options": {
+                "task": "jar"
+              },
+              "configurations": {},
+              "parallelism": true,
+              "cache": true,
+              "dependsOn": [
+                "^build"
+              ],
+              "inputs": [
+                "production",
+                "^production"
+              ]
+            },
+            "test": {
+              "executor": "@jnxplus/nx-gradle:run-task",
+              "options": {
+                "task": "test"
+              },
+              "configurations": {},
+              "parallelism": true,
+              "dependsOn": [
+                "^build"
+              ]
+            }
+          },
+          "implicitDependencies": []
+        }
+      },
+      "@org/ts-common": {
+        "name": "@org/ts-common",
+        "type": "lib",
+        "data": {
+          "root": "libs/ts-common",
+          "targets": {
+            "typecheck": {
+              "dependsOn": [
+                "build",
+                "^typecheck"
+              ],
+              "options": {
+                "cwd": "libs/ts-common",
+                "command": "tsc --build tsconfig.json --emitDeclarationOnly"
+              },
+              "cache": true,
+              "inputs": [
+                "production",
+                {
+                  "dependentTasksOutputFiles": "**/*.{d.ts,d.cts,d.mts,tsbuildinfo}",
+                  "transitive": true
+                },
+                {
+                  "fileset": "{projectRoot}/**/*.{d.ts,d.cts,d.mts}",
+                  "dependencies": true
+                },
+                "^{projectRoot}/../../../../../libs/ts-common/tsconfig.lib.json",
+                "^{projectRoot}/../../../../../libs/ts-common/tsconfig.spec.json"
+              ],
+              "outputs": [
+                "{projectRoot}/tsconfig.tsbuildinfo"
+              ],
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "metadata": {
+                "technologies": [
+                  "typescript"
+                ],
+                "description": "Runs type-checking for the project.",
+                "help": {
+                  "command": "pnpm exec tsc --build --help",
+                  "example": {
+                    "args": [
+                      "--force"
+                    ]
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "build": {
+              "dependsOn": [
+                "^build"
+              ],
+              "options": {
+                "cwd": "libs/ts-common",
+                "command": "tsc --build tsconfig.lib.json"
+              },
+              "cache": true,
+              "inputs": [
+                "production",
+                "^production"
+              ],
+              "outputs": [
+                "{projectRoot}/dist/**/*.{js,cjs,mjs,jsx,d.ts,d.cts,d.mts}{,.map}",
+                "{projectRoot}/dist/tsconfig.lib.tsbuildinfo"
+              ],
+              "syncGenerators": [
+                "@nx/js:typescript-sync"
+              ],
+              "metadata": {
+                "technologies": [
+                  "typescript"
+                ],
+                "description": "Builds the project with `tsc`.",
+                "help": {
+                  "command": "pnpm exec tsc --build --help",
+                  "example": {
+                    "args": [
+                      "--force"
+                    ]
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "build-deps": {
+              "dependsOn": [
+                "^build"
+              ],
+              "configurations": {},
+              "options": {},
+              "parallelism": true,
+              "executor": "nx:noop"
+            },
+            "watch-deps": {
+              "continuous": true,
+              "dependsOn": [
+                "build-deps"
+              ],
+              "executor": "nx:run-commands",
+              "options": {
+                "command": "pnpm exec nx watch --projects @org/ts-common --includeDependentProjects -- pnpm exec nx build-deps @org/ts-common"
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "lint": {
+              "cache": true,
+              "options": {
+                "cwd": "libs/ts-common",
+                "command": "eslint ."
+              },
+              "inputs": [
+                "default",
+                "^default",
+                "{workspaceRoot}/eslint.config.mjs",
+                "{workspaceRoot}/libs/ts-common/eslint.config.mjs",
+                "{workspaceRoot}/tools/eslint-rules/**/*",
+                {
+                  "externalDependencies": [
+                    "eslint"
+                  ]
+                }
+              ],
+              "outputs": [
+                "{options.outputFile}"
+              ],
+              "metadata": {
+                "technologies": [
+                  "eslint"
+                ],
+                "description": "Runs ESLint on project",
+                "help": {
+                  "command": "pnpm exec eslint --help",
+                  "example": {
+                    "options": {
+                      "max-warnings": 0
+                    }
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true
+            },
+            "test": {
+              "options": {
+                "cwd": "libs/ts-common",
+                "command": "vitest"
+              },
+              "cache": true,
+              "inputs": [
+                "default",
+                "^production",
+                {
+                  "json": "{workspaceRoot}/tsconfig.json",
+                  "fields": [
+                    "compilerOptions"
+                  ]
+                },
+                {
+                  "externalDependencies": [
+                    "vitest"
+                  ]
+                },
+                {
+                  "env": "CI"
+                },
+                {
+                  "dependentTasksOutputFiles": "**/*.js",
+                  "transitive": true
+                }
+              ],
+              "outputs": [
+                "{projectRoot}/test-output/vitest/coverage"
+              ],
+              "metadata": {
+                "technologies": [
+                  "vitest"
+                ],
+                "description": "Run Vitest tests",
+                "help": {
+                  "command": "pnpm exec vitest --help",
+                  "example": {
+                    "options": {
+                      "bail": 1,
+                      "coverage": true
+                    }
+                  }
+                }
+              },
+              "executor": "nx:run-commands",
+              "configurations": {},
+              "parallelism": true,
+              "dependsOn": [
+                "^build"
+              ]
+            }
+          },
+          "projectType": "library",
+          "metadata": {
+            "targetGroups": {
+              "TEST (CI)": []
+            },
+            "js": {
+              "packageName": "@org/ts-common",
+              "packageVersion": "0.0.1",
+              "packageExports": {
+                "./package.json": "./package.json",
+                ".": {
+                  "@org/source": "./src/index.ts",
+                  "types": "./dist/index.d.ts",
+                  "import": "./dist/index.js",
+                  "default": "./dist/index.js"
+                }
+              },
+              "packageMain": "./dist/index.js",
+              "isInPackageManagerWorkspaces": true
+            }
+          },
+          "name": "@org/ts-common",
+          "tags": [
+            "npm:private"
+          ],
+          "implicitDependencies": []
+        }
+      },
+      "go-common": {
+        "name": "go-common",
+        "type": "lib",
+        "data": {
+          "root": "libs/go-common",
+          "name": "go-common",
+          "$schema": "../../node_modules/nx/schemas/project-schema.json",
+          "projectType": "library",
+          "sourceRoot": "libs/go-common",
+          "tags": [],
+          "implicitDependencies": [],
+          "targets": {}
+        }
+      },
+      "root-project": {
+        "name": "root-project",
+        "type": "app",
+        "data": {
+          "root": ".",
+          "name": "root-project",
+          "projectType": "application",
+          "tags": [
+            "type:nx-spring-boot",
+            "nx-gradle"
+          ],
+          "targets": {
+            "build": {
+              "executor": "@nxrocks/nx-spring-boot:build",
+              "cache": true,
+              "dependsOn": [
+                "^build"
+              ],
+              "outputs": [
+                "{workspaceRoot}/build"
+              ],
+              "options": {
+                "root": ".",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true,
+              "inputs": [
+                "production",
+                "^production"
+              ]
+            },
+            "install": {
+              "executor": "@nxrocks/nx-spring-boot:install",
+              "cache": true,
+              "dependsOn": [
+                "^install"
+              ],
+              "outputs": [
+                "{workspaceRoot}/build"
+              ],
+              "options": {
+                "root": ".",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "test": {
+              "executor": "@nxrocks/nx-spring-boot:test",
+              "outputs": [
+                "{workspaceRoot}/build"
+              ],
+              "options": {
+                "root": ".",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true,
+              "dependsOn": [
+                "^build"
+              ]
+            },
+            "clean": {
+              "executor": "@nxrocks/nx-spring-boot:clean",
+              "options": {
+                "root": ".",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "format": {
+              "executor": "@nxrocks/nx-spring-boot:format",
+              "options": {
+                "root": ".",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "apply-format": {
+              "executor": "@nxrocks/nx-spring-boot:apply-format",
+              "options": {
+                "root": ".",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "check-format": {
+              "executor": "@nxrocks/nx-spring-boot:check-format",
+              "options": {
+                "root": ".",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "run": {
+              "executor": "@nxrocks/nx-spring-boot:run",
+              "dependsOn": [
+                "^install"
+              ],
+              "options": {
+                "root": ".",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "serve": {
+              "executor": "@nxrocks/nx-spring-boot:serve",
+              "dependsOn": [
+                "^install"
+              ],
+              "options": {
+                "root": ".",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "build-image": {
+              "executor": "@nxrocks/nx-spring-boot:build-image",
+              "outputs": [
+                "{workspaceRoot}/build"
+              ],
+              "options": {
+                "root": ".",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            },
+            "build-info": {
+              "executor": "@nxrocks/nx-spring-boot:build-info",
+              "options": {
+                "root": ".",
+                "runFromParentModule": false
+              },
+              "configurations": {},
+              "parallelism": true
+            }
+          },
+          "implicitDependencies": []
+        }
+      }
+    },
+    "dependencies": {
+      "notification-api-client": [],
+      "search-api-client": [],
+      "recommend-api-client": [],
+      "playlist-api-client": [
+        {
+          "source": "playlist-api-client",
+          "target": "root-project",
+          "type": "static"
+        }
+      ],
+      "catalog-api-client": [
+        {
+          "source": "catalog-api-client",
+          "target": "root-project",
+          "type": "static"
+        }
+      ],
+      "streaming-api-client": [],
+      "upload-api-client": [],
+      "user-api-client": [
+        {
+          "source": "user-api-client",
+          "target": "root-project",
+          "type": "static"
+        }
+      ],
+      "music-events": [],
+      "@org/notification-service-e2e": [
+        {
+          "source": "@org/notification-service-e2e",
+          "target": "@org/notification-service",
+          "type": "implicit"
+        }
+      ],
+      "music-events-python": [],
+      "@org/notification-service": [],
+      "music-events-java": [
+        {
+          "source": "music-events-java",
+          "target": "root-project",
+          "type": "static"
+        }
+      ],
+      "@org/search-service-e2e": [
+        {
+          "source": "@org/search-service-e2e",
+          "target": "@org/search-service",
+          "type": "implicit"
+        }
+      ],
+      "music-events-go": [],
+      "recommend-service": [],
+      "streaming-service": [],
+      "playlist-service": [
+        {
+          "source": "playlist-service",
+          "target": "root-project",
+          "type": "static"
+        }
+      ],
+      "catalog-service": [
+        {
+          "source": "catalog-service",
+          "target": "root-project",
+          "type": "static"
+        },
+        {
+          "source": "catalog-service",
+          "target": "java-common",
+          "type": "static"
+        },
+        {
+          "source": "catalog-service",
+          "target": "music-events-java",
+          "type": "static"
+        }
+      ],
+      "@org/search-service": [],
+      "upload-service": [],
+      "user-service": [
+        {
+          "source": "user-service",
+          "target": "root-project",
+          "type": "static"
+        }
+      ],
+      "java-common": [
+        {
+          "source": "java-common",
+          "target": "root-project",
+          "type": "static"
+        }
+      ],
+      "@org/ts-common": [],
+      "go-common": [],
+      "root-project": []
+    }
+  }
+}

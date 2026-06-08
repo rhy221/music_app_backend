@@ -41,27 +41,71 @@ func (r *PostgresSessionRepository) Get(ctx context.Context, sessionID, userID s
 	return scanSession(row)
 }
 
-func (r *PostgresSessionRepository) UpdateHeartbeat(ctx context.Context, sessionID string, positionMs, durationMs int, completed bool) (*domain.PlaySession, error) {
-	row := r.pool.QueryRow(ctx, `
+// UpdateHeartbeat updates position, duration, and completion flag.
+// When outbox is non-nil, the session UPDATE and outbox INSERT run in a single transaction,
+// guaranteeing at-least-once delivery of the TrackPlayedEvent.
+func (r *PostgresSessionRepository) UpdateHeartbeat(ctx context.Context, sessionID string, positionMs, durationMs int, completed bool, outbox *domain.OutboxEvent) (*domain.PlaySession, error) {
+	const sessionSQL = `
 		UPDATE play_sessions
 		SET position_ms = $1, duration_ms = $2, completed = $3
 		WHERE id = $4
 		RETURNING id, user_id, track_id, started_at, ended_at,
-		          position_ms, duration_ms, completed, status, source, bitrate, end_reason
-	`, positionMs, durationMs, completed, sessionID)
-	return scanSession(row)
+		          position_ms, duration_ms, completed, status, source, bitrate, end_reason`
+
+	if outbox == nil {
+		return scanSession(r.pool.QueryRow(ctx, sessionSQL, positionMs, durationMs, completed, sessionID))
+	}
+
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	session, err := scanSession(tx.QueryRow(ctx, sessionSQL, positionMs, durationMs, completed, sessionID))
+	if err != nil {
+		return nil, err
+	}
+	if err := insertOutbox(ctx, tx, outbox); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit heartbeat+outbox tx: %w", err)
+	}
+	return session, nil
 }
 
-func (r *PostgresSessionRepository) End(ctx context.Context, sessionID string, positionMs, durationMs int, completed bool, endReason string) (*domain.PlaySession, error) {
-	row := r.pool.QueryRow(ctx, `
+// End marks the session as ENDED. When outbox is non-nil both writes are atomic.
+func (r *PostgresSessionRepository) End(ctx context.Context, sessionID string, positionMs, durationMs int, completed bool, endReason string, outbox *domain.OutboxEvent) (*domain.PlaySession, error) {
+	const sessionSQL = `
 		UPDATE play_sessions
 		SET status = 'ENDED', ended_at = NOW(),
 		    position_ms = $1, duration_ms = $2, completed = $3, end_reason = $4
 		WHERE id = $5
 		RETURNING id, user_id, track_id, started_at, ended_at,
-		          position_ms, duration_ms, completed, status, source, bitrate, end_reason
-	`, positionMs, durationMs, completed, endReason, sessionID)
-	return scanSession(row)
+		          position_ms, duration_ms, completed, status, source, bitrate, end_reason`
+
+	if outbox == nil {
+		return scanSession(r.pool.QueryRow(ctx, sessionSQL, positionMs, durationMs, completed, endReason, sessionID))
+	}
+
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	session, err := scanSession(tx.QueryRow(ctx, sessionSQL, positionMs, durationMs, completed, endReason, sessionID))
+	if err != nil {
+		return nil, err
+	}
+	if err := insertOutbox(ctx, tx, outbox); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit end+outbox tx: %w", err)
+	}
+	return session, nil
 }
 
 func (r *PostgresSessionRepository) GetHistory(ctx context.Context, userID string, page, size int) ([]domain.HistoryEntry, int64, error) {
@@ -94,7 +138,6 @@ func (r *PostgresSessionRepository) GetHistory(ctx context.Context, userID strin
 	).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count history: %w", err)
 	}
-
 	return entries, total, nil
 }
 
@@ -115,7 +158,6 @@ func (r *PostgresSessionRepository) GetRecentlyPlayed(ctx context.Context, userI
 		return nil, fmt.Errorf("query recently played: %w", err)
 	}
 	defer rows.Close()
-
 	return scanHistoryRows(rows)
 }
 
@@ -135,9 +177,7 @@ func (r *PostgresSessionRepository) GetStats(ctx context.Context, userID string)
 		FROM play_sessions ps
 		JOIN track_cache tc ON ps.track_id = tc.track_id
 		WHERE ps.user_id = $1 AND ps.completed = TRUE AND tc.genre IS NOT NULL AND tc.genre <> ''
-		GROUP BY tc.genre
-		ORDER BY cnt DESC
-		LIMIT 5
+		GROUP BY tc.genre ORDER BY cnt DESC LIMIT 5
 	`, userID)
 	if err != nil {
 		return nil, fmt.Errorf("top genres: %w", err)
@@ -159,9 +199,7 @@ func (r *PostgresSessionRepository) GetStats(ctx context.Context, userID string)
 		FROM play_sessions ps
 		JOIN track_cache tc ON ps.track_id = tc.track_id
 		WHERE ps.user_id = $1 AND ps.completed = TRUE AND tc.artist_id IS NOT NULL
-		GROUP BY tc.artist_id, tc.artist_name
-		ORDER BY cnt DESC
-		LIMIT 5
+		GROUP BY tc.artist_id, tc.artist_name ORDER BY cnt DESC LIMIT 5
 	`, userID)
 	if err != nil {
 		return nil, fmt.Errorf("top artists: %w", err)
@@ -177,8 +215,19 @@ func (r *PostgresSessionRepository) GetStats(ctx context.Context, userID string)
 	if stats.TopArtists == nil {
 		stats.TopArtists = []domain.ArtistCount{}
 	}
-
 	return stats, nil
+}
+
+// insertOutbox writes one outbox row within an existing transaction.
+func insertOutbox(ctx context.Context, tx pgx.Tx, evt *domain.OutboxEvent) error {
+	_, err := tx.Exec(ctx, `
+		INSERT INTO outbox_events (id, event_type, payload)
+		VALUES ($1, $2, $3)
+	`, evt.ID, evt.EventType, evt.Payload)
+	if err != nil {
+		return fmt.Errorf("insert outbox_event: %w", err)
+	}
+	return nil
 }
 
 func scanSession(row pgx.Row) (*domain.PlaySession, error) {

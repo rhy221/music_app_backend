@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
@@ -9,11 +10,12 @@ import (
 )
 
 // SessionUseCase contains all play session business logic.
+// RabbitMQ publishing is NOT done here — an OutboxEvent is written atomically
+// with the session update; the OutboxPoller handles publishing.
 type SessionUseCase struct {
 	sessions domain.SessionRepository
 	tracks   domain.TrackCacheRepository
 	catalog  domain.CatalogClient
-	events   domain.EventPublisher
 	counter  domain.PlayCounter
 	log      zerolog.Logger
 }
@@ -22,7 +24,6 @@ func NewSessionUseCase(
 	sessions domain.SessionRepository,
 	tracks domain.TrackCacheRepository,
 	catalog domain.CatalogClient,
-	events domain.EventPublisher,
 	counter domain.PlayCounter,
 	log zerolog.Logger,
 ) *SessionUseCase {
@@ -30,7 +31,6 @@ func NewSessionUseCase(
 		sessions: sessions,
 		tracks:   tracks,
 		catalog:  catalog,
-		events:   events,
 		counter:  counter,
 		log:      log.With().Str("usecase", "session").Logger(),
 	}
@@ -62,18 +62,18 @@ func (uc *SessionUseCase) Heartbeat(ctx context.Context, sessionID, userID strin
 		delta = 0
 	}
 	newDurationMs := session.DurationMs + delta
-	newCompleted := session.Completed
 
 	if !session.Completed {
 		if tc, err := uc.getOrFetchTrack(ctx, session.TrackID); err == nil {
 			if reachedThreshold(newDurationMs, positionMs, tc.DurationMs) {
-				newCompleted = true
-				uc.onPlayCompleted(ctx, session, tc)
+				uc.incrPlayCount(ctx, session.TrackID)
+				outbox := uc.buildOutboxEvent(session, tc, newDurationMs)
+				return uc.sessions.UpdateHeartbeat(ctx, sessionID, positionMs, newDurationMs, true, &outbox)
 			}
 		}
 	}
 
-	return uc.sessions.UpdateHeartbeat(ctx, sessionID, positionMs, newDurationMs, newCompleted)
+	return uc.sessions.UpdateHeartbeat(ctx, sessionID, positionMs, newDurationMs, session.Completed, nil)
 }
 
 func (uc *SessionUseCase) End(ctx context.Context, sessionID, userID string, positionMs int, reason string) (*domain.PlaySession, error) {
@@ -87,24 +87,56 @@ func (uc *SessionUseCase) End(ctx context.Context, sessionID, userID string, pos
 		delta = 0
 	}
 	newDurationMs := session.DurationMs + delta
-	newCompleted := session.Completed
-
-	if !session.Completed {
-		if tc, err := uc.getOrFetchTrack(ctx, session.TrackID); err == nil {
-			if reachedThreshold(newDurationMs, positionMs, tc.DurationMs) {
-				newCompleted = true
-				uc.onPlayCompleted(ctx, session, tc)
-			}
-		}
-	}
 
 	if reason == "" {
 		reason = string(domain.EndReasonCompleted)
 	}
-	return uc.sessions.End(ctx, sessionID, positionMs, newDurationMs, newCompleted, reason)
+
+	if !session.Completed {
+		if tc, err := uc.getOrFetchTrack(ctx, session.TrackID); err == nil {
+			if reachedThreshold(newDurationMs, positionMs, tc.DurationMs) {
+				uc.incrPlayCount(ctx, session.TrackID)
+				outbox := uc.buildOutboxEvent(session, tc, newDurationMs)
+				return uc.sessions.End(ctx, sessionID, positionMs, newDurationMs, true, reason, &outbox)
+			}
+		}
+	}
+
+	return uc.sessions.End(ctx, sessionID, positionMs, newDurationMs, session.Completed, reason, nil)
 }
 
-// getOrFetchTrack checks the local cache first, then falls back to the Catalog service.
+// buildOutboxEvent serializes a TrackPlayedPayload into an OutboxEvent.
+// The OutboxPoller will later wrap this in a musicevents.TrackPlayedEvent and publish it.
+func (uc *SessionUseCase) buildOutboxEvent(session *domain.PlaySession, tc *domain.TrackCache, newDurationMs int) domain.OutboxEvent {
+	source := "BROWSE"
+	if session.Source != nil {
+		source = *session.Source
+	}
+	payload := domain.TrackPlayedPayload{
+		UserID:        session.UserID,
+		TrackID:       session.TrackID,
+		Genre:         tc.Genre,
+		ArtistID:      tc.ArtistID,
+		DurationMs:    newDurationMs,
+		Source:        source,
+		CompletedFull: newDurationMs >= tc.DurationMs,
+		PlayedAt:      session.StartedAt,
+	}
+	payloadJSON, _ := json.Marshal(payload)
+	return domain.OutboxEvent{
+		ID:        uuid.New().String(),
+		EventType: "TrackPlayed",
+		Payload:   payloadJSON,
+	}
+}
+
+// incrPlayCount increments the Redis play counter; failures are logged and swallowed.
+func (uc *SessionUseCase) incrPlayCount(ctx context.Context, trackID string) {
+	if err := uc.counter.IncrPlayCount(ctx, trackID); err != nil {
+		uc.log.Warn().Err(err).Str("trackId", trackID).Msg("redis incr play count failed (best-effort)")
+	}
+}
+
 func (uc *SessionUseCase) getOrFetchTrack(ctx context.Context, trackID string) (*domain.TrackCache, error) {
 	tc, err := uc.tracks.Get(ctx, trackID)
 	if err == nil {
@@ -116,16 +148,6 @@ func (uc *SessionUseCase) getOrFetchTrack(ctx context.Context, trackID string) (
 	}
 	_ = uc.tracks.Upsert(ctx, tc)
 	return tc, nil
-}
-
-// onPlayCompleted fires once per session when the listening threshold is crossed (≥30s or ≥50%).
-func (uc *SessionUseCase) onPlayCompleted(ctx context.Context, session *domain.PlaySession, tc *domain.TrackCache) {
-	if err := uc.counter.IncrPlayCount(ctx, session.TrackID); err != nil {
-		uc.log.Warn().Err(err).Str("trackId", session.TrackID).Msg("incr play count failed")
-	}
-	if err := uc.events.PublishTrackPlayed(ctx, session, tc); err != nil {
-		uc.log.Error().Err(err).Str("sessionId", session.ID).Msg("publish TrackPlayedEvent failed")
-	}
 }
 
 // reachedThreshold returns true if ≥30s have been listened OR position ≥50% of track duration.

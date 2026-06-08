@@ -1,0 +1,12 @@
+{
+  "name": "root-project",
+  "$schema": "./node_modules/nx/schemas/project-schema.json",
+  "targets": {
+    "build": {
+      "executor": "nx:noop"
+    },
+    "install": {
+      "executor": "nx:noop"
+    }
+  }
+}

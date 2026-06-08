@@ -2,5 +2,29 @@
   "name": "user-service",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "services/user-service/src",
-  "tags": []
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@jnxplus/nx-gradle:run-task",
+      "outputs": ["{projectRoot}/build"],
+      "options": {
+        "task": "build",
+        "projectPath": ":services:user-service"
+      }
+    },
+    "serve": {
+      "executor": "@jnxplus/nx-gradle:run-task",
+      "options": {
+        "task": "bootRun",
+        "projectPath": ":services:user-service"
+      }
+    },
+    "test": {
+      "executor": "@jnxplus/nx-gradle:run-task",
+      "options": {
+        "task": "test",
+        "projectPath": ":services:user-service"
+      }
+    }
+  }
 }

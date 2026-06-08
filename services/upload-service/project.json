@@ -7,8 +7,9 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "env $(cat .env | grep -v '^#' | xargs) go run .",
-        "cwd": "{projectRoot}"
+        "command": "go run .",
+        "cwd": "{projectRoot}",
+        "envFile": "{projectRoot}/.env"
       }
     },
     "build": {

@@ -2,5 +2,29 @@
   "name": "playlist-service",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "services/playlist-service/src",
-  "tags": []
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@jnxplus/nx-gradle:run-task",
+      "outputs": ["{projectRoot}/build"],
+      "options": {
+        "task": "build",
+        "projectPath": ":services:playlist-service"
+      }
+    },
+    "serve": {
+      "executor": "@jnxplus/nx-gradle:run-task",
+      "options": {
+        "task": "bootRun",
+        "projectPath": ":services:playlist-service"
+      }
+    },
+    "test": {
+      "executor": "@jnxplus/nx-gradle:run-task",
+      "options": {
+        "task": "test",
+        "projectPath": ":services:playlist-service"
+      }
+    }
+  }
 }

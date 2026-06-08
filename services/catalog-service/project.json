@@ -2,5 +2,29 @@
   "name": "catalog-service",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "services/catalog-service/src",
-  "tags": []
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@jnxplus/nx-gradle:run-task",
+      "outputs": ["{projectRoot}/build"],
+      "options": {
+        "task": "build",
+        "projectPath": ":services:catalog-service"
+      }
+    },
+    "serve": {
+      "executor": "@jnxplus/nx-gradle:run-task",
+      "options": {
+        "task": "bootRun",
+        "projectPath": ":services:catalog-service"
+      }
+    },
+    "test": {
+      "executor": "@jnxplus/nx-gradle:run-task",
+      "options": {
+        "task": "test",
+        "projectPath": ":services:catalog-service"
+      }
+    }
+  }
 }

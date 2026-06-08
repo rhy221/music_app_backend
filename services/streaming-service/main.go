@@ -13,8 +13,8 @@ import (
 	"github.com/team/music-app/libs/go-common/rabbitmq"
 	"github.com/team/music-app/libs/go-common/server"
 	musicevents "music-app/music-events/events"
-	infraevent "music-app/streaming-service/internal/infrastructure/event"
 	infracatalog "music-app/streaming-service/internal/infrastructure/catalog"
+	infraevent "music-app/streaming-service/internal/infrastructure/event"
 	inframinio "music-app/streaming-service/internal/infrastructure/minio"
 	infraredis "music-app/streaming-service/internal/infrastructure/redis"
 	"music-app/streaming-service/internal/handler"
@@ -73,6 +73,7 @@ func main() {
 	// ── Repositories ──────────────────────────────────────────────────────────
 	sessionRepo := repository.NewSessionRepository(pool)
 	trackCacheRepo := repository.NewTrackCacheRepository(pool)
+	outboxRepo := repository.NewOutboxRepository(pool)
 
 	// ── Infrastructure adapters ───────────────────────────────────────────────
 	audioStore := inframinio.NewAudioStore(mc)
@@ -88,11 +89,16 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
 	go catalogConsumer.Start(ctx)
+
+	// ── Outbox poller ─────────────────────────────────────────────────────────
+	outboxPoller := infraevent.NewOutboxPoller(outboxRepo, eventPublisher, log)
+	go outboxPoller.Start(ctx)
 
 	// ── Use cases ─────────────────────────────────────────────────────────────
 	streamUC := usecase.NewStreamUseCase(trackCacheRepo, catalogClient, audioStore, log)
-	sessionUC := usecase.NewSessionUseCase(sessionRepo, trackCacheRepo, catalogClient, eventPublisher, playCounter, log)
+	sessionUC := usecase.NewSessionUseCase(sessionRepo, trackCacheRepo, catalogClient, playCounter, log)
 	historyUC := usecase.NewHistoryUseCase(sessionRepo, log)
 
 	// ── HTTP mux ──────────────────────────────────────────────────────────────

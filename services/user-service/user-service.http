@@ -1,0 +1,448 @@
+### User Service — HTTP Tests
+### Base URL: http://localhost:8081
+### Start service: pnpm nx run user-service:serve (requires Docker infra)
+
+@baseUrl = http://localhost:8081
+
+# Paste the accessToken returned from register/login here
+@accessToken = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwZWFlZGM1OS1kMjQ1LTQ3ODYtOWJlNS1iM2Y4YTQ4OTRmZmIiLCJyb2xlIjoiTElTVEVORVIiLCJpYXQiOjE3ODA5Mzk2NzcsImV4cCI6MTc4MDk0MzI3N30.bAlwaHAUgxoFiIXRCCy8rEEHDqyOF7svox4MRnSjEow
+@authToken = Bearer {{accessToken}}
+
+# Paste refresh token here after login/register
+@refreshToken = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwZWFlZGM1OS1kMjQ1LTQ3ODYtOWJlNS1iM2Y4YTQ4OTRmZmIiLCJpYXQiOjE3ODA5Mzk2NzcsImV4cCI6MTc4MTU0NDQ3N30.vwfKQs7lVyWtx-AjHwdMOVDBIJxiUplhqkbd04g6ahQ
+
+# Fill in after first register/login
+@myUserId = 0eaedc59-d245-4786-9be5-b3f8a4894ffb
+
+# Another user's ID (for follow/profile tests)
+@otherUserId = 98200c9e-59ff-4c9d-a116-e81998e8fbf1
+
+
+# ─────────────────────────────────────────────────────────────
+# AUTH — Register / Login
+# ─────────────────────────────────────────────────────────────
+
+### [1] Register new account — copy accessToken + refreshToken + user.id to variables above
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "alice@example.com",
+  "password": "secret1234",
+  "displayName": "Alice"
+}
+
+###
+
+### [2] Register second user (for follow tests)
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "bob@example.com",
+  "password": "secret1234",
+  "displayName": "Bob"
+}
+
+###
+
+### [3] Login — returns new accessToken + refreshToken
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "alice@example.com",
+  "password": "newsecret5678"
+}
+
+###
+
+### [4] Login — wrong password → 401
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "alice@example.com",
+  "password": "wrongpassword"
+}
+
+###
+
+### [5] Login — non-existent email → 401
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "notfound@example.com",
+  "password": "secret1234"
+}
+
+###
+
+### [6] Register duplicate email → 409
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "alice@example.com",
+  "password": "anotherpass",
+  "displayName": "Alice2"
+}
+
+###
+
+### [7] Register — password too short → 400
+POST {{baseUrl}}/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "email": "short@example.com",
+  "password": "123",
+  "displayName": "ShortPass"
+}
+
+###
+
+### [8] Refresh access token — paste refreshToken from step [1] or [3]
+POST {{baseUrl}}/api/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+###
+
+### [9] Refresh with invalid token → 401
+POST {{baseUrl}}/api/v1/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "this-is-not-a-valid-token"
+}
+
+###
+
+### [10] Logout — revokes the refresh token
+POST {{baseUrl}}/api/v1/auth/logout
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+###
+
+### [11] Google OAuth2 — verify Google ID token (requires real token from frontend)
+POST {{baseUrl}}/api/v1/auth/oauth2/google
+Content-Type: application/json
+
+{
+  "idToken": "<paste-google-id-token-here>"
+}
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# PROFILE — Current user (/users/me)
+# ─────────────────────────────────────────────────────────────
+
+### [12] GET my profile — requires auth
+GET {{baseUrl}}/api/v1/users/me
+Authorization: {{authToken}}
+
+###
+
+### [13] GET my profile — no token → 401
+GET {{baseUrl}}/api/v1/users/me
+
+###
+
+### [14] PATCH update displayName
+PATCH {{baseUrl}}/api/v1/users/me
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "displayName": "Alice Updated"
+}
+
+###
+
+### [15] PATCH update bio only
+PATCH {{baseUrl}}/api/v1/users/me
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "bio": "Music lover from Hanoi 🎵"
+}
+
+###
+
+### [16] PATCH update both displayName and bio
+PATCH {{baseUrl}}/api/v1/users/me
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "displayName": "Alice V2",
+  "bio": "Updated bio text"
+}
+
+###
+
+### [17] PUT change password — requires currentPassword
+PUT {{baseUrl}}/api/v1/users/me/password
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "currentPassword": "secret1234",
+  "newPassword": "newsecret5678"
+}
+
+###
+
+### [18] PUT change password — wrong current password → 400
+PUT {{baseUrl}}/api/v1/users/me/password
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "currentPassword": "wrongpassword",
+  "newPassword": "newsecret5678"
+}
+
+###
+
+### [19] PUT upload avatar — multipart/form-data
+### Use IntelliJ HTTP Client or curl for binary upload:
+### curl -X PUT http://localhost:8081/api/v1/users/me/avatar \
+###   -H "Authorization: Bearer <token>" \
+###   -F "file=@/path/to/avatar.jpg"
+PUT {{baseUrl}}/api/v1/users/me/avatar
+Authorization: {{authToken}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="avatar.jpg"
+Content-Type: image/jpeg
+
+< ./avatar.jpg
+--boundary--
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# PUBLIC PROFILE — Other users (/users/{userId})
+# ─────────────────────────────────────────────────────────────
+
+### [20] GET public profile — no auth (isFollowing = false)
+GET {{baseUrl}}/api/v1/users/{{otherUserId}}
+
+###
+
+### [21] GET public profile — with auth (isFollowing reflects real state)
+GET {{baseUrl}}/api/v1/users/{{otherUserId}}
+Authorization: {{authToken}}
+
+###
+
+### [22] GET non-existent user → 404
+GET {{baseUrl}}/api/v1/users/00000000-0000-0000-0000-000000000000
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# FOLLOW / UNFOLLOW
+# ─────────────────────────────────────────────────────────────
+
+### [23] Follow another user → 204
+POST {{baseUrl}}/api/v1/users/{{otherUserId}}/follow
+Authorization: {{authToken}}
+
+###
+
+### [24] Follow same user again → 409 (duplicate constraint)
+POST {{baseUrl}}/api/v1/users/{{otherUserId}}/follow
+Authorization: {{authToken}}
+
+###
+
+### [25] Follow yourself → 400
+POST {{baseUrl}}/api/v1/users/{{myUserId}}/follow
+Authorization: {{authToken}}
+
+###
+
+### [26] Follow non-existent user → 404
+POST {{baseUrl}}/api/v1/users/00000000-0000-0000-0000-000000000000/follow
+Authorization: {{authToken}}
+
+###
+
+### [27] Unfollow → 204
+DELETE {{baseUrl}}/api/v1/users/{{otherUserId}}/follow
+Authorization: {{authToken}}
+
+###
+
+### [28] Unfollow again (idempotent — 204, nothing happens)
+DELETE {{baseUrl}}/api/v1/users/{{otherUserId}}/follow
+Authorization: {{authToken}}
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# FOLLOWERS / FOLLOWING lists
+# ─────────────────────────────────────────────────────────────
+
+### [29] GET followers of a user (public, no auth required)
+GET {{baseUrl}}/api/v1/users/{{otherUserId}}/followers?page=0&size=20
+
+###
+
+### [30] GET followers — page 2
+GET {{baseUrl}}/api/v1/users/{{otherUserId}}/followers?page=1&size=10
+
+###
+
+### [31] GET following list of a user
+GET {{baseUrl}}/api/v1/users/{{myUserId}}/following?page=0&size=20
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# ADMIN — User management (requires ADMIN role)
+# ─────────────────────────────────────────────────────────────
+
+# To test admin endpoints: register a user, promote to ADMIN via DB,
+# then log in again to get a token with role=ADMIN.
+@adminToken = Bearer <paste-admin-jwt-here>
+
+### [32] GET all users — paginated
+GET {{baseUrl}}/api/v1/admin/users?page=0&size=20
+Authorization: {{adminToken}}
+
+###
+
+### [33] GET all users — filter by role
+GET {{baseUrl}}/api/v1/admin/users?role=ARTIST&page=0&size=20
+Authorization: {{adminToken}}
+
+###
+
+### [34] GET all users — search by name/email
+GET {{baseUrl}}/api/v1/admin/users?search=alice&page=0&size=20
+Authorization: {{adminToken}}
+
+###
+
+### [35] GET all users — combined filter (role + search)
+GET {{baseUrl}}/api/v1/admin/users?role=LISTENER&search=bob&page=0&size=20
+Authorization: {{adminToken}}
+
+###
+
+### [36] PUT promote user to ARTIST
+PUT {{baseUrl}}/api/v1/admin/users/{{myUserId}}/role
+Content-Type: application/json
+Authorization: {{adminToken}}
+
+{
+  "role": "ARTIST"
+}
+
+###
+
+### [37] PUT promote user to ADMIN
+PUT {{baseUrl}}/api/v1/admin/users/{{myUserId}}/role
+Content-Type: application/json
+Authorization: {{adminToken}}
+
+{
+  "role": "ADMIN"
+}
+
+###
+
+### [38] PUT invalid role value → 400
+PUT {{baseUrl}}/api/v1/admin/users/{{myUserId}}/role
+Content-Type: application/json
+Authorization: {{adminToken}}
+
+{
+  "role": "SUPERUSER"
+}
+
+###
+
+### [39] Admin endpoint without admin role → 403
+GET {{baseUrl}}/api/v1/admin/users
+Authorization: {{authToken}}
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# INTERNAL — inter-service endpoints (no auth, not exposed via Gateway)
+# ─────────────────────────────────────────────────────────────
+
+### [40] GET internal user by ID
+GET {{baseUrl}}/api/v1/internal/users/{{myUserId}}
+Accept: application/json
+
+###
+
+### [41] GET internal user — not found → 404
+GET {{baseUrl}}/api/v1/internal/users/00000000-0000-0000-0000-000000000000
+Accept: application/json
+
+###
+
+### [42] POST batch fetch users by IDs (max 100)
+POST {{baseUrl}}/api/v1/internal/users/batch
+Content-Type: application/json
+
+{
+  "userIds": [
+    "{{myUserId}}",
+    "{{otherUserId}}"
+  ]
+}
+
+###
+
+### [43] POST batch — empty list → 400
+POST {{baseUrl}}/api/v1/internal/users/batch
+Content-Type: application/json
+
+{
+  "userIds": []
+}
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# ACTUATOR
+# ─────────────────────────────────────────────────────────────
+
+### [44] Health check
+GET {{baseUrl}}/actuator/health
+Accept: application/json
+
+###
+
+### [45] Prometheus metrics
+GET {{baseUrl}}/actuator/prometheus
+Accept: text/plain
+
+###

@@ -8,13 +8,15 @@
       "executor": "@jnxplus/nx-gradle:run-task",
       "outputs": ["{projectRoot}/build"],
       "options": {
-        "task": "jar"
+        "task": "jar",
+        "projectPath": ":music-events"
       }
     },
     "test": {
       "executor": "@jnxplus/nx-gradle:run-task",
       "options": {
-        "task": "test"
+        "task": "test",
+        "projectPath": ":music-events"
       }
     }
   },

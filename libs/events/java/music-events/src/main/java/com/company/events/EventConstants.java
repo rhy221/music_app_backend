@@ -23,6 +23,7 @@ public final class EventConstants {
         public static final String TRACK_PLAYED          = "events.track.played";
         public static final String USER_REGISTERED       = "events.user.registered";
         public static final String USER_FOLLOWED         = "events.user.followed";
+        public static final String USER_ROLE_UPDATED     = "events.user.role.updated";
         public static final String PLAYLIST_SHARED       = "events.playlist.shared";
         public static final String COLLABORATOR_ADDED    = "events.playlist.collaborator.added";
         public static final String PLAYLIST_TRACK_ADDED  = "events.playlist.track.added";

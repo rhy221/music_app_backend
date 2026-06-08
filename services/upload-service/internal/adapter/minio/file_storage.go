@@ -41,7 +41,7 @@ func (s *FileStorage) StoreOriginal(ctx context.Context, jobID, filename string,
 	return key, nil
 }
 
-func (s *FileStorage) StoreTranscoded(ctx context.Context, jobID string, bitrate int, localPath string) (string, sizeBytes int64, err error) {
+func (s *FileStorage) StoreTranscoded(ctx context.Context, jobID string, bitrate int, localPath string) (string, int64, error) {
 	f, err := os.Open(localPath)
 	if err != nil {
 		return "", 0, fmt.Errorf("open transcoded file: %w", err)
@@ -52,7 +52,7 @@ func (s *FileStorage) StoreTranscoded(ctx context.Context, jobID string, bitrate
 	if err != nil {
 		return "", 0, err
 	}
-	sizeBytes = info.Size()
+	sizeBytes := info.Size()
 	key := fmt.Sprintf("%s/%dk.mp3", jobID, bitrate)
 
 	_, err = s.client.PutObject(ctx, bucketTranscoded, key, f, sizeBytes, miniogo.PutObjectOptions{

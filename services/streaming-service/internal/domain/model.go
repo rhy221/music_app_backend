@@ -81,3 +81,26 @@ type ArtistCount struct {
 	ArtistName string `json:"artistName"`
 	Count      int64  `json:"count"`
 }
+
+// OutboxEvent is a pending domain event stored atomically with the session update.
+// The OutboxPoller reads these and publishes them to RabbitMQ.
+type OutboxEvent struct {
+	ID          string
+	EventType   string
+	Payload     []byte
+	CreatedAt   time.Time
+	RetryCount  int
+}
+
+// TrackPlayedPayload is the canonical data for a TrackPlayed outbox event.
+// Infrastructure maps this to the wire-format event type when publishing.
+type TrackPlayedPayload struct {
+	UserID        string    `json:"userId"`
+	TrackID       string    `json:"trackId"`
+	Genre         string    `json:"genre"`
+	ArtistID      string    `json:"artistId"`
+	DurationMs    int       `json:"durationMs"`
+	Source        string    `json:"source"`
+	CompletedFull bool      `json:"completedFull"`
+	PlayedAt      time.Time `json:"playedAt"`
+}

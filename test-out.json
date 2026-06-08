@@ -1,0 +1,142 @@
+{
+    "pluginVersion": "1.0.0",
+    "projects": [
+        {
+            "relativePath": ".",
+            "name": "root-project",
+            "isProjectJsonExists": false,
+            "isBuildGradleExists": true,
+            "isBuildGradleKtsExists": false,
+            "isSettingsGradleExists": true,
+            "isSettingsGradleKtsExists": false,
+            "isGradlePropertiesExists": true,
+            "parentProjectName": "",
+            "dependencies": [
+                
+            ]
+        },
+        {
+            "relativePath": "libs\\api-clients\\java\\user-api-client",
+            "name": "user-api-client",
+            "isProjectJsonExists": true,
+            "isBuildGradleExists": true,
+            "isBuildGradleKtsExists": false,
+            "isSettingsGradleExists": false,
+            "isSettingsGradleKtsExists": false,
+            "isGradlePropertiesExists": false,
+            "parentProjectName": "root-project",
+            "dependencies": [
+                
+            ]
+        },
+        {
+            "relativePath": "services\\catalog-service",
+            "name": "catalog-service",
+            "isProjectJsonExists": true,
+            "isBuildGradleExists": true,
+            "isBuildGradleKtsExists": false,
+            "isSettingsGradleExists": true,
+            "isSettingsGradleKtsExists": false,
+            "isGradlePropertiesExists": false,
+            "parentProjectName": "root-project",
+            "dependencies": [
+                {
+                    "relativePath": "libs\\java-common",
+                    "name": "java-common",
+                    "isProjectJsonExists": true,
+                    "isBuildGradleExists": true
+                },
+                {
+                    "relativePath": "libs\\events\\java\\music-events",
+                    "name": "music-events-java",
+                    "isProjectJsonExists": true,
+                    "isBuildGradleExists": true
+                }
+            ]
+        },
+        {
+            "relativePath": "services\\playlist-service",
+            "name": "playlist-service",
+            "isProjectJsonExists": true,
+            "isBuildGradleExists": true,
+            "isBuildGradleKtsExists": false,
+            "isSettingsGradleExists": true,
+            "isSettingsGradleKtsExists": false,
+            "isGradlePropertiesExists": false,
+            "parentProjectName": "root-project",
+            "dependencies": [
+                
+            ]
+        },
+        {
+            "relativePath": "services\\user-service",
+            "name": "user-service",
+            "isProjectJsonExists": true,
+            "isBuildGradleExists": true,
+            "isBuildGradleKtsExists": false,
+            "isSettingsGradleExists": true,
+            "isSettingsGradleKtsExists": false,
+            "isGradlePropertiesExists": false,
+            "parentProjectName": "root-project",
+            "dependencies": [
+                
+            ]
+        },
+        {
+            "relativePath": "libs\\java-common",
+            "name": "java-common",
+            "isProjectJsonExists": true,
+            "isBuildGradleExists": true,
+            "isBuildGradleKtsExists": false,
+            "isSettingsGradleExists": false,
+            "isSettingsGradleKtsExists": false,
+            "isGradlePropertiesExists": false,
+            "parentProjectName": "root-project",
+            "dependencies": [
+                
+            ]
+        },
+        {
+            "relativePath": "libs\\events\\java\\music-events",
+            "name": "music-events-java",
+            "isProjectJsonExists": true,
+            "isBuildGradleExists": true,
+            "isBuildGradleKtsExists": false,
+            "isSettingsGradleExists": false,
+            "isSettingsGradleKtsExists": false,
+            "isGradlePropertiesExists": false,
+            "parentProjectName": "root-project",
+            "dependencies": [
+                
+            ]
+        },
+        {
+            "relativePath": "libs\\api-clients\\java\\catalog-api-client",
+            "name": "catalog-api-client",
+            "isProjectJsonExists": true,
+            "isBuildGradleExists": true,
+            "isBuildGradleKtsExists": false,
+            "isSettingsGradleExists": false,
+            "isSettingsGradleKtsExists": false,
+            "isGradlePropertiesExists": false,
+            "parentProjectName": "root-project",
+            "dependencies": [
+                
+            ]
+        },
+        {
+            "relativePath": "libs\\api-clients\\java\\playlist-api-client",
+            "name": "playlist-api-client",
+            "isProjectJsonExists": true,
+            "isBuildGradleExists": true,
+            "isBuildGradleKtsExists": false,
+            "isSettingsGradleExists": false,
+            "isSettingsGradleKtsExists": false,
+            "isGradlePropertiesExists": false,
+            "parentProjectName": "root-project",
+            "dependencies": [
+                
+            ]
+        }
+    ]
+}

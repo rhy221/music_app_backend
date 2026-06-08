@@ -1,0 +1,34 @@
+SESSION FIXES — 2026-06-08
+==========================
+
+1. serve target cho tất cả services (catalog, playlist, user)
+   - Vấn đề: Nx dùng @nxrocks executor sai → "Project ':libs:java-common' not found"
+   - Fix: Thêm serve target vào project.json dùng @jnxplus/nx-gradle:run-task + bootRun
+
+2. Flyway không chạy trong Spring Boot 4
+   - Vấn đề: Spring Boot 4 tách Flyway ra module riêng, không auto-configure từ flyway-core
+   - Fix: Thay flyway-core bằng spring-boot-starter-flyway (catalog + user service)
+
+3. Flyway "Unsupported Database: PostgreSQL 16.14"
+   - Vấn đề: Flyway 11.x Community cần plugin database riêng
+   - Fix: Thêm runtimeOnly 'org.flywaydb:flyway-database-postgresql' (catalog + user service)
+
+4. JwtUtil bean not found
+   - Vấn đề: JwtUtil là @Component trong package com.musicapp.common, không được component-scan
+   - Fix: Thêm com.musicapp.common.security.JwtUtil vào AutoConfiguration.imports của java-common
+
+5. libs.versions.toml dùng Spring Boot 3.2.0
+   - Vấn đề: java-common compile với BOM cũ (3.2.0) trong khi services dùng 4.0.6 → version mismatch
+   - Fix: Cập nhật spring-boot = "4.0.6" trong gradle/libs.versions.toml
+
+6. Jackson 2.x vs Jackson 3.x (tools.jackson)
+   - Vấn đề: Spring Boot 4 dùng Jackson 3.x (group tools.jackson), EventSerializer dùng Jackson 2.x API
+   - Fix:
+     a. Xóa EventSerializer.java
+     b. RabbitConfig: dùng JacksonJsonMessageConverter() thay Jackson2JsonMessageConverter
+     c. OutboxService (user + catalog): đổi import sang tools.jackson.databind.ObjectMapper
+        và bỏ try-catch (JacksonException là unchecked trong Jackson 3.x)
+
+KẾT QUẢ: pnpm nx serve user-service khởi động thành công trên port 8081
+  - Flyway: 5 migrations applied (users, oauth_accounts, refresh_tokens, follows, outbox_events)
+  - Started UserServiceApplication in ~14s
