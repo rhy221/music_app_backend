@@ -17,6 +17,7 @@ import (
 	infraevent "music-app/streaming-service/internal/infrastructure/event"
 	inframinio "music-app/streaming-service/internal/infrastructure/minio"
 	infraredis "music-app/streaming-service/internal/infrastructure/redis"
+	"music-app/streaming-service/internal/db"
 	"music-app/streaming-service/internal/handler"
 	"music-app/streaming-service/internal/repository"
 	"music-app/streaming-service/internal/usecase"
@@ -41,6 +42,10 @@ func main() {
 		log.Fatal().Err(err).Msg("failed to connect to postgres")
 	}
 	defer pool.Close()
+
+	if err := db.AutoMigrate(context.Background(), pool, log); err != nil {
+		log.Fatal().Err(err).Msg("auto migrate")
+	}
 
 	// ── Redis ─────────────────────────────────────────────────────────────────
 	redisClient, err := commonredis.NewClient(redisURL)

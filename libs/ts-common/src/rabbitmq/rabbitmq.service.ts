@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
-import { Channel, ConsumeMessage, Connection } from 'amqplib';
+import { Channel, ChannelModel, ConsumeMessage } from 'amqplib';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -9,11 +9,11 @@ import { v4 as uuidv4 } from 'uuid';
 export class RabbitMQService implements OnModuleDestroy {
   private readonly logger = new Logger(RabbitMQService.name);
   private channel: Channel;
-  private connection: Connection;
+  private connection: ChannelModel;
   private maxRetries = 3;
 
   /** @internal Called by RabbitMQModule after the connection is established. */
-  setChannel(channel: Channel, connection: Connection, maxRetries: number): void {
+  setChannel(channel: Channel, connection: ChannelModel, maxRetries: number): void {
     this.channel = channel;
     this.connection = connection;
     this.maxRetries = maxRetries;

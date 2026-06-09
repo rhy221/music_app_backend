@@ -1,0 +1,80 @@
+spring:
+  application:
+    name: playlist-service
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:playlist_db}
+    username: ${DB_USER:music_admin}
+    password: ${DB_PASSWORD:music_pass}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: playlist_schema
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    schemas: playlist_schema
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:music_pass}
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:music_admin}
+    password: ${RABBITMQ_PASSWORD:music_pass}
+    virtual-host: ${RABBITMQ_VHOST:music}
+    listener:
+      simple:
+        acknowledge-mode: auto
+        prefetch: 10
+
+server:
+  port: 8083
+
+jwt:
+  secret: ${JWT_SECRET:change-me-in-production-min-32-chars}
+  access-token-expiration: 3600000
+  refresh-token-expiration: 604800000
+
+cors:
+  allowed-origins: ${CORS_ORIGINS:http://localhost:3000}
+
+catalog:
+  service:
+    url: ${CATALOG_SERVICE_URL:http://localhost:8082}
+
+user:
+  service:
+    url: ${USER_SERVICE_URL:http://localhost:8081}
+
+playlist:
+  queues:
+    track-updated: playlist.track.updated
+    track-deleted: playlist.track.deleted
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,info
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      service: playlist-service

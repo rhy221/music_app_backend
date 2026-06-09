@@ -22,17 +22,8 @@ const serviceName = "upload-service"
 
 var transcodeBitrates = []int{128, 256, 320}
 
-type TranscodeWork struct {
-	JobID      string
-	UploaderID string
-	Title      string
-	Genre      *string
-	AlbumID    *string
-	StorageKey string
-}
-
 type TranscoderPool struct {
-	jobs       chan TranscodeWork
+	jobs       chan port.TranscodeWork
 	jobRepo    port.JobRepository
 	taskRepo   port.TaskRepository
 	outbox     port.OutboxRepository
@@ -52,7 +43,7 @@ func NewTranscoderPool(
 	log zerolog.Logger,
 ) *TranscoderPool {
 	return &TranscoderPool{
-		jobs:       make(chan TranscodeWork, workers*4),
+		jobs:       make(chan port.TranscodeWork, workers*4),
 		jobRepo:    jobRepo,
 		taskRepo:   taskRepo,
 		outbox:     outbox,
@@ -69,7 +60,8 @@ func (p *TranscoderPool) Start(ctx context.Context) {
 	}
 }
 
-func (p *TranscoderPool) Submit(work TranscodeWork) {
+// Submit implements port.Dispatcher.
+func (p *TranscoderPool) Submit(work port.TranscodeWork) {
 	p.jobs <- work
 }
 
@@ -87,7 +79,7 @@ func (p *TranscoderPool) run(ctx context.Context) {
 	}
 }
 
-func (p *TranscoderPool) process(ctx context.Context, work TranscodeWork) {
+func (p *TranscoderPool) process(ctx context.Context, work port.TranscodeWork) {
 	log := p.log.With().Str("jobId", work.JobID).Logger()
 
 	if err := p.jobRepo.UpdateStatus(ctx, work.JobID, domain.JobStatusTranscoding, nil); err != nil {
@@ -187,14 +179,15 @@ func (p *TranscoderPool) process(ctx context.Context, work TranscodeWork) {
 	payload, _ := json.Marshal(musicevents.TranscodeCompletedEvent{
 		Header: buildHeader(musicevents.EventTypeTranscodeCompleted, ""),
 		Data: musicevents.TranscodeCompletedData{
-			UploadJobID: work.JobID,
-			UploaderID:  work.UploaderID,
-			Title:       work.Title,
-			Genre:       work.Genre,
-			AlbumID:     work.AlbumID,
-			DurationMs:  durationMs,
-			WaveformURL: waveformURL,
-			Assets:      assets,
+			UploadJobID:  work.JobID,
+			UploaderID:   work.UploaderID,
+			Title:        work.Title,
+			Genre:        work.Genre,
+			AlbumID:      work.AlbumID,
+			DurationMs:   durationMs,
+			ThumbnailURL: work.ThumbnailURL,
+			WaveformURL:  waveformURL,
+			Assets:       assets,
 		},
 	})
 	err = p.transactor.RunInTx(ctx, func(ctx context.Context) error {
@@ -215,7 +208,7 @@ func (p *TranscoderPool) process(ctx context.Context, work TranscodeWork) {
 	}
 }
 
-func (p *TranscoderPool) failJob(ctx context.Context, work TranscodeWork, msg string) {
+func (p *TranscoderPool) failJob(ctx context.Context, work port.TranscodeWork, msg string) {
 	payload, _ := json.Marshal(musicevents.TranscodeFailedEvent{
 		Header: buildHeader(musicevents.EventTypeTranscodeFailed, ""),
 		Data: musicevents.TranscodeFailedData{

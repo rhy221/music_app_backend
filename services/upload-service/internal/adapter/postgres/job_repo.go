@@ -24,11 +24,12 @@ func (r *JobRepo) Insert(ctx context.Context, job *domain.UploadJob) error {
 	_, err := q.Exec(ctx, `
 		INSERT INTO upload_jobs (
 			id, uploader_id, original_filename, original_format, original_size_bytes,
-			title, genre, album_id, storage_url, status, created_at, updated_at
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+			title, genre, album_id, storage_url, thumbnail_url, draft_id, status, created_at, updated_at
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)`,
 		job.ID, job.UploaderID, job.OriginalFilename, job.OriginalFormat,
 		job.OriginalSizeBytes, job.Title, job.Genre, job.AlbumID,
-		job.StorageURL, string(job.Status), job.CreatedAt, job.UpdatedAt,
+		job.StorageURL, job.ThumbnailURL, job.DraftID,
+		string(job.Status), job.CreatedAt, job.UpdatedAt,
 	)
 	return err
 }
@@ -37,7 +38,8 @@ func (r *JobRepo) FindByID(ctx context.Context, id, uploaderID string) (*domain.
 	q := db(ctx, r.pool)
 	row := q.QueryRow(ctx, `
 		SELECT id, uploader_id, original_filename, original_format, original_size_bytes,
-		       original_duration_ms, title, genre, album_id, storage_url, waveform_url,
+		       original_duration_ms, title, genre, album_id, storage_url,
+		       thumbnail_url, draft_id, waveform_url,
 		       status, track_id, error_message, created_at, updated_at
 		FROM upload_jobs
 		WHERE id = $1 AND uploader_id = $2`, id, uploaderID)
@@ -48,7 +50,8 @@ func (r *JobRepo) FindByIDAdmin(ctx context.Context, id string) (*domain.UploadJ
 	q := db(ctx, r.pool)
 	row := q.QueryRow(ctx, `
 		SELECT id, uploader_id, original_filename, original_format, original_size_bytes,
-		       original_duration_ms, title, genre, album_id, storage_url, waveform_url,
+		       original_duration_ms, title, genre, album_id, storage_url,
+		       thumbnail_url, draft_id, waveform_url,
 		       status, track_id, error_message, created_at, updated_at
 		FROM upload_jobs
 		WHERE id = $1`, id)
@@ -66,7 +69,8 @@ func (r *JobRepo) List(ctx context.Context, uploaderID string, status *string, p
 	if status != nil {
 		rows, err = q.Query(ctx, `
 			SELECT id, uploader_id, original_filename, original_format, original_size_bytes,
-			       original_duration_ms, title, genre, album_id, storage_url, waveform_url,
+			       original_duration_ms, title, genre, album_id, storage_url,
+			       thumbnail_url, draft_id, waveform_url,
 			       status, track_id, error_message, created_at, updated_at
 			FROM upload_jobs
 			WHERE uploader_id = $1 AND status = $2
@@ -75,7 +79,8 @@ func (r *JobRepo) List(ctx context.Context, uploaderID string, status *string, p
 	} else {
 		rows, err = q.Query(ctx, `
 			SELECT id, uploader_id, original_filename, original_format, original_size_bytes,
-			       original_duration_ms, title, genre, album_id, storage_url, waveform_url,
+			       original_duration_ms, title, genre, album_id, storage_url,
+			       thumbnail_url, draft_id, waveform_url,
 			       status, track_id, error_message, created_at, updated_at
 			FROM upload_jobs
 			WHERE uploader_id = $1
@@ -135,6 +140,14 @@ func (r *JobRepo) UpdateWaveform(ctx context.Context, id, waveformURL string) er
 	return err
 }
 
+func (r *JobRepo) UpdateThumbnail(ctx context.Context, id, thumbnailURL string) error {
+	q := db(ctx, r.pool)
+	_, err := q.Exec(ctx,
+		`UPDATE upload_jobs SET thumbnail_url=$1, updated_at=NOW() WHERE id=$2`,
+		thumbnailURL, id)
+	return err
+}
+
 func (r *JobRepo) SetPublished(ctx context.Context, id, trackID string) error {
 	q := db(ctx, r.pool)
 	_, err := q.Exec(ctx,
@@ -154,7 +167,8 @@ func scanJob(s scanner) (*domain.UploadJob, error) {
 	err := s.Scan(
 		&j.ID, &j.UploaderID, &j.OriginalFilename, &j.OriginalFormat,
 		&j.OriginalSizeBytes, &j.OriginalDurationMs,
-		&j.Title, &j.Genre, &j.AlbumID, &j.StorageURL, &j.WaveformURL,
+		&j.Title, &j.Genre, &j.AlbumID, &j.StorageURL,
+		&j.ThumbnailURL, &j.DraftID, &j.WaveformURL,
 		&status, &j.TrackID, &j.ErrorMessage,
 		&j.CreatedAt, &j.UpdatedAt,
 	)

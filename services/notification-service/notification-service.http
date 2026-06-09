@@ -1,0 +1,46 @@
+### Notification Service Smoke Tests
+### Start service: PORT=8087 MONGODB_URI=mongodb://music_admin:music_pass@localhost:27017/notifications?authSource=admin RABBITMQ_URL=amqp://music_admin:music_pass@localhost:5672/music REDIS_URL=redis://:music_pass@localhost:6379 JWT_SECRET=secret pnpm nx serve @org/notification-service
+
+@baseUrl = http://localhost:8087/api
+@userId = test-user-123
+
+### Health check
+GET {{baseUrl}}/health
+
+### Metrics
+GET {{baseUrl}}/metrics
+
+### List notifications (no auth required via AuthGuard header)
+GET {{baseUrl}}/v1/notifications
+X-User-Id: {{userId}}
+
+### List unread only
+GET {{baseUrl}}/v1/notifications?unreadOnly=true
+X-User-Id: {{userId}}
+
+### Get unread count
+GET {{baseUrl}}/v1/notifications/unread-count
+X-User-Id: {{userId}}
+
+### Get preferences (creates default if not exists)
+GET {{baseUrl}}/v1/notifications/preferences
+X-User-Id: {{userId}}
+
+### Update preferences
+PUT {{baseUrl}}/v1/notifications/preferences
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "emailEnabled": false,
+  "newFollower": true,
+  "newRelease": false
+}
+
+### Mark all as read
+POST {{baseUrl}}/v1/notifications/read-all
+X-User-Id: {{userId}}
+
+### Mark single notification as read (replace with real id)
+POST {{baseUrl}}/v1/notifications/507f1f77bcf86cd799439011/read
+X-User-Id: {{userId}}

@@ -1,118 +1,76 @@
-from fastapi import FastAPI, Path, Query
-from typing import Optional
+from __future__ import annotations
+import asyncio
+import logging
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+
+import aio_pika
+import redis.asyncio as aioredis
+from fastapi import FastAPI
+from neo4j import AsyncGraphDatabase
+
+from .config import Settings
+from .container import Container
+from .application.recommendation_service import RecommendationService
+from .infrastructure.neo4j_repository import Neo4jGraphRepository
+from .infrastructure.redis_service import RedisService
+from .infrastructure.messaging.consumers import CatalogConsumer, StreamingConsumer, UserConsumer
+from .presentation.routers.recommendations import router as recommendations_router
+from .presentation.routers.taste_profile import router as taste_profile_router
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    cfg = Settings()
+
+    neo4j_driver = AsyncGraphDatabase.driver(
+        cfg.neo4j_uri,
+        auth=(cfg.neo4j_user, cfg.neo4j_password),
+    )
+    redis_client = aioredis.from_url(cfg.redis_url, decode_responses=True)
+    rabbitmq_conn = await aio_pika.connect_robust(cfg.rabbitmq_url)
+
+    graph_repo = Neo4jGraphRepository(neo4j_driver, cfg)
+    cache_svc = RedisService(redis_client)
+    rec_svc = RecommendationService(graph_repo, cache_svc, cfg)
+
+    consumers = [
+        StreamingConsumer(rabbitmq_conn, graph_repo),
+        CatalogConsumer(rabbitmq_conn, graph_repo),
+        UserConsumer(rabbitmq_conn, graph_repo),
+    ]
+    consumer_tasks = [asyncio.create_task(c.start()) for c in consumers]
+
+    app.state.container = Container(
+        neo4j_driver=neo4j_driver,
+        redis_client=redis_client,
+        rabbitmq_connection=rabbitmq_conn,
+        graph_repo=graph_repo,
+        cache_service=cache_svc,
+        rec_service=rec_svc,
+    )
+
+    logger.info("Recommend service started on port %d", cfg.port)
+    yield
+
+    logger.info("Shutting down recommend service…")
+    for task in consumer_tasks:
+        task.cancel()
+    await asyncio.gather(*consumer_tasks, return_exceptions=True)
+    await rabbitmq_conn.close()
+    await redis_client.aclose()
+    await neo4j_driver.close()
+
 
 app = FastAPI(
     title="Recommend Service",
     version="1.0.0",
-    description="Music recommendation service mock",
+    description="Graph-based music recommendation service",
+    lifespan=lifespan,
 )
 
-MOCK_TRACKS = [
-    {
-        "trackId": "track-001",
-        "title": "Starlight Serenade",
-        "artist": {"artistId": "artist-001", "displayName": "Luna Echo"},
-        "duration": 215,
-        "genre": "POP",
-        "score": 0.97,
-        "reason": "Based on your listening history",
-    },
-    {
-        "trackId": "track-002",
-        "title": "Ocean Waves",
-        "artist": {"artistId": "artist-002", "displayName": "Deep Blue"},
-        "duration": 198,
-        "genre": "AMBIENT",
-        "score": 0.91,
-        "reason": "Trending in your area",
-    },
-    {
-        "trackId": "track-003",
-        "title": "City Lights",
-        "artist": {"artistId": "artist-003", "displayName": "Urban Sound"},
-        "duration": 232,
-        "genre": "ELECTRONIC",
-        "score": 0.88,
-        "reason": "Similar to songs you like",
-    },
-]
-
-
-@app.get("/api/v1/recommendations")
-def get_recommendations(
-    limit: int = Query(20, ge=1, le=100),
-    genre: Optional[str] = None,
-):
-    items = MOCK_TRACKS[:limit]
-    if genre:
-        items = [t for t in items if t["genre"] == genre.upper()]
-    return {
-        "items": items,
-        "total": len(items),
-        "generatedAt": "2024-06-05T08:00:00Z",
-        "model": "collaborative-filtering-v2",
-    }
-
-
-@app.get("/api/v1/recommendations/discover-weekly")
-def discover_weekly():
-    return {
-        "playlistId": "discover-weekly-user-001",
-        "title": "Discover Weekly",
-        "description": "Your personalized weekly playlist",
-        "items": MOCK_TRACKS,
-        "total": len(MOCK_TRACKS),
-        "refreshesAt": "2024-06-10T00:00:00Z",
-    }
-
-
-@app.get("/api/v1/recommendations/similar/{track_id}")
-def similar_tracks(
-    track_id: str = Path(..., description="Track ID to find similar tracks for"),
-    limit: int = Query(10, ge=1, le=50),
-):
-    similar = [t for t in MOCK_TRACKS if t["trackId"] != track_id][:limit]
-    return {
-        "sourceTrackId": track_id,
-        "items": similar,
-        "total": len(similar),
-    }
-
-
-@app.get("/api/v1/recommendations/radio/{track_id}")
-def radio_mode(
-    track_id: str = Path(..., description="Seed track for radio"),
-    limit: int = Query(20, ge=1, le=50),
-):
-    return {
-        "seedTrackId": track_id,
-        "items": MOCK_TRACKS[:limit],
-        "total": len(MOCK_TRACKS[:limit]),
-    }
-
-
-@app.get("/api/v1/taste-profile")
-def get_taste_profile():
-    return {
-        "userId": "user-001",
-        "topGenres": [
-            {"genre": "POP", "weight": 0.45},
-            {"genre": "ELECTRONIC", "weight": 0.30},
-            {"genre": "AMBIENT", "weight": 0.25},
-        ],
-        "topArtists": [
-            {"artistId": "artist-001", "displayName": "Luna Echo", "playCount": 142},
-            {"artistId": "artist-002", "displayName": "Deep Blue", "playCount": 98},
-        ],
-        "updatedAt": "2024-06-04T00:00:00Z",
-    }
-
-
-@app.post("/api/v1/taste-profile/refresh")
-def refresh_taste_profile():
-    return {"success": True, "message": "Taste profile rebuild queued", "estimatedTime": "5 minutes"}
-
-
-@app.post("/api/v1/recommendations/feedback")
-def submit_feedback(feedback: dict):
-    return {"success": True, "feedbackId": "feedback-" + feedback.get("trackId", "unknown")}
+app.include_router(recommendations_router)
+app.include_router(taste_profile_router)

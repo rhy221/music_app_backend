@@ -1,0 +1,322 @@
+### Recommend Service — REST Client test file
+### Requires VS Code extension: REST Client (humao.rest-client)
+###
+### Prerequisites:
+###   1. docker compose -f infra/docker-compose.yml up -d neo4j redis rabbitmq
+###   2. pnpm nx run recommend-service:install
+###   3. pnpm nx run recommend-service:serve
+###
+### Auth: Gateway đã validate JWT và forward X-User-Id — service tin tưởng header này trực tiếp.
+### Endpoint /similar/{trackId} là public, không cần X-User-Id.
+
+@baseUrl  = http://localhost:8000
+@userId   = 00000000-0000-0000-0000-000000000001
+@userId2  = 00000000-0000-0000-0000-000000000002
+@trackId  = 00000000-0000-0000-0000-000000000010
+@trackId2 = 00000000-0000-0000-0000-000000000011
+
+###
+### ─── RECOMMENDATIONS ──────────────────────────────────────────────────────────
+###
+
+### [1] Lấy recommendations — mặc định (limit=20)
+### Cold-start nếu user chưa có lịch sử nghe: trả popular-fallback
+### Có lịch sử: trả collaborative-filtering-v2
+GET {{baseUrl}}/api/v1/recommendations
+X-User-Id: {{userId}}
+
+###
+
+### [2] Recommendations với limit tùy chỉnh
+GET {{baseUrl}}/api/v1/recommendations?limit=5
+X-User-Id: {{userId}}
+
+###
+
+### [3] Recommendations lọc theo genre
+GET {{baseUrl}}/api/v1/recommendations?genre=POP
+X-User-Id: {{userId}}
+
+###
+
+### [4] Recommendations lọc genre + giới hạn số lượng
+GET {{baseUrl}}/api/v1/recommendations?genre=ELECTRONIC&limit=10
+X-User-Id: {{userId}}
+
+###
+
+### [5] Recommendations với seed=genre (boost genre preferred)
+GET {{baseUrl}}/api/v1/recommendations?seed=genre
+X-User-Id: {{userId}}
+
+###
+
+### [6] Limit = 1 (min)
+GET {{baseUrl}}/api/v1/recommendations?limit=1
+X-User-Id: {{userId}}
+
+###
+
+### [7] Limit = 100 (max)
+GET {{baseUrl}}/api/v1/recommendations?limit=100
+X-User-Id: {{userId}}
+
+###
+
+### [8] Limit vượt max (101) → 422 Unprocessable Entity
+GET {{baseUrl}}/api/v1/recommendations?limit=101
+X-User-Id: {{userId}}
+
+###
+
+### [9] Limit = 0 → 422
+GET {{baseUrl}}/api/v1/recommendations?limit=0
+X-User-Id: {{userId}}
+
+###
+
+### [10] Thiếu X-User-Id → 422 Unprocessable Entity
+GET {{baseUrl}}/api/v1/recommendations
+
+###
+
+### [11] User khác — kiểm tra cache độc lập
+GET {{baseUrl}}/api/v1/recommendations
+X-User-Id: {{userId2}}
+
+###
+### ─── DISCOVER WEEKLY ──────────────────────────────────────────────────────────
+###
+
+### [12] Lấy Discover Weekly playlist (cache 7 ngày)
+GET {{baseUrl}}/api/v1/recommendations/discover-weekly
+X-User-Id: {{userId}}
+
+###
+
+### [13] Discover Weekly — user khác
+GET {{baseUrl}}/api/v1/recommendations/discover-weekly
+X-User-Id: {{userId2}}
+
+###
+
+### [14] Thiếu X-User-Id → 422
+GET {{baseUrl}}/api/v1/recommendations/discover-weekly
+
+###
+### ─── SIMILAR TRACKS (PUBLIC) ──────────────────────────────────────────────────
+###
+
+### [15] Similar tracks — public, không cần X-User-Id
+GET {{baseUrl}}/api/v1/recommendations/similar/{{trackId}}
+
+###
+
+### [16] Similar tracks — với limit tùy chỉnh
+GET {{baseUrl}}/api/v1/recommendations/similar/{{trackId}}?limit=5
+
+###
+
+### [17] Similar tracks — limit = 1 (min)
+GET {{baseUrl}}/api/v1/recommendations/similar/{{trackId}}?limit=1
+
+###
+
+### [18] Similar tracks — limit = 50 (max)
+GET {{baseUrl}}/api/v1/recommendations/similar/{{trackId}}?limit=50
+
+###
+
+### [19] Similar tracks — limit vượt max (51) → 422
+GET {{baseUrl}}/api/v1/recommendations/similar/{{trackId}}?limit=51
+
+###
+
+### [20] Similar tracks — trackId khác
+GET {{baseUrl}}/api/v1/recommendations/similar/{{trackId2}}
+
+###
+
+### [21] Similar tracks — trackId không tồn tại trong graph → 200 items=[]
+GET {{baseUrl}}/api/v1/recommendations/similar/00000000-0000-0000-0000-000000000099
+
+###
+### ─── RADIO MODE ───────────────────────────────────────────────────────────────
+###
+
+### [22] Radio từ seed track — mặc định 25 tracks
+GET {{baseUrl}}/api/v1/recommendations/radio/{{trackId}}
+X-User-Id: {{userId}}
+
+###
+
+### [23] Radio — limit tùy chỉnh
+GET {{baseUrl}}/api/v1/recommendations/radio/{{trackId}}?limit=10
+X-User-Id: {{userId}}
+
+###
+
+### [24] Radio — limit = 1 (min)
+GET {{baseUrl}}/api/v1/recommendations/radio/{{trackId}}?limit=1
+X-User-Id: {{userId}}
+
+###
+
+### [25] Radio — limit = 50 (max)
+GET {{baseUrl}}/api/v1/recommendations/radio/{{trackId}}?limit=50
+X-User-Id: {{userId}}
+
+###
+
+### [26] Radio — seed track khác
+GET {{baseUrl}}/api/v1/recommendations/radio/{{trackId2}}
+X-User-Id: {{userId}}
+
+###
+
+### [27] Radio — thiếu X-User-Id → 422
+GET {{baseUrl}}/api/v1/recommendations/radio/{{trackId}}
+
+###
+### ─── FEEDBACK ─────────────────────────────────────────────────────────────────
+###
+
+### [28] Feedback LIKE — tạo SAVED edge trong Neo4j, invalidate cache
+POST {{baseUrl}}/api/v1/recommendations/feedback
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "trackId": "{{trackId}}",
+  "action": "LIKE"
+}
+
+###
+
+### [29] Feedback DISLIKE — tạo DISLIKED edge, exclude khỏi future recs
+POST {{baseUrl}}/api/v1/recommendations/feedback
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "trackId": "{{trackId}}",
+  "action": "DISLIKE"
+}
+
+###
+
+### [30] Feedback SKIP — no-op trong Neo4j
+POST {{baseUrl}}/api/v1/recommendations/feedback
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "trackId": "{{trackId}}",
+  "action": "SKIP"
+}
+
+###
+
+### [31] Feedback SAVE_TO_PLAYLIST — tạo SAVED edge
+POST {{baseUrl}}/api/v1/recommendations/feedback
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "trackId": "{{trackId}}",
+  "action": "SAVE_TO_PLAYLIST",
+  "context": "playlist-abc"
+}
+
+###
+
+### [32] Feedback — action không hợp lệ → 422
+POST {{baseUrl}}/api/v1/recommendations/feedback
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "trackId": "{{trackId}}",
+  "action": "INVALID_ACTION"
+}
+
+###
+
+### [33] Feedback — thiếu trackId → 422
+POST {{baseUrl}}/api/v1/recommendations/feedback
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "action": "LIKE"
+}
+
+###
+
+### [34] Feedback — thiếu X-User-Id → 422
+POST {{baseUrl}}/api/v1/recommendations/feedback
+Content-Type: application/json
+
+{
+  "trackId": "{{trackId}}",
+  "action": "LIKE"
+}
+
+###
+### ─── TASTE PROFILE ────────────────────────────────────────────────────────────
+###
+
+### [35] Lấy taste profile — genreWeights + topArtists + profileStrength
+GET {{baseUrl}}/api/v1/taste-profile
+X-User-Id: {{userId}}
+
+###
+
+### [36] Taste profile — user mới, chưa có lịch sử nghe → profile rỗng
+GET {{baseUrl}}/api/v1/taste-profile
+X-User-Id: {{userId2}}
+
+###
+
+### [37] Taste profile — thiếu X-User-Id → 422
+GET {{baseUrl}}/api/v1/taste-profile
+
+###
+### ─── TASTE PROFILE REFRESH ────────────────────────────────────────────────────
+###
+
+### [38] Refresh taste profile — invalidate Redis cache recs:{userId} + discover-weekly:{userId}
+### → 202 Accepted
+POST {{baseUrl}}/api/v1/taste-profile/refresh
+X-User-Id: {{userId}}
+
+###
+
+### [39] Refresh → sau đó lấy lại recommendations (cache đã bị xoá → Neo4j query)
+# Bước 1: gọi refresh
+POST {{baseUrl}}/api/v1/taste-profile/refresh
+X-User-Id: {{userId}}
+
+###
+
+### [40] Refresh — thiếu X-User-Id → 422
+POST {{baseUrl}}/api/v1/taste-profile/refresh
+
+###
+### ─── OPENAPI / DOCS ───────────────────────────────────────────────────────────
+###
+
+### [41] OpenAPI JSON schema
+GET {{baseUrl}}/openapi.json
+
+###
+
+### [42] Swagger UI (trả HTML)
+GET {{baseUrl}}/docs
+
+###
+
+### [43] ReDoc UI (trả HTML)
+GET {{baseUrl}}/redoc
+
+###

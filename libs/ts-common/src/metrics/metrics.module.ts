@@ -1,5 +1,5 @@
 import { Controller, Get, Module, Res } from '@nestjs/common';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { MetricsInterceptor } from './metrics.interceptor';
 import { MetricsService } from './metrics.service';
 

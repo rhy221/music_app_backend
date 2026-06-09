@@ -59,14 +59,15 @@ type TrackUploadedEvent struct {
 }
 
 type TranscodeCompletedData struct {
-	UploadJobID string       `json:"uploadJobId"`
-	UploaderID  string       `json:"uploaderId"`
-	Title       string       `json:"title"`
-	Genre       *string      `json:"genre,omitempty"`
-	AlbumID     *string      `json:"albumId,omitempty"`
-	DurationMs  int          `json:"durationMs"`
-	WaveformURL *string      `json:"waveformUrl,omitempty"`
-	Assets      []AudioAsset `json:"assets"`
+	UploadJobID  string       `json:"uploadJobId"`
+	UploaderID   string       `json:"uploaderId"`
+	Title        string       `json:"title"`
+	Genre        *string      `json:"genre,omitempty"`
+	AlbumID      *string      `json:"albumId,omitempty"`
+	DurationMs   int          `json:"durationMs"`
+	ThumbnailURL *string      `json:"thumbnailUrl,omitempty"`
+	WaveformURL  *string      `json:"waveformUrl,omitempty"`
+	Assets       []AudioAsset `json:"assets"`
 }
 
 type TranscodeCompletedEvent struct {

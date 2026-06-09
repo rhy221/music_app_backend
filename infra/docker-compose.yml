@@ -141,10 +141,8 @@ services:
       - -c
       - |
         mc alias set local http://minio:9000 music_admin music_pass
-        mc mb --ignore-existing local/audio-originals
-        mc mb --ignore-existing local/audio-transcoded
         mc mb --ignore-existing local/images
-        mc mb --ignore-existing local/waveforms
+        mc mb --ignore-existing local/audio
         mc anonymous set download local/images
         echo "✓ MinIO buckets ready"
     restart: on-failure
@@ -180,6 +178,31 @@ services:
       - ./docker/rabbitmq/init.sh:/init.sh:ro
     entrypoint: ["sh", "/init.sh"]
     restart: on-failure
+
+  # ─── Search Service ──────────────────────────────────────────────────────────
+  search-service:
+    build:
+      context: ..
+      dockerfile: services/search-service/Dockerfile
+    container_name: music-search-service
+    environment:
+      PORT: "8085"
+      ELASTICSEARCH_NODE: http://elasticsearch:9200
+      RABBITMQ_URL: amqp://music_admin:music_pass@rabbitmq:5672/music
+    ports:
+      - "8085:8085"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8085/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
 
 # ─── Volumes ──────────────────────────────────────────────────────────────────
 volumes:

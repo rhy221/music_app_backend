@@ -1,0 +1,654 @@
+### Playlist Service — HTTP Tests
+### Base URL: http://localhost:8083
+### Start service: pnpm nx run playlist-service:serve (requires Docker infra)
+
+@baseUrl = http://localhost:8083
+
+# Paste the accessToken returned from user-service login here
+@accessToken = eyJhbGciOiJIUzI1NiJ9...
+@authToken = Bearer {{accessToken}}
+
+# Paste second user's token here (for collaborator tests)
+@accessToken2 = eyJhbGciOiJIUzI1NiJ9...
+@authToken2 = Bearer {{accessToken2}}
+
+# Fill in after creating a playlist
+@playlistId = 00000000-0000-0000-0000-000000000001
+
+# Fill in after adding a track (item id from addTrack response)
+@itemId = 00000000-0000-0000-0000-000000000002
+
+# A valid trackId from catalog-service
+@trackId = 00000000-0000-0000-0000-000000000003
+
+# A valid trackId2 from catalog-service (for second track)
+@trackId2 = 00000000-0000-0000-0000-000000000004
+
+# Another user's ID (for collaborator tests)
+@collaboratorUserId = 00000000-0000-0000-0000-000000000005
+
+# Owner user ID (fill in from login)
+@myUserId = 00000000-0000-0000-0000-000000000006
+
+
+# ─────────────────────────────────────────────────────────────
+# PLAYLISTS — CRUD
+# ─────────────────────────────────────────────────────────────
+
+### [1] Create private playlist — 201 Created
+POST {{baseUrl}}/api/v1/playlists
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "name": "My Chill Mix",
+  "description": "Weekend vibes playlist",
+  "visibility": "PRIVATE"
+}
+
+###
+
+### [2] Create public playlist — 201 Created
+POST {{baseUrl}}/api/v1/playlists
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "name": "Top Hits 2025",
+  "description": "Popular tracks this year",
+  "visibility": "PUBLIC"
+}
+
+###
+
+### [3] Create unlisted playlist — 201 Created
+POST {{baseUrl}}/api/v1/playlists
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "name": "Secret Playlist",
+  "visibility": "UNLISTED"
+}
+
+###
+
+### [4] Create playlist — name too long (>100 chars) → 400
+POST {{baseUrl}}/api/v1/playlists
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "name": "This name is way too long and exceeds the one hundred character limit set by the validation constraint here",
+  "visibility": "PUBLIC"
+}
+
+###
+
+### [5] Create playlist — missing name → 400
+POST {{baseUrl}}/api/v1/playlists
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "description": "No name provided",
+  "visibility": "PUBLIC"
+}
+
+###
+
+### [6] Create playlist — no token → 401
+POST {{baseUrl}}/api/v1/playlists
+Content-Type: application/json
+
+{
+  "name": "Unauthorized Playlist",
+  "visibility": "PUBLIC"
+}
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# PLAYLISTS — LIST MY PLAYLISTS
+# ─────────────────────────────────────────────────────────────
+
+### [7] GET my playlists (owned + collaborating) — default page
+GET {{baseUrl}}/api/v1/playlists
+Authorization: {{authToken}}
+
+###
+
+### [8] GET my playlists — page 2, size 5
+GET {{baseUrl}}/api/v1/playlists?page=1&size=5
+Authorization: {{authToken}}
+
+###
+
+### [9] GET my playlists — no token → 401
+GET {{baseUrl}}/api/v1/playlists
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# PLAYLISTS — GET BY ID
+# ─────────────────────────────────────────────────────────────
+
+### [10] GET playlist by id — owner (full detail, isOwner=true, canEdit=true)
+GET {{baseUrl}}/api/v1/playlists/{{playlistId}}
+Authorization: {{authToken}}
+
+###
+
+### [11] GET public playlist — no auth (isOwner=false, canEdit=false)
+GET {{baseUrl}}/api/v1/playlists/{{playlistId}}
+
+###
+
+### [12] GET private playlist — other user → 403
+GET {{baseUrl}}/api/v1/playlists/{{playlistId}}
+Authorization: {{authToken2}}
+
+###
+
+### [13] GET non-existent playlist → 404
+GET {{baseUrl}}/api/v1/playlists/00000000-0000-0000-0000-000000000000
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# PLAYLISTS — UPDATE
+# ─────────────────────────────────────────────────────────────
+
+### [14] PATCH update name and description
+PATCH {{baseUrl}}/api/v1/playlists/{{playlistId}}
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "name": "Updated Playlist Name",
+  "description": "New description"
+}
+
+###
+
+### [15] PATCH update visibility to PUBLIC (triggers PlaylistSharedEvent in outbox)
+PATCH {{baseUrl}}/api/v1/playlists/{{playlistId}}
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "visibility": "PUBLIC"
+}
+
+###
+
+### [16] PATCH update visibility back to PRIVATE
+PATCH {{baseUrl}}/api/v1/playlists/{{playlistId}}
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "visibility": "PRIVATE"
+}
+
+###
+
+### [17] PATCH update name only
+PATCH {{baseUrl}}/api/v1/playlists/{{playlistId}}
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "name": "Renamed Playlist"
+}
+
+###
+
+### [18] PATCH — name too long → 400
+PATCH {{baseUrl}}/api/v1/playlists/{{playlistId}}
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "name": "This name is way too long and exceeds the one hundred character limit set by the validation constraint here"
+}
+
+###
+
+### [19] PATCH — not owner → 403
+PATCH {{baseUrl}}/api/v1/playlists/{{playlistId}}
+Content-Type: application/json
+Authorization: {{authToken2}}
+
+{
+  "name": "Stolen Name"
+}
+
+###
+
+### [20] PATCH — no token → 401
+PATCH {{baseUrl}}/api/v1/playlists/{{playlistId}}
+Content-Type: application/json
+
+{
+  "name": "No Auth Update"
+}
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# PLAYLISTS — DELETE
+# ─────────────────────────────────────────────────────────────
+
+### [21] DELETE playlist — owner → 204
+DELETE {{baseUrl}}/api/v1/playlists/{{playlistId}}
+Authorization: {{authToken}}
+
+###
+
+### [22] DELETE playlist — not owner → 403
+DELETE {{baseUrl}}/api/v1/playlists/{{playlistId}}
+Authorization: {{authToken2}}
+
+###
+
+### [23] DELETE non-existent playlist → 404
+DELETE {{baseUrl}}/api/v1/playlists/00000000-0000-0000-0000-000000000000
+Authorization: {{authToken}}
+
+###
+
+### [24] DELETE playlist — no token → 401
+DELETE {{baseUrl}}/api/v1/playlists/{{playlistId}}
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# PLAYLIST ITEMS — ADD TRACK
+# ─────────────────────────────────────────────────────────────
+
+### [25] POST add track — append to end (no position) → 201
+POST {{baseUrl}}/api/v1/playlists/{{playlistId}}/items
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "trackId": "{{trackId}}"
+}
+
+###
+
+### [26] POST add track — insert at position 1 → 201 (shifts others down)
+POST {{baseUrl}}/api/v1/playlists/{{playlistId}}/items
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "trackId": "{{trackId2}}",
+  "position": 1
+}
+
+###
+
+### [27] POST add duplicate track → 409 (already in playlist)
+POST {{baseUrl}}/api/v1/playlists/{{playlistId}}/items
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "trackId": "{{trackId}}"
+}
+
+###
+
+### [28] POST add track — missing trackId → 400
+POST {{baseUrl}}/api/v1/playlists/{{playlistId}}/items
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "position": 1
+}
+
+###
+
+### [29] POST add track — non-existent track → 404 (from catalog-service)
+POST {{baseUrl}}/api/v1/playlists/{{playlistId}}/items
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "trackId": "00000000-0000-0000-0000-000000000000"
+}
+
+###
+
+### [30] POST add track — collaborator (EDITOR role) → 201
+POST {{baseUrl}}/api/v1/playlists/{{playlistId}}/items
+Content-Type: application/json
+Authorization: {{authToken2}}
+
+{
+  "trackId": "{{trackId}}"
+}
+
+###
+
+### [31] POST add track — no token → 401
+POST {{baseUrl}}/api/v1/playlists/{{playlistId}}/items
+Content-Type: application/json
+
+{
+  "trackId": "{{trackId}}"
+}
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# PLAYLIST ITEMS — REMOVE TRACK
+# ─────────────────────────────────────────────────────────────
+
+### [32] DELETE remove track from playlist → 204
+DELETE {{baseUrl}}/api/v1/playlists/{{playlistId}}/items/{{itemId}}
+Authorization: {{authToken}}
+
+###
+
+### [33] DELETE remove track — not editor → 403
+DELETE {{baseUrl}}/api/v1/playlists/{{playlistId}}/items/{{itemId}}
+Authorization: {{authToken2}}
+
+###
+
+### [34] DELETE remove track — wrong playlistId (item exists but different playlist) → 404
+DELETE {{baseUrl}}/api/v1/playlists/00000000-0000-0000-0000-000000000000/items/{{itemId}}
+Authorization: {{authToken}}
+
+###
+
+### [35] DELETE remove track — non-existent itemId → 404
+DELETE {{baseUrl}}/api/v1/playlists/{{playlistId}}/items/00000000-0000-0000-0000-000000000000
+Authorization: {{authToken}}
+
+###
+
+### [36] DELETE remove track — no token → 401
+DELETE {{baseUrl}}/api/v1/playlists/{{playlistId}}/items/{{itemId}}
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# PLAYLIST ITEMS — REORDER
+# ─────────────────────────────────────────────────────────────
+
+### [37] PUT reorder items — full ordered list of itemIds → 204
+### itemIds must contain exactly the current items in new desired order
+PUT {{baseUrl}}/api/v1/playlists/{{playlistId}}/items/reorder
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "itemIds": [
+    "{{itemId}}",
+    "00000000-0000-0000-0000-000000000002"
+  ]
+}
+
+###
+
+### [38] PUT reorder — missing an item (incomplete list) → 400
+PUT {{baseUrl}}/api/v1/playlists/{{playlistId}}/items/reorder
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "itemIds": [
+    "{{itemId}}"
+  ]
+}
+
+###
+
+### [39] PUT reorder — extra item not in playlist → 400
+PUT {{baseUrl}}/api/v1/playlists/{{playlistId}}/items/reorder
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "itemIds": [
+    "{{itemId}}",
+    "00000000-0000-0000-0000-000000000099"
+  ]
+}
+
+###
+
+### [40] PUT reorder — not editor → 403
+PUT {{baseUrl}}/api/v1/playlists/{{playlistId}}/items/reorder
+Content-Type: application/json
+Authorization: {{authToken2}}
+
+{
+  "itemIds": [
+    "{{itemId}}"
+  ]
+}
+
+###
+
+### [41] PUT reorder — no token → 401
+PUT {{baseUrl}}/api/v1/playlists/{{playlistId}}/items/reorder
+Content-Type: application/json
+
+{
+  "itemIds": [
+    "{{itemId}}"
+  ]
+}
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# COLLABORATORS — GET
+# ─────────────────────────────────────────────────────────────
+
+### [42] GET collaborators — public playlist (no auth) → 200
+GET {{baseUrl}}/api/v1/playlists/{{playlistId}}/collaborators
+
+###
+
+### [43] GET collaborators — with auth → 200
+GET {{baseUrl}}/api/v1/playlists/{{playlistId}}/collaborators
+Authorization: {{authToken}}
+
+###
+
+### [44] GET collaborators — private playlist, not a member → 403
+GET {{baseUrl}}/api/v1/playlists/{{playlistId}}/collaborators
+Authorization: {{authToken2}}
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# COLLABORATORS — ADD
+# ─────────────────────────────────────────────────────────────
+
+### [45] POST add collaborator as EDITOR → 201
+POST {{baseUrl}}/api/v1/playlists/{{playlistId}}/collaborators
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "userId": "{{collaboratorUserId}}",
+  "role": "EDITOR"
+}
+
+###
+
+### [46] POST add collaborator as VIEWER → 201
+POST {{baseUrl}}/api/v1/playlists/{{playlistId}}/collaborators
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "userId": "{{collaboratorUserId}}",
+  "role": "VIEWER"
+}
+
+###
+
+### [47] POST add collaborator — duplicate → 409
+POST {{baseUrl}}/api/v1/playlists/{{playlistId}}/collaborators
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "userId": "{{collaboratorUserId}}",
+  "role": "EDITOR"
+}
+
+###
+
+### [48] POST add collaborator — non-existent user → 404 (from user-service)
+POST {{baseUrl}}/api/v1/playlists/{{playlistId}}/collaborators
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "userId": "00000000-0000-0000-0000-000000000000",
+  "role": "EDITOR"
+}
+
+###
+
+### [49] POST add collaborator — missing userId → 400
+POST {{baseUrl}}/api/v1/playlists/{{playlistId}}/collaborators
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "role": "EDITOR"
+}
+
+###
+
+### [50] POST add collaborator — missing role → 400
+POST {{baseUrl}}/api/v1/playlists/{{playlistId}}/collaborators
+Content-Type: application/json
+Authorization: {{authToken}}
+
+{
+  "userId": "{{collaboratorUserId}}"
+}
+
+###
+
+### [51] POST add collaborator — not owner → 403
+POST {{baseUrl}}/api/v1/playlists/{{playlistId}}/collaborators
+Content-Type: application/json
+Authorization: {{authToken2}}
+
+{
+  "userId": "{{collaboratorUserId}}",
+  "role": "VIEWER"
+}
+
+###
+
+### [52] POST add collaborator — no token → 401
+POST {{baseUrl}}/api/v1/playlists/{{playlistId}}/collaborators
+Content-Type: application/json
+
+{
+  "userId": "{{collaboratorUserId}}",
+  "role": "EDITOR"
+}
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# COLLABORATORS — REMOVE
+# ─────────────────────────────────────────────────────────────
+
+### [53] DELETE remove collaborator — owner removes someone → 204
+DELETE {{baseUrl}}/api/v1/playlists/{{playlistId}}/collaborators/{{collaboratorUserId}}
+Authorization: {{authToken}}
+
+###
+
+### [54] DELETE remove collaborator — self-remove → 204
+DELETE {{baseUrl}}/api/v1/playlists/{{playlistId}}/collaborators/{{collaboratorUserId}}
+Authorization: {{authToken2}}
+
+###
+
+### [55] DELETE remove collaborator — not owner, removing someone else → 403
+DELETE {{baseUrl}}/api/v1/playlists/{{playlistId}}/collaborators/{{myUserId}}
+Authorization: {{authToken2}}
+
+###
+
+### [56] DELETE remove collaborator — non-existent → 404
+DELETE {{baseUrl}}/api/v1/playlists/{{playlistId}}/collaborators/00000000-0000-0000-0000-000000000000
+Authorization: {{authToken}}
+
+###
+
+### [57] DELETE remove collaborator — no token → 401
+DELETE {{baseUrl}}/api/v1/playlists/{{playlistId}}/collaborators/{{collaboratorUserId}}
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# USER PUBLIC PLAYLISTS
+# ─────────────────────────────────────────────────────────────
+
+### [58] GET public playlists of a user — no auth → 200 (PUBLIC only)
+GET {{baseUrl}}/api/v1/users/{{myUserId}}/playlists
+
+###
+
+### [59] GET public playlists — with auth → 200 (still PUBLIC only)
+GET {{baseUrl}}/api/v1/users/{{myUserId}}/playlists
+Authorization: {{authToken}}
+
+###
+
+### [60] GET public playlists — paginated
+GET {{baseUrl}}/api/v1/users/{{myUserId}}/playlists?page=0&size=10
+Authorization: {{authToken}}
+
+###
+
+### [61] GET public playlists — user with no public playlists → 200 empty page
+GET {{baseUrl}}/api/v1/users/00000000-0000-0000-0000-000000000099/playlists
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# ACTUATOR
+# ─────────────────────────────────────────────────────────────
+
+### [62] Health check
+GET {{baseUrl}}/actuator/health
+Accept: application/json
+
+###
+
+### [63] Prometheus metrics
+GET {{baseUrl}}/actuator/prometheus
+Accept: text/plain
+
+###

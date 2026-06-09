@@ -69,22 +69,31 @@ func main() {
 	jobRepo := pgadapter.NewJobRepo(pool)
 	taskRepo := pgadapter.NewTaskRepo(pool)
 	outboxRepo := pgadapter.NewOutboxRepo(pool)
+	draftRepo := pgadapter.NewDraftRepo(pool)
 	transactor := pgadapter.NewTransactor(pool)
 
-	// ── Use cases ─────────────────────────────────────────────────────────────
-	uploadUC := usecase.NewUploadTrack(jobRepo, outboxRepo, fileStorage, transactor)
-	getJobUC := usecase.NewGetJob(jobRepo, taskRepo)
-	listJobsUC := usecase.NewListJobs(jobRepo)
-	retryJobUC := usecase.NewRetryJob(jobRepo, taskRepo)
-	cancelJobUC := usecase.NewCancelJob(jobRepo, fileStorage)
-
-	// ── Transcoder pool ───────────────────────────────────────────────────────
+	// ── Transcoder pool (implements port.Dispatcher) ───────────────────────────
 	numWorkers := envInt("TRANSCODE_WORKERS", 3)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	transcoderPool := worker.NewTranscoderPool(numWorkers, jobRepo, taskRepo, outboxRepo, fileStorage, transactor, log)
 	transcoderPool.Start(ctx)
+
+	// ── Use cases ─────────────────────────────────────────────────────────────
+	createDraftUC := usecase.NewCreateDraft(draftRepo, fileStorage)
+	getDraftUC := usecase.NewGetDraft(draftRepo)
+	addTrackUC := usecase.NewAddTrack(draftRepo)
+	deleteTrackUC := usecase.NewDeleteTrack(draftRepo, fileStorage)
+	audioURLUC := usecase.NewGetAudioUploadURL(draftRepo, fileStorage)
+	confirmAudioUC := usecase.NewConfirmAudio(draftRepo, fileStorage)
+	submitDraftUC := usecase.NewSubmitDraft(draftRepo, jobRepo, outboxRepo, transactor, transcoderPool)
+	cancelDraftUC := usecase.NewCancelDraft(draftRepo, fileStorage)
+
+	getJobUC := usecase.NewGetJob(jobRepo, taskRepo)
+	listJobsUC := usecase.NewListJobs(jobRepo)
+	retryJobUC := usecase.NewRetryJob(jobRepo, taskRepo)
+	cancelJobUC := usecase.NewCancelJob(jobRepo, fileStorage)
 
 	// ── Outbox relay ──────────────────────────────────────────────────────────
 	relay := worker.NewOutboxRelay(outboxRepo, amqpConn, log)
@@ -106,24 +115,32 @@ func main() {
 		return postgres.Ping(ctx, pool)
 	})
 	health.AddCheck("minio", func(ctx context.Context) error {
-		_, err := mc.BucketExists(ctx, fileStorage.OriginalsBucket())
-		return err
+		ok, err := mc.BucketExists(ctx, "images")
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("images bucket missing")
+		}
+		return nil
 	})
 	mux.HandleFunc("/health", health.Handler())
 
-	uploadHandler := httpadapter.NewUploadHandler(uploadUC)
+	const draftsPrefix = "/api/v1/upload/drafts"
+	draftHandler := httpadapter.NewDraftHandler(
+		draftsPrefix,
+		createDraftUC, getDraftUC, addTrackUC, deleteTrackUC,
+		audioURLUC, confirmAudioUC, submitDraftUC, cancelDraftUC,
+	)
+	draftHandler.Register(mux)
+
 	jobsHandler := httpadapter.NewJobsHandler(listJobsUC, getJobUC, retryJobUC, cancelJobUC)
 
-	chain := func(h http.Handler) http.Handler {
-		return metrics.MetricsMiddleware(observability.RequestLogger(log)(h))
-	}
-
-	mux.Handle("/api/v1/upload", chain(uploadHandler))
 	jobsHandler.Register(mux, "/api/v1/upload/jobs")
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: mux,
+		Handler: metrics.MetricsMiddleware(observability.RequestLogger(log)(mux)),
 	}
 
 	log.Info().Str("port", cfg.Port).Int("transcodeWorkers", numWorkers).Msg("upload-service starting")

@@ -1,0 +1,203 @@
+### Search Service — HTTP Tests
+### Base URL: http://localhost:8085
+### Start service: pnpm nx serve search-service (requires Docker infra: elasticsearch + rabbitmq)
+### All search endpoints are public (no auth required)
+
+@baseUrl = http://localhost:8085
+
+# A real artistId from catalog-service (fill in after indexing)
+@artistId = 00000000-0000-0000-0000-000000000001
+
+
+# ─────────────────────────────────────────────────────────────
+# UNIFIED SEARCH — GET /api/v1/search
+# Returns both tracks and artists in one response
+# ─────────────────────────────────────────────────────────────
+
+### [1] Search all — basic query
+GET {{baseUrl}}/api/v1/search?q=love
+
+###
+
+### [2] Search all — with pagination
+GET {{baseUrl}}/api/v1/search?q=rock&page=0&size=10
+
+###
+
+### [3] Search all — page 2
+GET {{baseUrl}}/api/v1/search?q=pop&page=1&size=5
+
+###
+
+### [4] Search all — empty query (returns latest/all)
+GET {{baseUrl}}/api/v1/search?q=
+
+###
+
+### [5] Search all — size exceeds max (100) → 400
+GET {{baseUrl}}/api/v1/search?q=test&size=200
+
+###
+
+### [6] Search all — negative page → 400
+GET {{baseUrl}}/api/v1/search?q=test&page=-1
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# TRACK SEARCH — GET /api/v1/search/tracks
+# ─────────────────────────────────────────────────────────────
+
+### [7] Search tracks — basic query
+GET {{baseUrl}}/api/v1/search/tracks?q=love
+
+###
+
+### [8] Search tracks — sort by relevance (default)
+GET {{baseUrl}}/api/v1/search/tracks?q=chill&sort=relevance
+
+###
+
+### [9] Search tracks — sort by newest
+GET {{baseUrl}}/api/v1/search/tracks?q=chill&sort=newest
+
+###
+
+### [10] Search tracks — sort by most popular
+GET {{baseUrl}}/api/v1/search/tracks?q=chill&sort=popular
+
+###
+
+### [11] Search tracks — filter by genre
+GET {{baseUrl}}/api/v1/search/tracks?q=love&genre=POP
+
+###
+
+### [12] Search tracks — filter by artistId
+GET {{baseUrl}}/api/v1/search/tracks?q=&artistId={{artistId}}
+
+###
+
+### [13] Search tracks — genre + artistId + sort combined
+GET {{baseUrl}}/api/v1/search/tracks?q=love&genre=BALLAD&artistId={{artistId}}&sort=popular&page=0&size=10
+
+###
+
+### [14] Search tracks — Vietnamese query (Unicode)
+GET {{baseUrl}}/api/v1/search/tracks?q=yêu
+
+###
+
+### [15] Search tracks — fuzzy match (typo in query)
+GET {{baseUrl}}/api/v1/search/tracks?q=muisc
+
+###
+
+### [16] Search tracks — invalid sort value → 400
+GET {{baseUrl}}/api/v1/search/tracks?q=test&sort=unknown
+
+###
+
+### [17] Search tracks — size too large → 400
+GET {{baseUrl}}/api/v1/search/tracks?q=test&size=999
+
+###
+
+### [18] Search tracks — query that returns no results → 200 empty
+GET {{baseUrl}}/api/v1/search/tracks?q=zzzzzzz_no_results_xyzabc
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# ARTIST SEARCH — GET /api/v1/search/artists
+# ─────────────────────────────────────────────────────────────
+
+### [19] Search artists — basic query
+GET {{baseUrl}}/api/v1/search/artists?q=son
+
+###
+
+### [20] Search artists — with pagination
+GET {{baseUrl}}/api/v1/search/artists?q=nguyen&page=0&size=10
+
+###
+
+### [21] Search artists — empty query (returns all artists)
+GET {{baseUrl}}/api/v1/search/artists?q=
+
+###
+
+### [22] Search artists — Vietnamese query
+GET {{baseUrl}}/api/v1/search/artists?q=sơn
+
+###
+
+### [23] Search artists — query that returns no results → 200 empty
+GET {{baseUrl}}/api/v1/search/artists?q=zzzzzzz_no_results_xyzabc
+
+###
+
+### [24] Search artists — size too large → 400
+GET {{baseUrl}}/api/v1/search/artists?q=test&size=999
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# AUTOCOMPLETE — GET /api/v1/search/autocomplete
+# Returns mixed track + artist suggestions sorted by text
+# ─────────────────────────────────────────────────────────────
+
+### [25] Autocomplete — short prefix
+GET {{baseUrl}}/api/v1/search/autocomplete?q=lo
+
+###
+
+### [26] Autocomplete — 3-char prefix
+GET {{baseUrl}}/api/v1/search/autocomplete?q=lov
+
+###
+
+### [27] Autocomplete — custom limit (max 10 results)
+GET {{baseUrl}}/api/v1/search/autocomplete?q=lo&limit=10
+
+###
+
+### [28] Autocomplete — limit=1 (minimum)
+GET {{baseUrl}}/api/v1/search/autocomplete?q=lo&limit=1
+
+###
+
+### [29] Autocomplete — limit exceeds max (20) → 400
+GET {{baseUrl}}/api/v1/search/autocomplete?q=lo&limit=50
+
+###
+
+### [30] Autocomplete — Vietnamese prefix
+GET {{baseUrl}}/api/v1/search/autocomplete?q=yê
+
+###
+
+### [31] Autocomplete — prefix with no matches → 200 empty suggestions
+GET {{baseUrl}}/api/v1/search/autocomplete?q=zzz
+
+###
+
+
+# ─────────────────────────────────────────────────────────────
+# HEALTH & METRICS
+# ─────────────────────────────────────────────────────────────
+
+### [32] Health check
+GET {{baseUrl}}/api/health
+Accept: application/json
+
+###
+
+### [33] Prometheus metrics
+GET {{baseUrl}}/api/metrics
+Accept: text/plain
+
+###

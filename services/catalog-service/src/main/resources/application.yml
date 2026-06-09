@@ -4,8 +4,8 @@ spring:
 
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:catalog_db}
-    username: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:postgres}
+    username: ${DB_USER:music_admin}
+    password: ${DB_PASSWORD:music_pass}
     hikari:
       maximum-pool-size: 10
       minimum-idle: 2
@@ -30,7 +30,7 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
+      password: ${REDIS_PASSWORD:music_pass}
 
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}

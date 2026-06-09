@@ -24,6 +24,8 @@ func handleDomainError(w http.ResponseWriter, err error) {
 		jsonError(w, http.StatusNotFound, "not found")
 	case errors.Is(err, domain.ErrConflict):
 		jsonError(w, http.StatusConflict, err.Error())
+	case errors.Is(err, domain.ErrValidation):
+		jsonError(w, http.StatusBadRequest, err.Error())
 	default:
 		jsonError(w, http.StatusInternalServerError, "internal server error")
 	}

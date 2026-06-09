@@ -16,13 +16,16 @@
       "path": "./services/search-service"
     },
     {
-      "path": "./libs/search-api-client"
-    },
-    {
-      "path": "./libs/notification-api-client"
-    },
-    {
       "path": "./libs/ts-common"
+    },
+    {
+      "path": "./libs/events/typescript/music-events"
+    },
+    {
+      "path": "./frontend/app-frontend-e2e"
+    },
+    {
+      "path": "./frontend/app-frontend"
     }
   ]
 }

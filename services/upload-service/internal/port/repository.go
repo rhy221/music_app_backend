@@ -14,6 +14,7 @@ type JobRepository interface {
 	UpdateStatus(ctx context.Context, id string, status domain.JobStatus, errMsg *string) error
 	UpdateMetadata(ctx context.Context, id string, durationMs int, format string) error
 	UpdateWaveform(ctx context.Context, id, waveformURL string) error
+	UpdateThumbnail(ctx context.Context, id, thumbnailURL string) error
 	SetPublished(ctx context.Context, id, trackID string) error
 }
 

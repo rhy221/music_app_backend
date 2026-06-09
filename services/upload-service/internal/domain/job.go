@@ -24,9 +24,11 @@ type UploadJob struct {
 	Genre              *string   `json:"genre,omitempty"`
 	AlbumID            *string   `json:"albumId,omitempty"`
 	StorageURL         *string   `json:"-"`
+	ThumbnailURL       *string   `json:"thumbnailUrl,omitempty"`
 	WaveformURL        *string   `json:"waveformUrl,omitempty"`
 	Status             JobStatus `json:"status"`
 	TrackID            *string   `json:"trackId,omitempty"`
+	DraftID            *string   `json:"draftId,omitempty"`
 	ErrorMessage       *string   `json:"errorMessage,omitempty"`
 	CreatedAt          time.Time `json:"createdAt"`
 	UpdatedAt          time.Time `json:"updatedAt"`

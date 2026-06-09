@@ -2,7 +2,8 @@ packages:
   - 'packages/*'
   - 'services/*'
   - 'libs/*'
-
+  - 'libs/events/typescript/*'
+  - 'frontend/*'
 allowBuilds:
   '@asyncapi/cli': true
   '@hyperjump/json-pointer': true
@@ -18,6 +19,5 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
   yarn: true
-
 patchedDependencies:
-  '@jnxplus/nx-gradle@2.3.0': patches/@jnxplus__nx-gradle@2.3.0.patch
+  '@jnxplus/nx-gradle@2.3.0': 'patches/@jnxplus__nx-gradle@2.3.0.patch'

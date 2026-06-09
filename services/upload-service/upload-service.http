@@ -2,132 +2,159 @@
 ### Requires VS Code extension: REST Client (humao.rest-client)
 ###
 ### Prerequisites:
-###   1. cd infra && docker compose -f infra/docker-compose.yml up -d postgres minio rabbitmq
+###   1. docker compose -f infra/docker-compose.yml up -d postgres minio rabbitmq
 ###   2. pnpm nx run upload-service:serve
 ###
 ### Auth: service trusts X-User-Id set by gateway — no JWT needed here
 
 @baseUrl = http://localhost:8086
+@base    = {{baseUrl}}/api/v1/upload
 @userId  = 00000000-0000-0000-0000-000000000001
 @userId2 = 00000000-0000-0000-0000-000000000002
 
-# Set this to a jobId returned from the upload request
-@jobId = REPLACE_WITH_JOB_ID
+# Fill in after creating a draft / submitting
+@draftId  = REPLACE_WITH_DRAFT_ID
+@trackId  = REPLACE_WITH_TRACK_ID
+@objectKey = REPLACE_WITH_OBJECT_KEY
+@jobId    = REPLACE_WITH_JOB_ID
 
 ###
-### ─── HEALTH ─────────────────────────────────────────────────────────────────
+### ─── HEALTH ──────────────────────────────────────────────────────────────────
 ###
 
 ### [1] Health check
 GET {{baseUrl}}/health
 
 ###
-### ─── UPLOAD ──────────────────────────────────────────────────────────────────
+### ─── SINGLE TRACK FLOW ───────────────────────────────────────────────────────
 ###
 
-### [2] Upload a track (any authenticated user)
-### Change the file path below to a real audio file on your machine
-POST {{baseUrl}}/api/v1/upload
+### [2] Create SINGLE draft (thumbnail optional)
+POST {{base}}/drafts
 X-User-Id: {{userId}}
-Content-Type: multipart/form-data; boundary=----Boundary
+Content-Type: multipart/form-data; boundary=----FormBoundary
 
-------Boundary
+------FormBoundary
 Content-Disposition: form-data; name="title"
 
-My Test Track
-------Boundary
+My New Track
+------FormBoundary
 Content-Disposition: form-data; name="genre"
 
 POP
-------Boundary
-Content-Disposition: form-data; name="file"; filename="test.mp3"
-Content-Type: audio/mpeg
+------FormBoundary
+Content-Disposition: form-data; name="release_type"
 
-< ./test.mp3
-------Boundary--
+SINGLE
+------FormBoundary--
 
-### [3] Upload — no auth (expects 401)
-POST {{baseUrl}}/api/v1/upload
-Content-Type: multipart/form-data; boundary=----Boundary
+### [3] Get presigned PUT URL for audio
+GET {{base}}/drafts/{{draftId}}/tracks/{{trackId}}/audio-url?filename=my_song.mp3
+X-User-Id: {{userId}}
 
-------Boundary
+### [4] Confirm audio (after client PUT to MinIO using uploadUrl)
+POST {{base}}/drafts/{{draftId}}/tracks/{{trackId}}/confirm
+X-User-Id: {{userId}}
+Content-Type: application/json
+
+{
+  "objectKey": "{{objectKey}}"
+}
+
+### [5] Submit draft → creates upload job → transcoder picks it up
+POST {{base}}/drafts/{{draftId}}/submit
+X-User-Id: {{userId}}
+
+###
+### ─── ALBUM FLOW ──────────────────────────────────────────────────────────────
+###
+
+### [6] Create ALBUM draft
+POST {{base}}/drafts
+X-User-Id: {{userId}}
+Content-Type: multipart/form-data; boundary=----FormBoundary
+
+------FormBoundary
 Content-Disposition: form-data; name="title"
 
-No Auth
-------Boundary
-Content-Disposition: form-data; name="file"; filename="test.mp3"
-Content-Type: audio/mpeg
+My Debut Album
+------FormBoundary
+Content-Disposition: form-data; name="genre"
 
-< ./test.mp3
-------Boundary--
+ROCK
+------FormBoundary
+Content-Disposition: form-data; name="release_type"
 
-### [4] Upload — missing title (expects 400)
-POST {{baseUrl}}/api/v1/upload
+ALBUM
+------FormBoundary--
+
+### [7] Add Track 1 to album
+POST {{base}}/drafts/{{draftId}}/tracks
 X-User-Id: {{userId}}
-Content-Type: multipart/form-data; boundary=----Boundary
+Content-Type: application/json
 
-------Boundary
-Content-Disposition: form-data; name="file"; filename="test.mp3"
-Content-Type: audio/mpeg
+{
+  "title": "Opening Act",
+  "trackNumber": 1
+}
 
-< ./test.mp3
-------Boundary--
-
-###
-### ─── LIST JOBS ───────────────────────────────────────────────────────────────
-###
-
-### [5] List all jobs
-GET {{baseUrl}}/api/v1/upload/jobs
+### [8] Add Track 2 to album
+POST {{base}}/drafts/{{draftId}}/tracks
 X-User-Id: {{userId}}
+Content-Type: application/json
 
-### [6] List jobs — filter by status
-GET {{baseUrl}}/api/v1/upload/jobs?status=TRANSCODING&page=1&size=10
-X-User-Id: {{userId}}
+{
+  "title": "The Big Closer",
+  "trackNumber": 2
+}
 
-### [7] List jobs — pagination
-GET {{baseUrl}}/api/v1/upload/jobs?page=1&size=5
-X-User-Id: {{userId}}
-
-### [8] List jobs — no auth (expects 401)
-GET {{baseUrl}}/api/v1/upload/jobs
-
-###
-### ─── JOB DETAIL ──────────────────────────────────────────────────────────────
-###
-
-### [9] Get job by ID (replace @jobId above first)
-GET {{baseUrl}}/api/v1/upload/jobs/{{jobId}}
+### [9] Get audio URL for a track
+GET {{base}}/drafts/{{draftId}}/tracks/{{trackId}}/audio-url?filename=track1.flac
 X-User-Id: {{userId}}
 
-### [10] Get job — not found (expects 404)
-GET {{baseUrl}}/api/v1/upload/jobs/00000000-0000-0000-0000-000000000000
-X-User-Id: {{userId}}
-
-### [11] Get job owned by another user (expects 404)
-GET {{baseUrl}}/api/v1/upload/jobs/{{jobId}}
-X-User-Id: {{userId2}}
-
-###
-### ─── RETRY ───────────────────────────────────────────────────────────────────
-###
-
-### [12] Retry a FAILED job
-POST {{baseUrl}}/api/v1/upload/jobs/{{jobId}}/retry
-X-User-Id: {{userId}}
-
-### [13] Retry — non-FAILED job (expects 409)
-POST {{baseUrl}}/api/v1/upload/jobs/{{jobId}}/retry
+### [10] Delete a track
+DELETE {{base}}/drafts/{{draftId}}/tracks/{{trackId}}
 X-User-Id: {{userId}}
 
 ###
-### ─── CANCEL ──────────────────────────────────────────────────────────────────
+### ─── DRAFT MANAGEMENT ────────────────────────────────────────────────────────
 ###
 
-### [14] Cancel a job
-POST {{baseUrl}}/api/v1/upload/jobs/{{jobId}}/cancel
+### [11] Get draft details
+GET {{base}}/drafts/{{draftId}}
 X-User-Id: {{userId}}
 
-### [15] Cancel already-cancelled job (expects 409)
-POST {{baseUrl}}/api/v1/upload/jobs/{{jobId}}/cancel
+### [12] Cancel draft
+POST {{base}}/drafts/{{draftId}}/cancel
+X-User-Id: {{userId}}
+
+### [13] Try cancelling a submitted draft (expects 409)
+POST {{base}}/drafts/{{draftId}}/cancel
+X-User-Id: {{userId}}
+
+### [14] No auth (expects 401)
+GET {{base}}/drafts/{{draftId}}
+
+###
+### ─── JOB MONITORING ──────────────────────────────────────────────────────────
+###
+
+### [15] List all jobs
+GET {{base}}/jobs
+X-User-Id: {{userId}}
+
+### [16] List jobs filtered by status
+GET {{base}}/jobs?status=TRANSCODING&page=1&size=10
+X-User-Id: {{userId}}
+
+### [17] Get job by ID
+GET {{base}}/jobs/{{jobId}}
+X-User-Id: {{userId}}
+
+### [18] Retry failed job
+POST {{base}}/jobs/{{jobId}}/retry
+X-User-Id: {{userId}}
+
+### [19] Cancel job
+POST {{base}}/jobs/{{jobId}}/cancel
 X-User-Id: {{userId}}

@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import * as amqp from 'amqplib';
 import { RABBITMQ_MODULE_OPTIONS } from './rabbitmq.constants';
-import { RabbitMQModuleOptions } from './rabbitmq.interfaces';
+import type { RabbitMQModuleOptions } from './rabbitmq.interfaces';
 import { RabbitMQService } from './rabbitmq.service';
 
 /**
@@ -23,7 +23,7 @@ import { RabbitMQService } from './rabbitmq.service';
 @Module({})
 export class RabbitMQModule implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RabbitMQModule.name);
-  private connection: amqp.Connection;
+  private connection: amqp.ChannelModel;
   private channel: amqp.Channel;
 
   constructor(
