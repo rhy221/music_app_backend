@@ -1,0 +1,1189 @@
+{
+  "$schema": "https://www.krakend.io/schema/v2.7/krakend.json",
+  "version": 3,
+  "name": "Music App API Gateway",
+  "port": 8080,
+  "timeout": "5s",
+  "read_timeout": "30s",
+  "write_timeout": "30s",
+  "idle_timeout": "60s",
+
+  "extra_config": {
+    "security/cors": {
+      "allow_origins": ["http://localhost:3000"],
+      "allow_methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      "allow_headers": ["Authorization", "Content-Type", "Accept"],
+      "expose_headers": ["Content-Length", "Content-Range", "Content-Type"],
+      "allow_credentials": true,
+      "max_age": "12h"
+    },
+    "telemetry/logging": {
+      "level": "INFO",
+      "prefix": "[GW]",
+      "syslog": false,
+      "stdout": true,
+      "format": "logstash"
+    },
+    "telemetry/opentelemetry": {
+      "service_name": "music-gateway",
+      "service_version": "1.0.0",
+      "metric_reporting_period": 30,
+      "trace_sample_rate": 0.05,
+      "exporters": {
+        "prometheus": [
+          {
+            "name": "local_prometheus",
+            "port": 9091,
+            "process_metrics": true,
+            "go_metrics": true
+          }
+        ]
+      }
+    }
+  },
+
+  "endpoints": [
+
+    {
+      "endpoint": "/api/v1/auth/register",
+      "method": "POST",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/auth/register", "method": "POST", "host": ["http://user-service:8081"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/auth/login",
+      "method": "POST",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/auth/login", "method": "POST", "host": ["http://user-service:8081"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/auth/refresh",
+      "method": "POST",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/auth/refresh", "method": "POST", "host": ["http://user-service:8081"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/auth/oauth2/google",
+      "method": "POST",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/auth/oauth2/google", "method": "POST", "host": ["http://user-service:8081"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/auth/logout",
+      "method": "POST",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/auth/logout", "method": "POST", "host": ["http://user-service:8081"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/users/me",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/users/me", "method": "GET", "host": ["http://user-service:8081"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/users/me",
+      "method": "PATCH",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/users/me", "method": "PATCH", "host": ["http://user-service:8081"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/users/me/avatar",
+      "method": "PUT",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 20, "client_capacity": 20, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/users/me/avatar", "method": "PUT", "host": ["http://user-service:8081"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/users/me/password",
+      "method": "PUT",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 10, "client_capacity": 10, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/users/me/password", "method": "PUT", "host": ["http://user-service:8081"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/users/{userId}",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": [],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/users/{userId}", "method": "GET", "host": ["http://user-service:8081"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/users/{userId}/followers",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": ["page", "size"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/users/{userId}/followers", "method": "GET", "host": ["http://user-service:8081"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/users/{userId}/following",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": ["page", "size"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/users/{userId}/following", "method": "GET", "host": ["http://user-service:8081"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/users/{userId}/follow",
+      "method": "POST",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/users/{userId}/follow", "method": "POST", "host": ["http://user-service:8081"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/users/{userId}/follow",
+      "method": "DELETE",
+      "input_headers": [],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/users/{userId}/follow", "method": "DELETE", "host": ["http://user-service:8081"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/admin/users",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": ["page", "size", "role", "search"],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "roles_key": "role", "roles": ["ADMIN"],
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/admin/users", "method": "GET", "host": ["http://user-service:8081"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/admin/users/{userId}/role",
+      "method": "PUT",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "roles_key": "role", "roles": ["ADMIN"],
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/admin/users/{userId}/role", "method": "PUT", "host": ["http://user-service:8081"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/tracks/popular",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": ["limit", "genre", "period"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/tracks/popular", "method": "GET", "host": ["http://catalog-service:8082"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/tracks/new-releases",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": ["page", "size"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/tracks/new-releases", "method": "GET", "host": ["http://catalog-service:8082"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/tracks",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": ["page", "size", "genre", "artistId", "albumId", "sort"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/tracks", "method": "GET", "host": ["http://catalog-service:8082"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/tracks/{trackId}",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": [],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/tracks/{trackId}", "method": "GET", "host": ["http://catalog-service:8082"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/tracks/{trackId}",
+      "method": "PUT",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/tracks/{trackId}", "method": "PUT", "host": ["http://catalog-service:8082"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/tracks/{trackId}",
+      "method": "DELETE",
+      "input_headers": [],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/tracks/{trackId}", "method": "DELETE", "host": ["http://catalog-service:8082"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/albums",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": ["page", "size", "artistId"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/albums", "method": "GET", "host": ["http://catalog-service:8082"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/albums",
+      "method": "POST",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/albums", "method": "POST", "host": ["http://catalog-service:8082"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/albums/{albumId}",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": [],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/albums/{albumId}", "method": "GET", "host": ["http://catalog-service:8082"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/albums/{albumId}",
+      "method": "PUT",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/albums/{albumId}", "method": "PUT", "host": ["http://catalog-service:8082"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/artists",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": ["page", "size"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/artists", "method": "GET", "host": ["http://catalog-service:8082"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/artists/{artistId}",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": [],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/artists/{artistId}", "method": "GET", "host": ["http://catalog-service:8082"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/artists/{artistId}",
+      "method": "PUT",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/artists/{artistId}", "method": "PUT", "host": ["http://catalog-service:8082"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/playlists",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": ["page", "size"],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/playlists", "method": "GET", "host": ["http://playlist-service:8083"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/playlists",
+      "method": "POST",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/playlists", "method": "POST", "host": ["http://playlist-service:8083"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/playlists/{playlistId}",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": [],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/playlists/{playlistId}", "method": "GET", "host": ["http://playlist-service:8083"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/playlists/{playlistId}",
+      "method": "PATCH",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/playlists/{playlistId}", "method": "PATCH", "host": ["http://playlist-service:8083"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/playlists/{playlistId}",
+      "method": "DELETE",
+      "input_headers": [],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/playlists/{playlistId}", "method": "DELETE", "host": ["http://playlist-service:8083"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/playlists/{playlistId}/items",
+      "method": "POST",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/playlists/{playlistId}/items", "method": "POST", "host": ["http://playlist-service:8083"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/playlists/{playlistId}/items/reorder",
+      "method": "PUT",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/playlists/{playlistId}/items/reorder", "method": "PUT", "host": ["http://playlist-service:8083"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/playlists/{playlistId}/items/{itemId}",
+      "method": "DELETE",
+      "input_headers": [],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/playlists/{playlistId}/items/{itemId}", "method": "DELETE", "host": ["http://playlist-service:8083"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/playlists/{playlistId}/collaborators",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": [],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/playlists/{playlistId}/collaborators", "method": "GET", "host": ["http://playlist-service:8083"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/playlists/{playlistId}/collaborators",
+      "method": "POST",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/playlists/{playlistId}/collaborators", "method": "POST", "host": ["http://playlist-service:8083"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/playlists/{playlistId}/collaborators/{userId}",
+      "method": "DELETE",
+      "input_headers": [],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/playlists/{playlistId}/collaborators/{userId}", "method": "DELETE", "host": ["http://playlist-service:8083"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/users/{userId}/playlists",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": ["page", "size"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/users/{userId}/playlists", "method": "GET", "host": ["http://playlist-service:8083"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/stream/{trackId}",
+      "method": "GET",
+      "timeout": "30s",
+      "output_encoding": "no-op",
+      "input_headers": ["Accept", "Range"],
+      "input_query_strings": ["bitrate"],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 1000, "client_capacity": 1000, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/stream/{trackId}", "method": "GET", "host": ["http://streaming-service:8084"], "encoding": "no-op" }]
+    },
+
+    {
+      "endpoint": "/api/v1/stream/{trackId}/hls",
+      "method": "GET",
+      "timeout": "10s",
+      "output_encoding": "no-op",
+      "input_headers": ["Accept"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 1000, "client_capacity": 1000, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/stream/{trackId}/hls", "method": "GET", "host": ["http://streaming-service:8084"], "encoding": "no-op" }]
+    },
+
+    {
+      "endpoint": "/api/v1/play-sessions",
+      "method": "POST",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 1000, "client_capacity": 1000, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/play-sessions", "method": "POST", "host": ["http://streaming-service:8084"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/play-sessions/{sessionId}/heartbeat",
+      "method": "POST",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 1000, "client_capacity": 1000, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/play-sessions/{sessionId}/heartbeat", "method": "POST", "host": ["http://streaming-service:8084"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/play-sessions/{sessionId}/end",
+      "method": "POST",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 1000, "client_capacity": 1000, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/play-sessions/{sessionId}/end", "method": "POST", "host": ["http://streaming-service:8084"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/history",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": ["page", "size"],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/history", "method": "GET", "host": ["http://streaming-service:8084"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/history/recently-played",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": ["limit"],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/history/recently-played", "method": "GET", "host": ["http://streaming-service:8084"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/history/stats",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": ["period"],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/history/stats", "method": "GET", "host": ["http://streaming-service:8084"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/upload",
+      "method": "POST",
+      "timeout": "300s",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 10, "client_capacity": 10, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/upload", "method": "POST", "host": ["http://upload-service:8086"], "encoding": "json", "timeout": "300s" }]
+    },
+
+    {
+      "endpoint": "/api/v1/upload/jobs",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": ["status", "page", "size"],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/upload/jobs", "method": "GET", "host": ["http://upload-service:8086"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/upload/jobs/{jobId}",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/upload/jobs/{jobId}", "method": "GET", "host": ["http://upload-service:8086"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/upload/jobs/{jobId}/retry",
+      "method": "POST",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 10, "client_capacity": 10, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/upload/jobs/{jobId}/retry", "method": "POST", "host": ["http://upload-service:8086"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/upload/jobs/{jobId}/cancel",
+      "method": "POST",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 10, "client_capacity": 10, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/upload/jobs/{jobId}/cancel", "method": "POST", "host": ["http://upload-service:8086"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/search",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": ["q", "type", "genre", "page", "size"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/search", "method": "GET", "host": ["http://search-service:8085"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/search/tracks",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": ["q", "genre", "artistId", "sort", "page", "size"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/search/tracks", "method": "GET", "host": ["http://search-service:8085"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/search/artists",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": ["q", "page", "size"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/search/artists", "method": "GET", "host": ["http://search-service:8085"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/search/autocomplete",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": ["q", "limit"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 200, "client_capacity": 200, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/search/autocomplete", "method": "GET", "host": ["http://search-service:8085"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/notifications",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": ["unreadOnly", "type", "page", "size"],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/notifications", "method": "GET", "host": ["http://notification-service:8087"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/notifications/unread-count",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 200, "client_capacity": 200, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/notifications/unread-count", "method": "GET", "host": ["http://notification-service:8087"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/notifications/read-all",
+      "method": "POST",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/notifications/read-all", "method": "POST", "host": ["http://notification-service:8087"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/notifications/preferences",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/notifications/preferences", "method": "GET", "host": ["http://notification-service:8087"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/notifications/preferences",
+      "method": "PUT",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/notifications/preferences", "method": "PUT", "host": ["http://notification-service:8087"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/notifications/{notificationId}/read",
+      "method": "POST",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/notifications/{notificationId}/read", "method": "POST", "host": ["http://notification-service:8087"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/ws",
+      "method": "GET",
+      "timeout": "0s",
+      "output_encoding": "no-op",
+      "input_headers": [
+        "Connection", "Upgrade",
+        "Sec-Websocket-Key", "Sec-Websocket-Version",
+        "Sec-Websocket-Extensions", "Sec-Websocket-Protocol"
+      ],
+      "input_query_strings": ["token"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 10, "client_capacity": 10, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/ws", "host": ["http://notification-service:8087"], "encoding": "no-op" }]
+    },
+
+    {
+      "endpoint": "/api/v1/recommendations",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": ["limit", "seed"],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/recommendations", "method": "GET", "host": ["http://recommend-service:8000"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/recommendations/discover-weekly",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/recommendations/discover-weekly", "method": "GET", "host": ["http://recommend-service:8000"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/recommendations/similar/{trackId}",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": ["limit"],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/recommendations/similar/{trackId}", "method": "GET", "host": ["http://recommend-service:8000"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/recommendations/radio/{trackId}",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/recommendations/radio/{trackId}", "method": "GET", "host": ["http://recommend-service:8000"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/recommendations/feedback",
+      "method": "POST",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/recommendations/feedback", "method": "POST", "host": ["http://recommend-service:8000"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/taste-profile",
+      "method": "GET",
+      "input_headers": ["Accept"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/taste-profile", "method": "GET", "host": ["http://recommend-service:8000"], "encoding": "json" }]
+    },
+
+    {
+      "endpoint": "/api/v1/taste-profile/refresh",
+      "method": "POST",
+      "input_headers": ["Content-Type"],
+      "input_query_strings": [],
+      "extra_config": {
+        "auth/validator": {
+          "alg": "HS256", "secret_url": "env://JWT_SECRET_KEY", "cache": true, "cache_duration": 300,
+          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+        },
+        "qos/ratelimit/router": {
+          "client_max_rate": 20, "client_capacity": 20, "every": "1m", "strategy": "ip"
+        }
+      },
+      "backend": [{ "url_pattern": "/api/v1/taste-profile/refresh", "method": "POST", "host": ["http://recommend-service:8000"], "encoding": "json" }]
+    }
+
+  ]
+}

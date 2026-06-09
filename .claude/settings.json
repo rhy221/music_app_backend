@@ -1,4 +1,14 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(cd \"/c/Projects/music_app_backend/frontend/app-frontend\" && cat node_modules/shadcn/tailwind.css 2>/dev/null | head -30 || echo \"NOT FOUND\")",
+      "Read(//c/c/Projects/music_app_backend/frontend/app-frontend/node_modules/shadcn/**)",
+      "Bash(pnpm --filter app-frontend add @radix-ui/react-slot)"
+    ]
+  },
+  "enabledPlugins": {
+    "nx@nx-claude-plugins": true
+  },
   "extraKnownMarketplaces": {
     "nx-claude-plugins": {
       "source": {
@@ -6,8 +16,5 @@
         "repo": "nrwl/nx-ai-agents-config"
       }
     }
-  },
-  "enabledPlugins": {
-    "nx@nx-claude-plugins": true
   }
 }

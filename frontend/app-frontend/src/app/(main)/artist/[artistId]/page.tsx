@@ -1,0 +1,136 @@
+'use client';
+
+import { use } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import Image from 'next/image';
+import { Play, User, UserPlus, UserCheck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlbumCard } from '@/components/albums/album-card';
+import { TrackRow } from '@/components/tracks/track-row';
+import { SectionHeader } from '@/components/common/section-header';
+import { getArtist } from '@/lib/api/artists';
+import { getUser, followUser, unfollowUser } from '@/lib/api/users';
+import { usePlayer } from '@/hooks/use-player';
+import { useAuthStore } from '@/stores/auth-store';
+import { toast } from 'sonner';
+
+export default function ArtistPage({ params }: { params: Promise<{ artistId: string }> }) {
+  const { artistId } = use(params);
+  const { play } = usePlayer();
+  const authUser = useAuthStore((s) => s.user);
+  const queryClient = useQueryClient();
+
+  const { data: artist, isLoading } = useQuery({
+    queryKey: ['artist', artistId],
+    queryFn: () => getArtist(artistId),
+  });
+
+  const { data: publicProfile } = useQuery({
+    queryKey: ['user-profile', artist?.userId],
+    queryFn: () => getUser(artist!.userId),
+    enabled: !!artist?.userId,
+  });
+
+  const followMutation = useMutation({
+    mutationFn: () =>
+      publicProfile?.isFollowing ? unfollowUser(artist!.userId) : followUser(artist!.userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-profile', artist?.userId] });
+      toast.success(publicProfile?.isFollowing ? 'Unfollowed' : 'Following!');
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <Skeleton className="h-48 w-full rounded-xl" />
+        <Skeleton className="h-8 w-48" />
+      </div>
+    );
+  }
+
+  if (!artist) return <div className="text-muted-foreground">Artist not found.</div>;
+
+  const isOwnProfile = authUser?.id === artist.userId;
+
+  return (
+    <div className="space-y-8">
+      {/* Hero */}
+      <div className="relative h-48 w-full overflow-hidden rounded-xl bg-muted sm:h-64">
+        {artist.avatarUrl ? (
+          <Image src={artist.avatarUrl} alt={artist.name} fill className="object-cover" sizes="100vw" />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <User className="h-20 w-20 text-muted-foreground" />
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+        <div className="absolute bottom-4 left-4">
+          <h1 className="text-4xl font-black">{artist.name}</h1>
+          <div className="mt-1 flex items-center gap-4 text-sm text-muted-foreground">
+            <span>{artist.trackCount} tracks</span>
+            <span>{artist.albumCount} albums</span>
+            {publicProfile && <span>{publicProfile.followerCount.toLocaleString()} followers</span>}
+          </div>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-3">
+        {artist.topTracks.length > 0 && (
+          <Button onClick={() => play(artist.topTracks, 0)} size="lg" className="gap-2">
+            <Play className="h-5 w-5 fill-current" />
+            Play
+          </Button>
+        )}
+        {!isOwnProfile && publicProfile && (
+          <Button
+            variant="outline"
+            onClick={() => followMutation.mutate()}
+            disabled={followMutation.isPending}
+            className="gap-2"
+          >
+            {publicProfile.isFollowing ? (
+              <><UserCheck className="h-4 w-4" /> Following</>
+            ) : (
+              <><UserPlus className="h-4 w-4" /> Follow</>
+            )}
+          </Button>
+        )}
+        {artist.bio && <p className="text-sm text-muted-foreground">{artist.bio}</p>}
+      </div>
+
+      {/* Top Tracks */}
+      {artist.topTracks.length > 0 && (
+        <div>
+          <SectionHeader title="Popular tracks" />
+          <div className="space-y-1">
+            {artist.topTracks.map((track, i) => (
+              <TrackRow
+                key={track.id}
+                track={track}
+                index={i}
+                queue={artist.topTracks}
+                queueIndex={i}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Albums */}
+      {artist.albums.length > 0 && (
+        <div>
+          <SectionHeader title="Albums" href={`/browse/albums?artistId=${artistId}`} />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {artist.albums.map((album) => (
+              <AlbumCard key={album.id} album={album} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

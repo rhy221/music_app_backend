@@ -179,6 +179,25 @@ services:
     entrypoint: ["sh", "/init.sh"]
     restart: on-failure
 
+  # ─── API Gateway (KrakenD) ───────────────────────────────────────────────────
+  gateway:
+    build:
+      context: ..
+      dockerfile: services/gateway/Dockerfile
+    container_name: music-gateway
+    environment:
+      JWT_SECRET_KEY: "${JWT_SECRET_KEY:-change-me-in-production-min-32-chars}"
+    ports:
+      - "8080:8080"   # API Gateway
+      - "9091:9091"   # Prometheus metrics
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/__health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
   # ─── Search Service ──────────────────────────────────────────────────────────
   search-service:
     build:
