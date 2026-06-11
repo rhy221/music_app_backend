@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/team/music-app/libs/go-common/auth"
@@ -24,15 +25,26 @@ func jsonError(w http.ResponseWriter, status int, message string) {
 	})
 }
 
-// requireAuth extracts the authenticated user ID from Gateway-forwarded headers.
-// Writes 401 and returns ("", false) if the request is unauthenticated.
-func requireAuth(w http.ResponseWriter, r *http.Request) (string, bool) {
-	userID, _, err := auth.ParseUserFromHeaders(r)
-	if err != nil {
-		jsonError(w, http.StatusUnauthorized, "authentication required")
-		return "", false
+// requireAuth accepts requests from two sources:
+//  1. Gateway-propagated X-User-Id header (trusted from KrakenD)
+//  2. Direct Authorization: Bearer token (validated locally)
+func requireAuth(jwtSecret string, w http.ResponseWriter, r *http.Request) (string, bool) {
+	if userID := r.Header.Get("X-User-Id"); userID != "" {
+		return userID, true
 	}
-	return userID, true
+	if authHeader := r.Header.Get("Authorization"); strings.HasPrefix(authHeader, "Bearer ") {
+		token := strings.TrimPrefix(authHeader, "Bearer ")
+		claims, err := auth.ValidateJWT(token, jwtSecret)
+		if err == nil && claims != nil {
+			r.Header.Set("X-User-Id", claims.Subject)
+			if claims.Role != "" {
+				r.Header.Set("X-User-Role", claims.Role)
+			}
+			return claims.Subject, true
+		}
+	}
+	jsonError(w, http.StatusUnauthorized, "authentication required")
+	return "", false
 }
 
 // parsePagination reads ?page and ?size query params with sensible defaults.

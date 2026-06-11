@@ -129,12 +129,13 @@ func main() {
 	const draftsPrefix = "/api/v1/upload/drafts"
 	draftHandler := httpadapter.NewDraftHandler(
 		draftsPrefix,
+		cfg.JWTSecret,
 		createDraftUC, getDraftUC, addTrackUC, deleteTrackUC,
 		audioURLUC, confirmAudioUC, submitDraftUC, cancelDraftUC,
 	)
 	draftHandler.Register(mux)
 
-	jobsHandler := httpadapter.NewJobsHandler(listJobsUC, getJobUC, retryJobUC, cancelJobUC)
+	jobsHandler := httpadapter.NewJobsHandler(cfg.JWTSecret, listJobsUC, getJobUC, retryJobUC, cancelJobUC)
 
 	jobsHandler.Register(mux, "/api/v1/upload/jobs")
 

@@ -1,3 +1,5 @@
+'use client';
+
 import { Music2 } from 'lucide-react';
 import Link from 'next/link';
 

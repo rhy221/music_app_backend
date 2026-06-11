@@ -5,10 +5,12 @@ import { useQuery } from '@tanstack/react-query';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getTracks } from '@/lib/api/tracks';
 import { TrackCard } from '@/components/tracks/track-card';
+import { AddToPlaylistDialog } from '@/components/playlists/add-to-playlist-dialog';
 import { CardGridSkeleton } from '@/components/common/loading-skeleton';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import type { TrackSummaryDto } from '@/lib/api/types';
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest' },
@@ -22,6 +24,7 @@ function TracksContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [page, setPage] = useState(0);
+  const [addTarget, setAddTarget] = useState<TrackSummaryDto | null>(null);
   const sort = (searchParams.get('sort') ?? 'newest') as string;
 
   const { data, isLoading } = useQuery({
@@ -61,10 +64,13 @@ function TracksContent() {
               track={track}
               queue={data.content}
               queueIndex={i}
+              onAddToPlaylist={setAddTarget}
             />
           ))}
         </div>
       )}
+
+      <AddToPlaylistDialog track={addTarget} onClose={() => setAddTarget(null)} />
 
       {data && data.totalPages > 1 && (
         <div className="mt-6 flex items-center justify-center gap-4">

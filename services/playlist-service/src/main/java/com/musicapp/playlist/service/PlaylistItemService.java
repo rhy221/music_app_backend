@@ -71,10 +71,13 @@ public class PlaylistItemService {
         item.setArtistName(track.artistName());
         itemRepository.save(item);
 
-        // Update aggregate counters
+        // Update aggregate counters + cover
         playlist.setTrackCount(playlist.getTrackCount() + 1);
         playlist.setTotalDurationMs(playlist.getTotalDurationMs()
                 + (track.durationMs() != null ? track.durationMs() : 0));
+        if (position == 0 || playlist.getCoverUrl() == null) {
+            playlist.setCoverUrl(track.coverUrl());
+        }
         playlistRepository.save(playlist);
 
         // Publish event for notification fan-out
@@ -123,7 +126,17 @@ public class PlaylistItemService {
 
         playlist.setTrackCount(Math.max(0, playlist.getTrackCount() - 1));
         playlist.setTotalDurationMs(Math.max(0, playlist.getTotalDurationMs() - duration));
+        if (deletedPosition == 0) {
+            playlist.setCoverUrl(itemRepository.findFirstCoverUrlByPlaylistId(playlistId).orElse(null));
+        }
         playlistRepository.save(playlist);
+    }
+
+    @Transactional
+    public void removeTrackByTrackId(UUID playlistId, UUID trackId, UUID userId) {
+        var item = itemRepository.findByPlaylistIdAndTrackId(playlistId, trackId)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Track not in playlist: " + trackId));
+        removeTrack(playlistId, item.getId(), userId);
     }
 
     @Transactional
@@ -155,5 +168,13 @@ public class PlaylistItemService {
             toSave.add(item);
         }
         itemRepository.saveAll(toSave);
+
+        // Cover is the first item after reorder
+        if (!orderedIds.isEmpty()) {
+            var firstItem = itemMap.get(orderedIds.get(0));
+            var reorderedPlaylist = playlistService.loadPlaylist(playlistId);
+            reorderedPlaylist.setCoverUrl(firstItem.getTrackCoverUrl());
+            playlistRepository.save(reorderedPlaylist);
+        }
     }
 }

@@ -18,6 +18,12 @@ public class CatalogRabbitConfig {
     @Value("${catalog.queues.user-role-updated}")
     private String userRoleUpdatedQueue;
 
+    @Value("${catalog.queues.user-registered}")
+    private String userRegisteredQueue;
+
+    @Value("${catalog.queues.user-profile-updated}")
+    private String userProfileUpdatedQueue;
+
     // Dead-letter exchange for failed messages
     @Bean
     public DirectExchange deadLetterExchange() {
@@ -91,5 +97,41 @@ public class CatalogRabbitConfig {
                 .bind(userRoleUpdatedQueueBean())
                 .to(userExchangeRef())
                 .with(EventConstants.RoutingKeys.USER_ROLE_UPDATED);
+    }
+
+    // ---- User Registered (from User service) ----
+
+    @Bean
+    public Queue userRegisteredQueueBean() {
+        return QueueBuilder.durable(userRegisteredQueue)
+                .withArgument("x-dead-letter-exchange", "events.dead-letter")
+                .withArgument("x-dead-letter-routing-key", userRegisteredQueue + ".dlq")
+                .build();
+    }
+
+    @Bean
+    public Binding userRegisteredBinding() {
+        return BindingBuilder
+                .bind(userRegisteredQueueBean())
+                .to(userExchangeRef())
+                .with(EventConstants.RoutingKeys.USER_REGISTERED);
+    }
+
+    // ---- User Profile Updated (from User service) ----
+
+    @Bean
+    public Queue userProfileUpdatedQueueBean() {
+        return QueueBuilder.durable(userProfileUpdatedQueue)
+                .withArgument("x-dead-letter-exchange", "events.dead-letter")
+                .withArgument("x-dead-letter-routing-key", userProfileUpdatedQueue + ".dlq")
+                .build();
+    }
+
+    @Bean
+    public Binding userProfileUpdatedBinding() {
+        return BindingBuilder
+                .bind(userProfileUpdatedQueueBean())
+                .to(userExchangeRef())
+                .with(EventConstants.RoutingKeys.USER_PROFILE_UPDATED);
     }
 }

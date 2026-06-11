@@ -19,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -93,6 +94,25 @@ public class PlaylistController {
             @Valid @RequestBody ReorderRequest request) {
         UUID userId = UUID.fromString(CurrentUser.getUserId());
         playlistItemService.reorderItems(playlistId, userId, request);
+    }
+
+    @GetMapping("/my-track-ids")
+    public Set<String> getMyPlaylistTrackIds() {
+        UUID userId = UUID.fromString(CurrentUser.getUserId());
+        return playlistService.getMyPlaylistTrackIds(userId);
+    }
+
+    @GetMapping("/containing-track/{trackId}")
+    public Set<String> getPlaylistsContainingTrack(@PathVariable UUID trackId) {
+        UUID userId = UUID.fromString(CurrentUser.getUserId());
+        return playlistService.getPlaylistsContainingTrack(trackId, userId);
+    }
+
+    @DeleteMapping("/{playlistId}/items/by-track/{trackId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeTrackByTrackId(@PathVariable UUID playlistId, @PathVariable UUID trackId) {
+        UUID userId = UUID.fromString(CurrentUser.getUserId());
+        playlistItemService.removeTrackByTrackId(playlistId, trackId, userId);
     }
 
     private UUID resolveOptionalUser(Authentication authentication) {

@@ -1,11 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { Play } from 'lucide-react';
+import { Play, MoreHorizontal, ListPlus, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { CoverImage } from '@/components/common/cover-image';
 import { usePlayerStore } from '@/stores/player-store';
 import { usePlayer } from '@/hooks/use-player';
+import { useMyPlaylistTrackIds } from '@/hooks/use-in-playlist';
 import type { TrackSummaryDto } from '@/lib/api/types';
 import { cn } from '@/lib/utils';
 
@@ -13,6 +20,7 @@ interface TrackCardProps {
   track: TrackSummaryDto;
   queue?: TrackSummaryDto[];
   queueIndex?: number;
+  onAddToPlaylist?: (track: TrackSummaryDto) => void;
 }
 
 function formatMs(ms: number) {
@@ -20,11 +28,13 @@ function formatMs(ms: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-export function TrackCard({ track, queue, queueIndex = 0 }: TrackCardProps) {
+export function TrackCard({ track, queue, queueIndex = 0, onAddToPlaylist }: TrackCardProps) {
   const { play } = usePlayer();
   const currentTrack = usePlayerStore((s) => s.queue[s.currentIndex]);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const isActive = currentTrack?.id === track.id;
+  const inPlaylistIds = useMyPlaylistTrackIds();
+  const isInPlaylist = inPlaylistIds.has(track.id);
 
   return (
     <div
@@ -59,18 +69,43 @@ export function TrackCard({ track, queue, queueIndex = 0 }: TrackCardProps) {
           )}
         </Button>
       </div>
-      <Link href={`/track/${track.id}`} className="mt-2 block">
-        <p className={cn('truncate text-sm font-medium', isActive && 'text-primary')}>
-          {track.title}
-        </p>
-      </Link>
-      <Link
-        href={`/artist/${track.artist.id}`}
-        className="block truncate text-xs text-muted-foreground hover:underline"
-      >
-        {track.artist.name}
-      </Link>
-      <p className="mt-1 text-xs text-muted-foreground">{formatMs(track.durationMs)}</p>
+      <div className="mt-2 flex items-start justify-between gap-1">
+        <div className="min-w-0 flex-1">
+          <Link href={`/track/${track.id}`} className="block truncate text-sm font-medium hover:underline">
+            <span className={cn(isActive && 'text-primary')}>{track.title}</span>
+          </Link>
+          <Link
+            href={`/artist/${track.artist.id}`}
+            className="block truncate text-xs text-muted-foreground hover:underline"
+          >
+            {track.artist.name}
+          </Link>
+          <p className="mt-0.5 text-xs text-muted-foreground">{formatMs(track.durationMs)}</p>
+        </div>
+        {isInPlaylist && (
+          <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+        )}
+        {onAddToPlaylist && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="mt-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100"
+                onClick={(e) => e.preventDefault()}
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onAddToPlaylist(track)}>
+                <ListPlus className="mr-2 h-4 w-4" />
+                Add to playlist
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
     </div>
   );
 }

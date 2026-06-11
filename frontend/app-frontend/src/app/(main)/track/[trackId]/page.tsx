@@ -1,17 +1,21 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Play, Music2, Clock } from 'lucide-react';
+import { Play, Pause, Music2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrackRow } from '@/components/tracks/track-row';
+import { AddToPlaylistDialog } from '@/components/playlists/add-to-playlist-dialog';
+import { PageGradient } from '@/components/common/page-gradient';
 import { getTrack } from '@/lib/api/tracks';
 import { getSimilarTracks } from '@/lib/api/recommendations';
 import { usePlayer } from '@/hooks/use-player';
+import { usePlayerStore } from '@/stores/player-store';
+import { storageUrl } from '@/lib/constants';
 import type { TrackSummaryDto } from '@/lib/api/types';
 
 function formatMs(ms: number) {
@@ -22,7 +26,10 @@ function formatMs(ms: number) {
 
 export default function TrackPage({ params }: { params: Promise<{ trackId: string }> }) {
   const { trackId } = use(params);
-  const { play } = usePlayer();
+  const { play, togglePlay } = usePlayer();
+  const [addTarget, setAddTarget] = useState<TrackSummaryDto | null>(null);
+  const currentTrackId = usePlayerStore((s) => s.queue[s.currentIndex]?.id);
+  const isGlobalPlaying = usePlayerStore((s) => s.isPlaying);
 
   const { data: track, isLoading } = useQuery({
     queryKey: ['track', trackId],
@@ -51,6 +58,10 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
 
   if (!track) return <div className="text-muted-foreground">Track not found.</div>;
 
+  const coverSrc = storageUrl(track.coverUrl);
+  const isThisActive = currentTrackId === track.id;
+  const isThisPlaying = isThisActive && isGlobalPlaying;
+
   const trackAsSummary: TrackSummaryDto = {
     id: track.id,
     title: track.title,
@@ -63,13 +74,21 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
     artist: track.artist,
   };
 
+  const handlePlayPause = () => {
+    if (isThisActive) {
+      togglePlay();
+    } else {
+      play([trackAsSummary], 0);
+    }
+  };
+
   return (
-    <div className="space-y-8">
+    <PageGradient src={coverSrc}>
       {/* Hero */}
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end">
         <div className="relative h-48 w-48 flex-shrink-0 overflow-hidden rounded-lg shadow-2xl">
-          {track.coverUrl ? (
-            <Image src={track.coverUrl} alt={track.title} fill className="object-cover" sizes="192px" />
+          {coverSrc ? (
+            <Image src={coverSrc} alt={track.title} fill className="object-cover" sizes="192px" />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-muted">
               <Music2 className="h-12 w-12 text-muted-foreground" />
@@ -111,13 +130,12 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
             <span>{track.playCount.toLocaleString()} plays</span>
           </div>
           <div className="mt-4">
-            <Button
-              onClick={() => play([trackAsSummary], 0)}
-              className="gap-2"
-              size="lg"
-            >
-              <Play className="h-5 w-5 fill-current" />
-              Play
+            <Button onClick={handlePlayPause} className="gap-2" size="lg">
+              {isThisPlaying ? (
+                <><Pause className="h-5 w-5 fill-current" />Pause</>
+              ) : (
+                <><Play className="h-5 w-5 fill-current" />Play</>
+              )}
             </Button>
           </div>
         </div>
@@ -142,26 +160,32 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
         <div>
           <h2 className="mb-4 text-lg font-semibold">Similar tracks</h2>
           <div className="space-y-1">
-            {similar.items.map((item, i) => (
-              <TrackRow
-                key={item.trackId}
-                track={{
-                  id: item.trackId,
-                  title: item.title,
-                  durationMs: 0,
-                  genre: item.genre,
-                  coverUrl: item.coverUrl,
-                  playCount: item.playCount,
-                  status: 'PUBLISHED',
-                  releaseDate: null,
-                  artist: { id: '', name: '', avatarUrl: null },
-                }}
-                index={i}
-              />
-            ))}
+            {similar.items.map((item, i) => {
+              const t: TrackSummaryDto = {
+                id: item.trackId,
+                title: item.title,
+                durationMs: 0,
+                genre: item.genre,
+                coverUrl: item.coverUrl,
+                playCount: item.playCount,
+                status: 'PUBLISHED',
+                releaseDate: null,
+                artist: { id: '', name: '', avatarUrl: null },
+              };
+              return (
+                <TrackRow
+                  key={item.trackId}
+                  track={t}
+                  index={i}
+                  onAddToPlaylist={setAddTarget}
+                />
+              );
+            })}
           </div>
         </div>
       )}
-    </div>
+
+      <AddToPlaylistDialog track={addTarget} onClose={() => setAddTarget(null)} />
+    </PageGradient>
   );
 }

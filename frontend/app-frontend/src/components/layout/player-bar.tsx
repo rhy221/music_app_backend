@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -19,6 +20,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { usePlayerStore } from '@/stores/player-store';
 import { usePlayer } from '@/hooks/use-player';
 import { cn } from '@/lib/utils';
+import { storageUrl } from '@/lib/constants';
 
 function formatMs(ms: number) {
   const s = Math.floor(ms / 1000);
@@ -29,7 +31,38 @@ function formatMs(ms: number) {
 export function PlayerBar() {
   const store = usePlayerStore();
   const { togglePlay, seek, setVolume } = usePlayer();
+  const [isScrubbing, setIsScrubbing] = useState(false);
+  const [scrubMs, setScrubMs] = useState(0);
+  const seekBarRef = useRef<HTMLDivElement>(null);
   const currentTrack = store.queue[store.currentIndex];
+
+  function msAtClientX(clientX: number): number {
+    if (!seekBarRef.current || !store.durationMs) return 0;
+    const { left, width } = seekBarRef.current.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (clientX - left) / width));
+    return Math.round(ratio * store.durationMs);
+  }
+
+  function handleSeekPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const ms = msAtClientX(e.clientX);
+    setIsScrubbing(true);
+    setScrubMs(ms);
+  }
+
+  function handleSeekPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!isScrubbing) return;
+    setScrubMs(msAtClientX(e.clientX));
+  }
+
+  function handleSeekPointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    if (!isScrubbing) return;
+    seek(msAtClientX(e.clientX));
+    setIsScrubbing(false);
+  }
+
+  const displayMs = isScrubbing ? scrubMs : store.positionMs;
+  const pct = store.durationMs > 0 ? Math.min(100, (displayMs / store.durationMs) * 100) : 0;
 
   if (!currentTrack) {
     return (
@@ -46,7 +79,7 @@ export function PlayerBar() {
         <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded">
           {currentTrack.coverUrl ? (
             <Image
-              src={currentTrack.coverUrl}
+              src={storageUrl(currentTrack.coverUrl)!}
               alt={currentTrack.title}
               fill
               className="object-cover"
@@ -126,18 +159,37 @@ export function PlayerBar() {
           </Tooltip>
         </div>
 
+        {/* Seek bar */}
         <div className="flex w-full max-w-md items-center gap-2">
           <span className="w-10 text-right text-xs tabular-nums text-muted-foreground">
-            {formatMs(store.positionMs)}
+            {formatMs(displayMs)}
           </span>
-          <Slider
-            className="flex-1"
-            min={0}
-            max={store.durationMs || 100}
-            step={1000}
-            value={[store.positionMs]}
-            onValueChange={([v]) => seek(v)}
-          />
+
+          <div
+            ref={seekBarRef}
+            className="group relative flex h-4 flex-1 cursor-pointer items-center"
+            onPointerDown={handleSeekPointerDown}
+            onPointerMove={handleSeekPointerMove}
+            onPointerUp={handleSeekPointerUp}
+          >
+            {/* Track */}
+            <div className="h-1 w-full overflow-hidden rounded-full bg-white/20 transition-[height] duration-150 group-hover:h-[5px]">
+              {/* Filled range */}
+              <div
+                className="h-full rounded-full bg-white"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            {/* Thumb — shown on hover / while scrubbing */}
+            <div
+              className={cn(
+                'pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-sm transition-opacity duration-150',
+                isScrubbing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+              )}
+              style={{ left: `${pct}%` }}
+            />
+          </div>
+
           <span className="w-10 text-xs tabular-nums text-muted-foreground">
             {formatMs(store.durationMs)}
           </span>
@@ -154,7 +206,14 @@ export function PlayerBar() {
           {store.volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
         </Button>
         <Slider
-          className="w-24"
+          className={cn(
+            'w-24',
+            '[&_[data-slot=slider-track]]:bg-white/20',
+            '[&_[data-slot=slider-range]]:bg-white',
+            '[&_[data-slot=slider-thumb]]:size-3',
+            '[&_[data-slot=slider-thumb]]:border-transparent',
+            '[&_[data-slot=slider-thumb]]:bg-white',
+          )}
           min={0}
           max={1}
           step={0.01}

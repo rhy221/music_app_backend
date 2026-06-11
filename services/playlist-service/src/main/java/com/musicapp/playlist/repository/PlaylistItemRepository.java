@@ -43,4 +43,22 @@ public interface PlaylistItemRepository extends JpaRepository<PlaylistItem, UUID
     void markTrackAsDeleted(@Param("trackId") UUID trackId);
 
     void deleteByPlaylistId(UUID playlistId);
+
+    @Query("SELECT i.trackCoverUrl FROM PlaylistItem i WHERE i.playlistId = :playlistId ORDER BY i.position ASC LIMIT 1")
+    java.util.Optional<String> findFirstCoverUrlByPlaylistId(@Param("playlistId") UUID playlistId);
+
+    java.util.Optional<PlaylistItem> findByPlaylistIdAndTrackId(UUID playlistId, UUID trackId);
+
+    @Query("""
+        SELECT DISTINCT i.trackId FROM PlaylistItem i
+        WHERE i.playlistId IN (SELECT p.id FROM Playlist p WHERE p.ownerId = :userId)
+        """)
+    java.util.Set<UUID> findTrackIdsByPlaylistOwner(@Param("userId") UUID userId);
+
+    @Query("""
+        SELECT i.playlistId FROM PlaylistItem i
+        WHERE i.trackId = :trackId
+        AND i.playlistId IN (SELECT p.id FROM Playlist p WHERE p.ownerId = :userId)
+        """)
+    java.util.Set<UUID> findPlaylistIdsContainingTrack(@Param("trackId") UUID trackId, @Param("userId") UUID userId);
 }

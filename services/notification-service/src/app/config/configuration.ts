@@ -25,7 +25,7 @@ export default (): AppConfig => ({
     retryAttempts: parseInt(process.env['RABBITMQ_RETRY_ATTEMPTS'] ?? '3', 10),
   },
   jwt: {
-    secret: process.env['JWT_SECRET'] ?? 'dev-secret',
+    secret: process.env['JWT_SECRET'] ?? 'change-me-in-production-min-32-chars',
   },
   catalogServiceUrl: process.env['CATALOG_SERVICE_URL'] ?? 'http://localhost:8082',
   userServiceUrl: process.env['USER_SERVICE_URL'] ?? 'http://localhost:8081',

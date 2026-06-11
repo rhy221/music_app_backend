@@ -13,6 +13,7 @@ public record PlaylistSummaryDto(
         PlaylistVisibility visibility,
         int trackCount,
         long totalDurationMs,
+        String coverUrl,
         Instant createdAt,
         Instant updatedAt
 ) {}

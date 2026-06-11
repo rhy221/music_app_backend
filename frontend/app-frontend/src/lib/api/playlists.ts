@@ -73,3 +73,15 @@ export function addCollaborator(
 export function removeCollaborator(playlistId: string, userId: string) {
   return apiDelete(`/playlists/${playlistId}/collaborators/${userId}`);
 }
+
+export function getMyPlaylistTrackIds() {
+  return apiGet<string[]>('/playlists/my-track-ids');
+}
+
+export function getPlaylistsContainingTrack(trackId: string) {
+  return apiGet<string[]>(`/playlists/containing-track/${trackId}`);
+}
+
+export function removeTrackFromPlaylistByTrackId(playlistId: string, trackId: string) {
+  return apiDelete(`/playlists/${playlistId}/items/by-track/${trackId}`);
+}

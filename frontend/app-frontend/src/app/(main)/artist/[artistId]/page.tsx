@@ -1,26 +1,33 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Image from 'next/image';
-import { Play, User, UserPlus, UserCheck } from 'lucide-react';
+import { Play, Pause, User, UserPlus, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlbumCard } from '@/components/albums/album-card';
 import { TrackRow } from '@/components/tracks/track-row';
 import { SectionHeader } from '@/components/common/section-header';
+import { AddToPlaylistDialog } from '@/components/playlists/add-to-playlist-dialog';
+import { PageGradient } from '@/components/common/page-gradient';
 import { getArtist } from '@/lib/api/artists';
 import { getUser, followUser, unfollowUser } from '@/lib/api/users';
+import { storageUrl } from '@/lib/constants';
 import { usePlayer } from '@/hooks/use-player';
+import { usePlayerStore } from '@/stores/player-store';
 import { useAuthStore } from '@/stores/auth-store';
 import { toast } from 'sonner';
+import type { TrackSummaryDto } from '@/lib/api/types';
 
 export default function ArtistPage({ params }: { params: Promise<{ artistId: string }> }) {
   const { artistId } = use(params);
-  const { play } = usePlayer();
+  const { play, togglePlay } = usePlayer();
   const authUser = useAuthStore((s) => s.user);
   const queryClient = useQueryClient();
+  const [addTarget, setAddTarget] = useState<TrackSummaryDto | null>(null);
+  const currentTrackId = usePlayerStore((s) => s.queue[s.currentIndex]?.id);
+  const isGlobalPlaying = usePlayerStore((s) => s.isPlaying);
 
   const { data: artist, isLoading } = useQuery({
     queryKey: ['artist', artistId],
@@ -53,14 +60,25 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
 
   if (!artist) return <div className="text-muted-foreground">Artist not found.</div>;
 
+  const avatarSrc = storageUrl(artist.avatarUrl);
   const isOwnProfile = authUser?.id === artist.userId;
+  const isContextActive = artist.topTracks.some((t) => t.id === currentTrackId);
+  const isContextPlaying = isContextActive && isGlobalPlaying;
+
+  const handlePlayPause = () => {
+    if (isContextActive) {
+      togglePlay();
+    } else {
+      play(artist.topTracks, 0);
+    }
+  };
 
   return (
-    <div className="space-y-8">
+    <PageGradient src={avatarSrc}>
       {/* Hero */}
       <div className="relative h-48 w-full overflow-hidden rounded-xl bg-muted sm:h-64">
-        {artist.avatarUrl ? (
-          <Image src={artist.avatarUrl} alt={artist.name} fill className="object-cover" sizes="100vw" />
+        {avatarSrc ? (
+          <Image src={avatarSrc} alt={artist.name} fill className="object-cover" sizes="100vw" />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
             <User className="h-20 w-20 text-muted-foreground" />
@@ -80,9 +98,12 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
       {/* Actions */}
       <div className="flex items-center gap-3">
         {artist.topTracks.length > 0 && (
-          <Button onClick={() => play(artist.topTracks, 0)} size="lg" className="gap-2">
-            <Play className="h-5 w-5 fill-current" />
-            Play
+          <Button onClick={handlePlayPause} size="lg" className="gap-2">
+            {isContextPlaying ? (
+              <><Pause className="h-5 w-5 fill-current" />Pause</>
+            ) : (
+              <><Play className="h-5 w-5 fill-current" />Play</>
+            )}
           </Button>
         )}
         {!isOwnProfile && publicProfile && (
@@ -114,6 +135,7 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
                 index={i}
                 queue={artist.topTracks}
                 queueIndex={i}
+                onAddToPlaylist={setAddTarget}
               />
             ))}
           </div>
@@ -131,6 +153,8 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
           </div>
         </div>
       )}
-    </div>
+
+      <AddToPlaylistDialog track={addTarget} onClose={() => setAddTarget(null)} />
+    </PageGradient>
   );
 }

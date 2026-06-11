@@ -50,15 +50,15 @@ public class TrackService {
     private final AlbumRepository albumRepository;
     private final TrackMapper trackMapper;
     private final OutboxService outboxService;
+    private final ArtistService artistService;
 
     public PaginatedResponse<TrackSummaryDto> listTracks(
             String genre, UUID artistId, UUID albumId, String sort, Pageable pageable) {
 
-        Specification<Track> spec = Specification
-                .where(statusPublished())
-                .and(genre != null ? genreEquals(genre) : null)
-                .and(artistId != null ? artistIdEquals(artistId) : null)
-                .and(albumId != null ? albumIdEquals(albumId) : null);
+        Specification<Track> spec = Specification.where(statusPublished());
+        if (genre    != null) spec = spec.and(genreEquals(genre));
+        if (artistId != null) spec = spec.and(artistIdEquals(artistId));
+        if (albumId  != null) spec = spec.and(albumIdEquals(albumId));
 
         Sort sortOrder = switch (sort == null ? "newest" : sort) {
             case "popular"    -> Sort.by(Sort.Direction.DESC, "playCount");
@@ -186,8 +186,14 @@ public class TrackService {
     })
     public TrackDetailDto publishTrack(PublishTrackRequest req) {
         Artist artist = artistRepository.findByUserId(req.uploaderId())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "No Artist record found for uploader: " + req.uploaderId()));
+                .orElseGet(() -> {
+                    artistService.createArtistForUser(
+                            req.uploaderId(),
+                            "User-" + req.uploaderId().toString().substring(0, 8));
+                    return artistRepository.findByUserId(req.uploaderId())
+                            .orElseThrow(() -> new IllegalStateException(
+                                    "Failed to create artist for uploader: " + req.uploaderId()));
+                });
 
         Album album = null;
         if (req.albumId() != null) {
@@ -200,6 +206,7 @@ public class TrackService {
         track.setTitle(req.title());
         track.setDurationMs(req.durationMs());
         track.setGenre(req.genre());
+        track.setCoverUrl(req.coverUrl());
         track.setWaveformUrl(req.waveformUrl());
         track.setStatus(TrackStatus.PUBLISHED);
 
@@ -227,6 +234,7 @@ public class TrackService {
                         EventHeader.create(TrackPublishedEvent.EVENT_TYPE, "catalog-service"),
                         new TrackPublishedEvent.Data(
                                 track.getId().toString(),
+                                req.uploadJobId(),
                                 track.getTitle(),
                                 track.getDurationMs(),
                                 track.getCoverUrl(),

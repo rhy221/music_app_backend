@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8080';
 const REFRESH_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
-async function setTokenCookies(res: NextResponse, data: { accessToken: string; refreshToken: string; expiresIn: number }) {
-  res.cookies.set('access_token', data.accessToken, {
-    maxAge: data.expiresIn ?? 900,
-    path: '/',
-    sameSite: 'lax',
-  });
-  res.cookies.set('refresh_token', data.refreshToken, {
+async function setRefreshCookie(refreshToken: string) {
+  const jar = await cookies();
+  jar.set('refresh_token', refreshToken, {
     maxAge: REFRESH_MAX_AGE,
     path: '/api/auth',
     httpOnly: true,
@@ -30,10 +27,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pat
         body: JSON.stringify({ refreshToken }),
       }).catch(() => {});
     }
-    const res = NextResponse.json({}, { status: 200 });
-    res.cookies.set('access_token', '', { maxAge: 0, path: '/' });
-    res.cookies.set('refresh_token', '', { maxAge: 0, path: '/api/auth', httpOnly: true });
-    return res;
+    const jar = await cookies();
+    jar.set('refresh_token', '', { maxAge: 0, path: '/api/auth', httpOnly: true });
+    return NextResponse.json({}, { status: 200 });
   }
 
   if (action === 'refresh') {
@@ -48,9 +44,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pat
     if (!backendRes.ok) return NextResponse.json({ error: 'Refresh failed' }, { status: 401 });
 
     const data = await backendRes.json();
-    const res = NextResponse.json(data);
-    await setTokenCookies(res, data);
-    return res;
+    if (data.refreshToken) await setRefreshCookie(data.refreshToken);
+    return NextResponse.json({ accessToken: data.accessToken, expiresIn: data.expiresIn });
   }
 
   // login / register / oauth2/google
@@ -67,7 +62,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ pat
   }
 
   const data = await backendRes.json();
-  const res = NextResponse.json(data);
-  await setTokenCookies(res, data);
-  return res;
+  await setRefreshCookie(data.refreshToken);
+  // accessToken returned in body — client sets the JS-readable cookie via js-cookie
+  return NextResponse.json({
+    accessToken: data.accessToken,
+    expiresIn: data.expiresIn,
+    user: data.user,
+  });
 }

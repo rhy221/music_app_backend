@@ -28,7 +28,7 @@ services:
       NEO4J_PLUGINS: '["graph-data-science"]'
       NEO4J_server_memory_heap_initial__size: 512m
       NEO4J_server_memory_heap_max__size: 1G
-      NEO4J_server_memory_pagecache__size: 512m
+      NEO4J_server_memory_pagecache_size: 512m
     ports:
       - "7474:7474"   # Browser UI
       - "7687:7687"   # Bolt
@@ -182,46 +182,22 @@ services:
   # ─── API Gateway (KrakenD) ───────────────────────────────────────────────────
   gateway:
     build:
-      context: ..
-      dockerfile: services/gateway/Dockerfile
+      context: ../services/gateway
+      dockerfile: Dockerfile
     container_name: music-gateway
     environment:
-      JWT_SECRET_KEY: "${JWT_SECRET_KEY:-change-me-in-production-min-32-chars}"
+      JWT_SECRET_KEY: "${JWT_SECRET:-change-me-in-production-min-32-chars}"
     ports:
       - "8080:8080"   # API Gateway
       - "9091:9091"   # Prometheus metrics
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8080/__health || exit 1"]
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:8080/__health"]
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 10s
     restart: unless-stopped
 
-  # ─── Search Service ──────────────────────────────────────────────────────────
-  search-service:
-    build:
-      context: ..
-      dockerfile: services/search-service/Dockerfile
-    container_name: music-search-service
-    environment:
-      PORT: "8085"
-      ELASTICSEARCH_NODE: http://elasticsearch:9200
-      RABBITMQ_URL: amqp://music_admin:music_pass@rabbitmq:5672/music
-    ports:
-      - "8085:8085"
-    depends_on:
-      elasticsearch:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8085/api/health || exit 1"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    restart: unless-stopped
 
 # ─── Volumes ──────────────────────────────────────────────────────────────────
 volumes:

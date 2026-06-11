@@ -1,15 +1,20 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Play, Disc3, Clock } from 'lucide-react';
+import { Play, Pause, Disc3, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrackRow } from '@/components/tracks/track-row';
+import { AddToPlaylistDialog } from '@/components/playlists/add-to-playlist-dialog';
+import { PageGradient } from '@/components/common/page-gradient';
 import { getAlbum } from '@/lib/api/albums';
 import { usePlayer } from '@/hooks/use-player';
+import { usePlayerStore } from '@/stores/player-store';
+import { storageUrl } from '@/lib/constants';
+import type { TrackSummaryDto } from '@/lib/api/types';
 
 function formatMs(ms: number) {
   const m = Math.floor(ms / 60000);
@@ -20,7 +25,10 @@ function formatMs(ms: number) {
 
 export default function AlbumPage({ params }: { params: Promise<{ albumId: string }> }) {
   const { albumId } = use(params);
-  const { play } = usePlayer();
+  const { play, togglePlay } = usePlayer();
+  const [addTarget, setAddTarget] = useState<TrackSummaryDto | null>(null);
+  const currentTrackId = usePlayerStore((s) => s.queue[s.currentIndex]?.id);
+  const isGlobalPlaying = usePlayerStore((s) => s.isPlaying);
 
   const { data: album, isLoading } = useQuery({
     queryKey: ['album', albumId],
@@ -41,12 +49,24 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
 
   if (!album) return <div className="text-muted-foreground">Album not found.</div>;
 
+  const coverSrc = storageUrl(album.coverUrl);
+  const isContextActive = album.tracks.some((t) => t.id === currentTrackId);
+  const isContextPlaying = isContextActive && isGlobalPlaying;
+
+  const handlePlayPause = () => {
+    if (isContextActive) {
+      togglePlay();
+    } else {
+      play(album.tracks, 0);
+    }
+  };
+
   return (
-    <div className="space-y-8">
+    <PageGradient src={coverSrc}>
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end">
         <div className="relative h-48 w-48 flex-shrink-0 overflow-hidden rounded-lg shadow-2xl">
-          {album.coverUrl ? (
-            <Image src={album.coverUrl} alt={album.title} fill className="object-cover" sizes="192px" />
+          {coverSrc ? (
+            <Image src={coverSrc} alt={album.title} fill className="object-cover" sizes="192px" />
           ) : (
             <div className="flex h-full w-full items-center justify-center bg-muted">
               <Disc3 className="h-12 w-12 text-muted-foreground" />
@@ -74,9 +94,12 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
             </span>
           </div>
           <div className="mt-4">
-            <Button onClick={() => play(album.tracks, 0)} className="gap-2" size="lg">
-              <Play className="h-5 w-5 fill-current" />
-              Play all
+            <Button onClick={handlePlayPause} className="gap-2" size="lg">
+              {isContextPlaying ? (
+                <><Pause className="h-5 w-5 fill-current" />Pause</>
+              ) : (
+                <><Play className="h-5 w-5 fill-current" />Play all</>
+              )}
             </Button>
           </div>
         </div>
@@ -90,9 +113,12 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
             index={i}
             queue={album.tracks}
             queueIndex={i}
+            onAddToPlaylist={setAddTarget}
           />
         ))}
       </div>
-    </div>
+
+      <AddToPlaylistDialog track={addTarget} onClose={() => setAddTarget(null)} />
+    </PageGradient>
   );
 }

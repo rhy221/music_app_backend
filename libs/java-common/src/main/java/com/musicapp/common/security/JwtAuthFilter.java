@@ -15,8 +15,8 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Validates the Bearer JWT from Authorization header and populates the SecurityContext.
- * Also sets X-User-Id and X-User-Role headers for downstream services.
+ * Populates the Spring SecurityContext from either a Bearer JWT (direct access)
+ * or gateway-propagated X-User-Id / X-User-Role headers (KrakenD gateway traffic).
  */
 public class JwtAuthFilter extends OncePerRequestFilter {
 
@@ -48,18 +48,26 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 Claims claims = jwtUtil.validateToken(token);
                 String userId = claims.getSubject();
                 String role = claims.get("role", String.class);
-
-                var auth = new UsernamePasswordAuthenticationToken(
-                        userId, null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
-                SecurityContextHolder.getContext().setAuthentication(auth);
-
-                // Propagate identity headers for downstream services
-                request.setAttribute("X-User-Id", userId);
-                request.setAttribute("X-User-Role", role);
+                setAuthentication(userId, role);
             } catch (Exception ignored) {
                 // Invalid token: skip — let SecurityConfig reject if endpoint requires auth
             }
+        } else {
+            // Trust gateway-propagated headers (set by KrakenD after JWT validation).
+            // KrakenD strips the Authorization header but adds X-User-Id / X-User-Role
+            // for authenticated endpoints, so this is the standard path for gateway traffic.
+            String userId = request.getHeader("X-User-Id");
+            if (userId != null && !userId.isBlank()) {
+                String role = request.getHeader("X-User-Role");
+                setAuthentication(userId, role != null ? role : "USER");
+            }
         }
         filterChain.doFilter(request, response);
+    }
+
+    private void setAuthentication(String userId, String role) {
+        var auth = new UsernamePasswordAuthenticationToken(
+                userId, null, List.of(new SimpleGrantedAuthority("ROLE_" + role)));
+        SecurityContextHolder.getContext().setAuthentication(auth);
     }
 }

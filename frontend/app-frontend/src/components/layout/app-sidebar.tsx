@@ -38,6 +38,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useAuth } from '@/hooks/use-auth';
 import { useNotificationWs } from '@/providers/notification-ws-provider';
 import { cn } from '@/lib/utils';
+import { storageUrl } from '@/lib/constants';
 
 const discoverLinks = [
   { href: '/', label: 'Home', icon: Home },
@@ -148,7 +149,7 @@ export function AppSidebar() {
           <DropdownMenuTrigger asChild>
             <button className="flex w-full items-center gap-3 rounded-lg p-2 hover:bg-sidebar-accent transition-colors">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.avatarUrl ?? undefined} />
+                <AvatarImage src={storageUrl(user?.avatarUrl) ?? undefined} />
                 <AvatarFallback>{user?.displayName?.[0]?.toUpperCase() ?? 'U'}</AvatarFallback>
               </Avatar>
               <div className="flex-1 overflow-hidden text-left">

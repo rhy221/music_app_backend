@@ -151,9 +151,22 @@ public class PlaylistService {
                 .orElse(false);
     }
 
+    @Transactional(readOnly = true)
+    public java.util.Set<String> getMyPlaylistTrackIds(UUID userId) {
+        return playlistItemRepository.findTrackIdsByPlaylistOwner(userId)
+                .stream().map(UUID::toString).collect(java.util.stream.Collectors.toSet());
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.Set<String> getPlaylistsContainingTrack(UUID trackId, UUID userId) {
+        return playlistItemRepository.findPlaylistIdsContainingTrack(trackId, userId)
+                .stream().map(UUID::toString).collect(java.util.stream.Collectors.toSet());
+    }
+
     private PlaylistSummaryDto toSummary(Playlist p) {
         return new PlaylistSummaryDto(p.getId(), p.getOwnerId(), p.getName(), p.getDescription(),
-                p.getVisibility(), p.getTrackCount(), p.getTotalDurationMs(), p.getCreatedAt(), p.getUpdatedAt());
+                p.getVisibility(), p.getTrackCount(), p.getTotalDurationMs(), p.getCoverUrl(),
+                p.getCreatedAt(), p.getUpdatedAt());
     }
 
     private PlaylistDetailDto toDetail(Playlist p, List<PlaylistItemDto> items,

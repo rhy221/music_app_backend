@@ -93,7 +93,7 @@ public class CollaboratorService {
         var page = playlistRepository.findByOwnerIdAndVisibility(userId, PlaylistVisibility.PUBLIC, pageable);
         return PaginationMapper.toResponse(page, p -> new PlaylistSummaryDto(
                 p.getId(), p.getOwnerId(), p.getName(), p.getDescription(),
-                p.getVisibility(), p.getTrackCount(), p.getTotalDurationMs(),
+                p.getVisibility(), p.getTrackCount(), p.getTotalDurationMs(), p.getCoverUrl(),
                 p.getCreatedAt(), p.getUpdatedAt()));
     }
 }

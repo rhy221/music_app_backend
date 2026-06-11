@@ -1,107 +1,185 @@
-# New Nx Repository
+# Music App — Monorepo
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+Ứng dụng streaming nhạc, kiến trúc microservices polyglot. Workspace quản lý bằng [Nx](https://nx.dev), package manager là **pnpm**.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+---
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/js?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+## Tổng quan kiến trúc
 
-## Try the full Nx platform
-🚀 If you haven't connected to Nx Cloud yet, [complete your setup here](https://cloud.nx.app/setup/connect-workspace/guide). Get faster builds with remote caching, distributed task execution, and self-healing CI. [See how your workspace can benefit](#nx-cloud).
+| Service | Stack | Port |
+|---|---|---|
+| **Gateway** | KrakenD | `8080` |
+| **user-service** | Java 26 / Spring Boot 4 | `8081` |
+| **catalog-service** | Java 26 / Spring Boot 4 | `8082` |
+| **playlist-service** | Java 26 / Spring Boot 4 | `8083` |
+| **streaming-service** | Go 1.22 | `8084` |
+| **search-service** | TypeScript / NestJS 11 | `8085` |
+| **upload-service** | Go 1.22 | `8086` |
+| **notification-service** | TypeScript / NestJS 11 | `8087` |
+| **recommend-service** | Python 3.10+ / FastAPI | `8000` |
+| **Frontend** | Next.js 16 / React 19 | `3000` |
 
-## Generate a library
+---
 
-```sh
-npx nx g @nx/js:lib packages/pkg1 --publishable --importPath=@my-org/pkg1
+## Prerequisites
+
+| Tool | Version | Cài đặt |
+|---|---|---|
+| Node.js | ≥ 20 | [nodejs.org](https://nodejs.org) |
+| pnpm | ≥ 9 | `npm install -g pnpm` |
+| Java JDK | 26 | [adoptium.net](https://adoptium.net) |
+| Python | ≥ 3.10, < 3.13 | [python.org](https://python.org) |
+| Poetry | ≥ 1.8 | `pip install poetry` |
+| Go | ≥ 1.22 | [go.dev](https://go.dev) |
+| Docker + Compose | Latest | [docker.com](https://docker.com) |
+
+---
+
+## 1. Khởi động Infrastructure
+
+Tất cả dependencies (databases, message broker, object storage) chạy qua Docker Compose.
+
+```bash
+cd infra
+docker compose up -d
 ```
 
-## Run tasks
+Lần đầu sẽ pull images và khởi tạo tự động:
+- PostgreSQL: tạo 5 databases (user_db, catalog_db, playlist_db, streaming_db, upload_db)
+- MinIO: tạo buckets `images` và `audio`
+- RabbitMQ: tạo topic exchanges
 
-To build the library use:
+Kiểm tra trạng thái:
 
-```sh
-npx nx build pkg1
+```bash
+docker compose ps
 ```
 
-To run any task with Nx use:
+### Admin UIs
 
-```sh
-npx nx <target> <project-name>
+| Service | URL | Credentials |
+|---|---|---|
+| RabbitMQ Management | http://localhost:15672 | `music_admin` / `music_pass` |
+| MinIO Console | http://localhost:9001 | `music_admin` / `music_pass` |
+| Neo4j Browser | http://localhost:7474 | `neo4j` / `music_pass` |
+| Elasticsearch | http://localhost:9200 | — (no auth) |
+
+---
+
+## 2. Cài đặt dependencies (lần đầu sau khi clone)
+
+```bash
+# Node.js dependencies cho toàn workspace (NestJS services + frontend)
+pnpm install
+
+# Python dependencies cho recommend-service
+cd services/recommend-service && poetry install && cd ../..
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+> Java (Gradle) và Go không cần bước install thủ công.  
+> Gradle tự tải dependencies khi build; Go dùng `go.work` workspace ở root.
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+---
 
-## Versioning and releasing
+## 3. Chạy Backend Services
 
-To version and release the library use
+### Chạy từng service riêng lẻ
 
-```
-npx nx release
-```
+```bash
+# Java services (Spring Boot)
+pnpm nx run user-service:serve          # port 8081
+pnpm nx run catalog-service:serve       # port 8082
+pnpm nx run playlist-service:serve      # port 8083
 
-Pass `--dry-run` to see what would happen without actually releasing the library.
+# Go services
+pnpm nx run streaming-service:serve     # port 8084
+pnpm nx run upload-service:serve        # port 8086
 
-[Learn more about Nx release &raquo;](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+# TypeScript / NestJS services
+pnpm nx run search-service:serve        # port 8085
+pnpm nx run notification-service:serve  # port 8087
 
-## Keep TypeScript project references up to date
-
-Nx automatically updates TypeScript [project references](https://www.typescriptlang.org/docs/handbook/project-references.html) in `tsconfig.json` files to ensure they remain accurate based on your project dependencies (`import` or `require` statements). This sync is automatically done when running tasks such as `build` or `typecheck`, which require updated references to function correctly.
-
-To manually trigger the process to sync the project graph dependencies information to the TypeScript project references, run the following command:
-
-```sh
-npx nx sync
-```
-
-You can enforce that the TypeScript project references are always in the correct state when running in CI by adding a step to your CI job configuration that runs the following command:
-
-```sh
-npx nx sync:check
+# Python service
+pnpm nx run recommend-service:serve     # port 8000
 ```
 
-[Learn more about nx sync](https://nx.dev/reference/nx-commands#sync)
+> **gateway** chạy qua Docker Compose ở http://localhost:8080. KrakenD dùng `host.docker.internal` để reach các service chạy trên host — chuẩn Docker Desktop (Windows/Mac). Khi thay đổi `krakend.json`, cần rebuild: `docker compose up -d --build --force-recreate gateway`.
 
-## Nx Cloud
+### Chạy tất cả services cùng lúc
 
-Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Set up CI (non-Github Actions CI)
-
-**Note:** This is only required if your CI provider is not GitHub Actions.
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
+```bash
+pnpm nx run-many -t serve \
+  --projects=user-service,catalog-service,playlist-service,streaming-service,search-service,upload-service,notification-service,recommend-service \
+  --parallel \
+  --output-style=stream
 ```
 
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### Database migrations
 
-## Install Nx Console
+Tất cả services đều **tự migrate khi khởi động**, không cần bước riêng:
 
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
+- **Java services** (Spring Boot): Flyway migration chạy tự động.
+- **Go services** (streaming, upload): Dùng embedded SQL (`//go:embed migrations/*.up.sql`) + bảng `schema_migrations` tự quản lý — apply tự động ở đầu `main()`.
 
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+Không cần chạy lệnh migrate thủ công.
 
-## Useful links
+---
 
-Learn more:
+## 4. Chạy Frontend
 
-- [Learn more about this workspace setup](https://nx.dev/nx-api/js?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+Frontend là Next.js app nằm trong `frontend/app-frontend/`.
 
-And join the Nx community:
+```bash
+# Dev server với hot reload
+pnpm nx run app-frontend:dev
+```
 
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+Mở http://localhost:3000.
+
+Biến môi trường (tạo file `frontend/app-frontend/.env.local` nếu cần override):
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8080
+```
+
+Mặc định frontend gọi tất cả API qua Gateway ở `http://localhost:8080`.
+
+### Build production
+
+```bash
+pnpm nx run app-frontend:build
+pnpm nx run app-frontend:start   # serve production build
+```
+
+---
+
+## 5. Lệnh Nx hữu ích
+
+```bash
+# Xem toàn bộ dependency graph
+pnpm nx graph
+
+# Xem targets của một project
+pnpm nx show project catalog-service
+
+# Build một service
+pnpm nx run catalog-service:build
+
+# Chạy tests
+pnpm nx run-many -t test
+pnpm nx run recommend-service:test
+
+# Lint
+pnpm nx run-many -t lint
+```
+
+---
+
+## Tài liệu thêm
+
+| File | Nội dung |
+|---|---|
+| [SERVICES.md](SERVICES.md) | Danh sách endpoints của từng service (có trạng thái mock) |
+| [api-endpoints-frontend-guide-v2.md](api-endpoints-frontend-guide-v2.md) | API guide chi tiết cho frontend (request/response shapes) |
+| [INFRASTRUCTURE.md](INFRASTRUCTURE.md) | Chi tiết database schemas, event flows |
+| [infra/docker-compose.yml](infra/docker-compose.yml) | Cấu hình toàn bộ infrastructure |

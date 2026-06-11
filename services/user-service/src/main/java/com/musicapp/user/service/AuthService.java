@@ -38,6 +38,9 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final RestClient restClient;
 
+    @Value("${jwt.access-token-expiration:3600000}")
+    private long accessTokenExpiration;
+
     @Value("${jwt.refresh-token-expiration:604800000}")
     private long refreshTokenExpiration;
 
@@ -185,6 +188,6 @@ public class AuthService {
                 user.getAvatarUrl(), user.getBio(), user.getRole(),
                 0L, 0L, user.getCreatedAt()
         );
-        return AuthResponse.of(accessToken, refreshToken, refreshTokenExpiration / 1000, profile);
+        return AuthResponse.of(accessToken, refreshToken, accessTokenExpiration / 1000, profile);
     }
 }

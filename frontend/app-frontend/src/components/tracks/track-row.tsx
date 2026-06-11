@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Play, MoreHorizontal } from 'lucide-react';
+import { Play, Pause, MoreHorizontal, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -12,6 +12,7 @@ import {
 import { CoverImage } from '@/components/common/cover-image';
 import { usePlayerStore } from '@/stores/player-store';
 import { usePlayer } from '@/hooks/use-player';
+import { useMyPlaylistTrackIds } from '@/hooks/use-in-playlist';
 import type { TrackSummaryDto } from '@/lib/api/types';
 import { cn } from '@/lib/utils';
 
@@ -29,9 +30,21 @@ function formatMs(ms: number) {
 }
 
 export function TrackRow({ track, index, queue, queueIndex = 0, onAddToPlaylist }: TrackRowProps) {
-  const { play } = usePlayer();
-  const currentTrack = usePlayerStore((s) => s.queue[s.currentIndex]);
-  const isActive = currentTrack?.id === track.id;
+  const { play, togglePlay } = usePlayer();
+  const currentTrackId = usePlayerStore((s) => s.queue[s.currentIndex]?.id);
+  const isGlobalPlaying = usePlayerStore((s) => s.isPlaying);
+  const isActive = currentTrackId === track.id;
+  const isThisPlaying = isActive && isGlobalPlaying;
+  const inPlaylistIds = useMyPlaylistTrackIds();
+  const isInPlaylist = inPlaylistIds.has(track.id);
+
+  const handlePlayPause = () => {
+    if (isActive) {
+      togglePlay();
+    } else {
+      play(queue ?? [track], queueIndex);
+    }
+  };
 
   return (
     <div
@@ -40,16 +53,27 @@ export function TrackRow({ track, index, queue, queueIndex = 0, onAddToPlaylist 
         isActive && 'bg-accent/60'
       )}
     >
-      <div className="flex w-8 items-center justify-center">
-        <button
-          className="hidden group-hover:block"
-          onClick={() => play(queue ?? [track], queueIndex)}
-        >
-          <Play className="h-4 w-4 text-foreground" />
-        </button>
-        <span className={cn('block text-sm text-muted-foreground group-hover:hidden', isActive && 'text-primary')}>
-          {index != null ? index + 1 : <Play className="h-4 w-4" />}
-        </span>
+      {/* Index / Play / Pause cell */}
+      <div className="flex w-8 shrink-0 items-center justify-center">
+        {isThisPlaying ? (
+          <button onClick={togglePlay} className="text-primary">
+            <Pause className="h-4 w-4 fill-current" />
+          </button>
+        ) : (
+          <>
+            <button className="hidden group-hover:block" onClick={handlePlayPause}>
+              <Play className={cn('h-4 w-4 fill-current', isActive ? 'text-primary' : 'text-foreground')} />
+            </button>
+            <span
+              className={cn(
+                'block text-sm group-hover:hidden',
+                isActive ? 'text-primary font-semibold' : 'text-muted-foreground'
+              )}
+            >
+              {index != null ? index + 1 : <Play className="h-4 w-4" />}
+            </span>
+          </>
+        )}
       </div>
 
       <CoverImage
@@ -76,6 +100,10 @@ export function TrackRow({ track, index, queue, queueIndex = 0, onAddToPlaylist 
 
       <span className="text-xs tabular-nums text-muted-foreground">{formatMs(track.durationMs)}</span>
 
+      {isInPlaylist && (
+        <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-primary" />
+      )}
+
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -87,10 +115,9 @@ export function TrackRow({ track, index, queue, queueIndex = 0, onAddToPlaylist 
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => play(queue ?? [track], queueIndex)}>
-            Play now
+          <DropdownMenuItem onClick={handlePlayPause}>
+            {isThisPlaying ? 'Pause' : 'Play now'}
           </DropdownMenuItem>
-          <DropdownMenuItem>Add to queue</DropdownMenuItem>
           {onAddToPlaylist && (
             <DropdownMenuItem onClick={() => onAddToPlaylist(track)}>
               Add to playlist

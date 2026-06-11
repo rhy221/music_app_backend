@@ -18,7 +18,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     getMe()
       .then(setUser)
-      .catch(() => clearUser());
+      .catch((err: unknown) => {
+        const status = (err as { status?: number })?.status;
+        if (status !== 401) {
+          console.error('getMe failed:', err);
+        }
+        // apiFetch already removes the cookie on 401+refresh-fail.
+        // For other failures (500, network) we keep the cookie so middleware
+        // continues protecting routes — don't remove it here.
+        clearUser();
+      });
   }, [setUser, clearUser]);
 
   return <>{children}</>;

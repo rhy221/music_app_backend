@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getAdminUsers, updateUserRole } from '@/lib/api/users';
+import { storageUrl } from '@/lib/constants';
 import { useDebounce } from '@/hooks/use-debounce';
 import { toast } from 'sonner';
 
@@ -95,7 +96,7 @@ export default function AdminUsersPage() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.avatarUrl ?? undefined} />
+                        <AvatarImage src={storageUrl(user.avatarUrl) ?? undefined} />
                         <AvatarFallback>{user.displayName[0]}</AvatarFallback>
                       </Avatar>
                       <span className="text-sm font-medium">{user.displayName}</span>

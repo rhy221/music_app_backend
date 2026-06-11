@@ -7,7 +7,11 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "go run .",
+        "commands": [
+          "go build -o dist/upload-service.exe .",
+          "dist\\upload-service.exe"
+        ],
+        "parallel": false,
         "cwd": "{projectRoot}",
         "envFile": "{projectRoot}/.env"
       }

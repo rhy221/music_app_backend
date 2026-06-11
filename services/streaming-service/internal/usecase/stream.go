@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"strconv"
 	"strings"
 
@@ -82,25 +83,35 @@ func (uc *StreamUseCase) GetAudio(ctx context.Context, trackID string, preferred
 	}, nil
 }
 
-// GetHLSPlaylist generates an HLS master playlist (.m3u8) for adaptive bitrate streaming.
+// GetHLSPlaylist generates an HLS VOD media playlist (.m3u8) for the best available quality.
+// Returns a single-segment playlist so HLS.js can fetch the audio via XHR (with auth headers).
 func (uc *StreamUseCase) GetHLSPlaylist(ctx context.Context, trackID string) (string, error) {
 	tc, err := uc.getOrFetchTrack(ctx, trackID)
 	if err != nil {
 		return "", domain.ErrNotFound
 	}
-	if len(tc.AssetURLs) == 0 {
+
+	asset := selectAsset(tc, 320)
+	if asset == nil {
 		return "", domain.ErrNotFound
+	}
+
+	durationSec := float64(tc.DurationMs) / 1000.0
+	targetDuration := int(math.Ceil(durationSec))
+	if targetDuration < 1 {
+		targetDuration = 1
 	}
 
 	var sb strings.Builder
 	sb.WriteString("#EXTM3U\n")
-	sb.WriteString("#EXT-X-VERSION:3\n\n")
-	for _, bitrate := range []int{128, 256, 320} {
-		if hasAsset(tc, bitrate) {
-			fmt.Fprintf(&sb, "#EXT-X-STREAM-INF:BANDWIDTH=%d,CODECS=\"mp4a.40.2\"\n", bitrate*1000)
-			fmt.Fprintf(&sb, "/api/v1/stream/%s?bitrate=%d\n\n", trackID, bitrate)
-		}
-	}
+	sb.WriteString("#EXT-X-VERSION:3\n")
+	fmt.Fprintf(&sb, "#EXT-X-TARGETDURATION:%d\n", targetDuration)
+	sb.WriteString("#EXT-X-PLAYLIST-TYPE:VOD\n")
+	sb.WriteString("#EXT-X-MEDIA-SEQUENCE:0\n")
+	fmt.Fprintf(&sb, "#EXTINF:%.3f,\n", durationSec)
+	fmt.Fprintf(&sb, "/api/v1/stream/%s?bitrate=%d\n", trackID, asset.Bitrate)
+	sb.WriteString("#EXT-X-ENDLIST\n")
+
 	return sb.String(), nil
 }
 

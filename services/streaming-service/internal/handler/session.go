@@ -20,14 +20,16 @@ type sessionService interface {
 
 // SessionHandler manages play session lifecycle.
 type SessionHandler struct {
-	svc sessionService
-	log zerolog.Logger
+	svc       sessionService
+	log       zerolog.Logger
+	jwtSecret string
 }
 
-func NewSessionHandler(svc sessionService, log zerolog.Logger) *SessionHandler {
+func NewSessionHandler(svc sessionService, log zerolog.Logger, jwtSecret string) *SessionHandler {
 	return &SessionHandler{
-		svc: svc,
-		log: log.With().Str("handler", "session").Logger(),
+		svc:       svc,
+		log:       log.With().Str("handler", "session").Logger(),
+		jwtSecret: jwtSecret,
 	}
 }
 
@@ -36,16 +38,16 @@ func (h *SessionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case r.Method == http.MethodPost && r.URL.Path == "/api/v1/play-sessions":
 		h.startSession(w, r)
 	case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/heartbeat"):
-		h.heartbeat(w, r, pathSegment(r, 4))
+		h.heartbeat(w, r, pathSegment(r, 3))
 	case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/end"):
-		h.endSession(w, r, pathSegment(r, 4))
+		h.endSession(w, r, pathSegment(r, 3))
 	default:
 		http.NotFound(w, r)
 	}
 }
 
 func (h *SessionHandler) startSession(w http.ResponseWriter, r *http.Request) {
-	userID, ok := requireAuth(w, r)
+	userID, ok := requireAuth(h.jwtSecret, w, r)
 	if !ok {
 		return
 	}
@@ -71,7 +73,7 @@ func (h *SessionHandler) startSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SessionHandler) heartbeat(w http.ResponseWriter, r *http.Request, sessionID string) {
-	userID, ok := requireAuth(w, r)
+	userID, ok := requireAuth(h.jwtSecret, w, r)
 	if !ok {
 		return
 	}
@@ -99,7 +101,7 @@ func (h *SessionHandler) heartbeat(w http.ResponseWriter, r *http.Request, sessi
 }
 
 func (h *SessionHandler) endSession(w http.ResponseWriter, r *http.Request, sessionID string) {
-	userID, ok := requireAuth(w, r)
+	userID, ok := requireAuth(h.jwtSecret, w, r)
 	if !ok {
 		return
 	}

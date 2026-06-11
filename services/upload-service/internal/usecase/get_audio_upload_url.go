@@ -19,8 +19,8 @@ var allowedAudioExts = map[string]bool{
 }
 
 type AudioUploadURLResult struct {
-	UploadURL string
-	ObjectKey string
+	UploadURL string `json:"uploadUrl"`
+	ObjectKey string `json:"objectKey"`
 }
 
 type GetAudioUploadURLUseCase struct {

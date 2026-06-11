@@ -21,14 +21,16 @@ type streamService interface {
 
 // StreamHandler serves audio files and HLS playlists.
 type StreamHandler struct {
-	svc streamService
-	log zerolog.Logger
+	svc       streamService
+	log       zerolog.Logger
+	jwtSecret string
 }
 
-func NewStreamHandler(svc streamService, log zerolog.Logger) *StreamHandler {
+func NewStreamHandler(svc streamService, log zerolog.Logger, jwtSecret string) *StreamHandler {
 	return &StreamHandler{
-		svc: svc,
-		log: log.With().Str("handler", "stream").Logger(),
+		svc:       svc,
+		log:       log.With().Str("handler", "stream").Logger(),
+		jwtSecret: jwtSecret,
 	}
 }
 
@@ -46,7 +48,7 @@ func (h *StreamHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *StreamHandler) handleStream(w http.ResponseWriter, r *http.Request, trackID string) {
-	if _, ok := requireAuth(w, r); !ok {
+	if _, ok := requireAuth(h.jwtSecret, w, r); !ok {
 		return
 	}
 
@@ -90,7 +92,7 @@ func (h *StreamHandler) handleStream(w http.ResponseWriter, r *http.Request, tra
 }
 
 func (h *StreamHandler) handleHLS(w http.ResponseWriter, r *http.Request, trackID string) {
-	if _, ok := requireAuth(w, r); !ok {
+	if _, ok := requireAuth(h.jwtSecret, w, r); !ok {
 		return
 	}
 

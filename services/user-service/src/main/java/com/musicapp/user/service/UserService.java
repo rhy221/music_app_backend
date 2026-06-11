@@ -3,6 +3,7 @@ package com.musicapp.user.service;
 import com.company.events.EventConstants;
 import com.company.events.EventHeader;
 import com.company.events.user.UserFollowedEvent;
+import com.company.events.user.UserProfileUpdatedEvent;
 import com.company.events.user.UserRoleUpdatedEvent;
 import com.musicapp.common.persistence.BaseEntity;
 import com.musicapp.common.web.PaginatedResponse;
@@ -72,9 +73,21 @@ public class UserService {
     @Transactional
     public UserProfileDto updateCurrentUser(UUID userId, UpdateProfileRequest req) {
         User user = findUserOrThrow(userId);
+        boolean displayNameChanged = req.displayName() != null
+                && !req.displayName().equals(user.getDisplayName());
         if (req.displayName() != null) user.setDisplayName(req.displayName());
         if (req.bio() != null) user.setBio(req.bio());
         userRepository.save(user);
+        if (displayNameChanged) {
+            var event = new UserProfileUpdatedEvent(
+                    EventHeader.create(UserProfileUpdatedEvent.EVENT_TYPE, "user-service"),
+                    new UserProfileUpdatedEvent.Data(userId.toString(), user.getDisplayName())
+            );
+            outboxService.write(UserProfileUpdatedEvent.EVENT_TYPE,
+                    EventConstants.Exchanges.USER,
+                    EventConstants.RoutingKeys.USER_PROFILE_UPDATED,
+                    event);
+        }
         long followers = followRepository.countByIdFollowingId(userId);
         long following = followRepository.countByIdFollowerId(userId);
         return buildProfile(user, followers, following);

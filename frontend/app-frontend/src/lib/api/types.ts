@@ -113,6 +113,7 @@ export interface PlaylistSummaryDto {
   visibility: 'PRIVATE' | 'PUBLIC' | 'UNLISTED';
   trackCount: number;
   totalDurationMs: number;
+  coverUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -199,17 +200,18 @@ export interface TrackDraftDto {
 
 export interface UploadJobDto {
   id: string;
-  draftId: string;
+  draftId: string | null;
   trackTitle: string;
-  status: 'PENDING' | 'TRANSCODING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  status: 'UPLOADING' | 'TRANSCODING' | 'PUBLISHING' | 'PUBLISHED' | 'FAILED' | 'CANCELLED';
+  originalFilename: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface TranscodeTaskDto {
   id: string;
-  bitrate: 128 | 256 | 320;
-  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+  bitrate: number;
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
   errorMessage: string | null;
 }
 

@@ -33,4 +33,7 @@ public class Playlist extends BaseEntity {
 
     @Column(name = "total_duration_ms", nullable = false)
     private long totalDurationMs = 0L;
+
+    @Column(name = "cover_url")
+    private String coverUrl;
 }

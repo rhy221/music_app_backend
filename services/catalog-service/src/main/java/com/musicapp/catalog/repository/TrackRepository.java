@@ -2,7 +2,9 @@ package com.musicapp.catalog.repository;
 
 import com.musicapp.catalog.domain.Track;
 import com.musicapp.catalog.domain.TrackStatus;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -17,14 +19,22 @@ import java.util.UUID;
 public interface TrackRepository extends JpaRepository<Track, UUID>, JpaSpecificationExecutor<Track> {
 
     @EntityGraph("Track.withArtistAndAssets")
+    @Override
+    Page<Track> findAll(Specification<Track> spec, Pageable pageable);
+
+    @EntityGraph("Track.withArtistAndAssets")
     Optional<Track> findWithAssetsById(UUID id);
 
+    @EntityGraph("Track.withArtistAndAssets")
     List<Track> findByStatusOrderByPlayCountDesc(TrackStatus status, Pageable pageable);
 
+    @EntityGraph("Track.withArtistAndAssets")
     List<Track> findByStatusAndGenreOrderByPlayCountDesc(TrackStatus status, String genre, Pageable pageable);
 
+    @EntityGraph("Track.withArtistAndAssets")
     List<Track> findByArtistIdAndStatusOrderByPlayCountDesc(UUID artistId, TrackStatus status, Pageable pageable);
 
+    @EntityGraph("Track.withArtistAndAssets")
     List<Track> findByStatusOrderByCreatedAtDesc(TrackStatus status, Pageable pageable);
 
     @Query("SELECT t FROM Track t WHERE t.id IN :ids AND t.status = 'PUBLISHED'")

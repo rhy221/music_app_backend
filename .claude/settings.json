@@ -1,9 +1,25 @@
 {
+  "skipDangerousModePermissionPrompt": true,
   "permissions": {
+    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash(cd \"/c/Projects/music_app_backend/frontend/app-frontend\" && cat node_modules/shadcn/tailwind.css 2>/dev/null | head -30 || echo \"NOT FOUND\")",
       "Read(//c/c/Projects/music_app_backend/frontend/app-frontend/node_modules/shadcn/**)",
-      "Bash(pnpm --filter app-frontend add @radix-ui/react-slot)"
+      "Bash(pnpm --filter app-frontend add @radix-ui/react-slot)",
+      "Bash(dir \"c:\\\\Projects\\\\music_app_backend\")",
+      "Bash(dir \"c:\\\\Projects\\\\music_app_backend\\\\frontend\")",
+      "Bash(dir \"c:\\\\Projects\\\\music_app_backend\\\\frontend\\\\app-frontend\")",
+      "Bash(dir \"c:\\\\Projects\\\\music_app_backend\\\\services\\\\notification-service\")",
+      "Bash(dir \"c:\\\\Projects\\\\music_app_backend\\\\services\\\\gateway\")",
+      "PowerShell(docker compose -f \"c:\\\\Projects\\\\music_app_backend\\\\infra\\\\docker-compose.yml\" up -d --force-recreate gateway)",
+      "PowerShell(docker compose -f \"c:\\\\Projects\\\\music_app_backend\\\\infra\\\\docker-compose.yml\" up -d --build --force-recreate gateway)",
+      "PowerShell(docker inspect music-neo4j --format \"{{json .State.Health}}\" | ConvertFrom-Json | Select-Object -ExpandProperty Log | Select-Object -Last 3 | ForEach-Object { $_.Output })",
+      "PowerShell(docker exec music-neo4j wget -qO /dev/null http://localhost:7474 2>&1; Write-Host \"wget exit: $LASTEXITCODE\")",
+      "PowerShell(docker exec music-neo4j curl -sf http://localhost:7474 2>&1; Write-Host \"curl exit: $LASTEXITCODE\")",
+      "PowerShell(docker exec music-neo4j cypher-shell -u neo4j -p music_pass \"RETURN 1\" 2>&1; Write-Host \"cypher exit: $LASTEXITCODE\")",
+      "Bash(pnpm --filter app-frontend add zod)",
+      "Bash(Read \"C:\\\\Users\\\\PC\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Projects-music-app-backend\\\\5c9e78fb-551a-4353-b705-0547060f6b83\\\\tasks\\\\btx3g94c9.output\")",
+      "Bash(pnpm --filter app-frontend exec next build)"
     ]
   },
   "enabledPlugins": {

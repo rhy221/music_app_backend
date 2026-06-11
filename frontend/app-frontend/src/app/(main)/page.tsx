@@ -1,16 +1,21 @@
 'use client';
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getPopularTracks, getNewReleases } from '@/lib/api/tracks';
 import { getRecommendations, getDiscoverWeekly } from '@/lib/api/recommendations';
+import { storageUrl } from '@/lib/constants';
 import { TrackCard } from '@/components/tracks/track-card';
+import { AddToPlaylistDialog } from '@/components/playlists/add-to-playlist-dialog';
 import { SectionHeader } from '@/components/common/section-header';
 import { CardGridSkeleton } from '@/components/common/loading-skeleton';
 import { useAuthStore } from '@/stores/auth-store';
+import type { TrackSummaryDto } from '@/lib/api/types';
 
 export default function HomePage() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
+  const [addTarget, setAddTarget] = useState<TrackSummaryDto | null>(null);
 
   const { data: popular, isLoading: loadingPopular } = useQuery({
     queryKey: ['tracks', 'popular'],
@@ -24,7 +29,7 @@ export default function HomePage() {
 
   const { data: recommendations } = useQuery({
     queryKey: ['recommendations'],
-    queryFn: getRecommendations,
+    queryFn: () => getRecommendations(),
     enabled: isAuthenticated,
   });
 
@@ -49,12 +54,14 @@ export default function HomePage() {
         <SectionHeader title="Popular this week" href="/browse/tracks?sort=popular" />
         {loadingPopular ? (
           <CardGridSkeleton />
-        ) : (
+        ) : popular && popular.length > 0 ? (
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-            {popular?.map((track, i) => (
-              <TrackCard key={track.id} track={track} queue={popular} queueIndex={i} />
+            {popular.map((track, i) => (
+              <TrackCard key={track.id} track={track} queue={popular} queueIndex={i} onAddToPlaylist={setAddTarget} />
             ))}
           </div>
+        ) : (
+          <p className="text-sm text-muted-foreground py-4">No tracks yet. Be the first to upload!</p>
         )}
       </section>
 
@@ -62,12 +69,14 @@ export default function HomePage() {
         <SectionHeader title="New releases" href="/browse/tracks?sort=newest" />
         {loadingNew ? (
           <CardGridSkeleton />
-        ) : (
+        ) : newReleases && newReleases.length > 0 ? (
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-            {newReleases?.map((track, i) => (
-              <TrackCard key={track.id} track={track} queue={newReleases} queueIndex={i} />
+            {newReleases.map((track, i) => (
+              <TrackCard key={track.id} track={track} queue={newReleases} queueIndex={i} onAddToPlaylist={setAddTarget} />
             ))}
           </div>
+        ) : (
+          <p className="text-sm text-muted-foreground py-4">No new releases yet.</p>
         )}
       </section>
 
@@ -82,7 +91,7 @@ export default function HomePage() {
               >
                 <div className="aspect-square w-full overflow-hidden rounded-md bg-muted">
                   {item.coverUrl && (
-                    <img src={item.coverUrl} alt={item.title} className="h-full w-full object-cover" />
+                    <img src={storageUrl(item.coverUrl) ?? undefined} alt={item.title} className="h-full w-full object-cover" />
                   )}
                 </div>
                 <p className="mt-2 truncate text-sm font-medium">{item.title}</p>
@@ -105,7 +114,7 @@ export default function HomePage() {
               >
                 <div className="aspect-square w-full overflow-hidden rounded-md bg-muted">
                   {item.coverUrl && (
-                    <img src={item.coverUrl} alt={item.title} className="h-full w-full object-cover" />
+                    <img src={storageUrl(item.coverUrl) ?? undefined} alt={item.title} className="h-full w-full object-cover" />
                   )}
                 </div>
                 <p className="mt-2 truncate text-sm font-medium">{item.title}</p>
@@ -114,6 +123,7 @@ export default function HomePage() {
           </div>
         </section>
       )}
+      <AddToPlaylistDialog track={addTarget} onClose={() => setAddTarget(null)} />
     </div>
   );
 }

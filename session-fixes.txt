@@ -32,3 +32,455 @@ SESSION FIXES — 2026-06-08
 KẾT QUẢ: pnpm nx serve user-service khởi động thành công trên port 8081
   - Flyway: 5 migrations applied (users, oauth_accounts, refresh_tokens, follows, outbox_events)
   - Started UserServiceApplication in ~14s
+
+SESSION FIXES — 2026-06-11
+==========================
+
+7. KrakenD JWT validation: "first login works, subsequent calls return 401"
+   - Vấn đề: Login dùng setUser(data.user) trực tiếp → OK. Reload trang gọi getMe() → KrakenD 401
+     → clearUser(). KrakenD CE 2.7 không validate được JWT của JJWT 0.12.
+   - Root cause chuỗi:
+     a. file:// scheme → "unsupported protocol scheme 'file'" (KrakenD CE không hỗ trợ)
+     b. env:// + disable_jwk_security:true → "unsupported protocol scheme ''" (URL thành chuỗi rỗng)
+     c. env:// không có disable_jwk_security → "JWK client is using an insecure connection" → validator bị disable
+     d. env:// với cache:false → KrakenD cố fetch lại env:// như HTTP URL mỗi request → lỗi
+   - Fix: Serve JWKS qua HTTP từ nc loop trong container
+     - entrypoint.sh: tạo JWKS JSON từ JWT_SECRET_KEY, chạy nc loop trên localhost:8088
+     - krakend.json: jwk_url: "http://localhost:8088/" + disable_jwk_security:true + cache:true
+     - Tất cả 58 protected endpoints được cấp auth/validator với config này
+     - Admin endpoints thêm roles_key:"role" + roles:["ADMIN"]
+
+8. KrakenD auth/validator thiếu trên nhiều endpoints
+   - Vấn đề: Chỉ có upload/drafts có auth/validator (với secret_url sai), còn 43 endpoints khác không có
+   - Fix: Script Node.js thêm auth/validator vào tất cả non-public endpoints
+     - Public (không cần auth): auth/*, tracks/popular, tracks/new-releases, search/*, artists/*, albums/*,
+       tracks/* (GET), users/:userId (GET, followers, following), /ws
+     - Propagate claims: sub→X-User-Id, role→X-User-Role cho tất cả backend services
+
+KẾT QUẢ: KrakenD JWT validation hoạt động đúng
+  - GET /api/v1/users/me + token → 200
+  - GET /api/v1/users/me không token → 401
+  - GET /api/v1/tracks/popular → 200 (public)
+  - POST /api/v1/playlists + token USER → 200
+  - GET /api/v1/admin/users + token USER → 403
+
+9. Upload service 401 — propagate_claims không hoạt động với no-op encoding
+   - Vấn đề: POST /api/v1/upload/drafts qua gateway trả 401 "missing authentication headers"
+   - Root cause: KrakenD's propagate_claims (sub→X-User-Id) KHÔNG inject header vào upstream
+     request khi endpoint dùng output_encoding:"no-op" + backend encoding:"no-op".
+     Pass-through mode bypass middleware thêm claim headers.
+     Upload service (Go) chỉ check X-User-Id header, không validate JWT trực tiếp → 401.
+   - Fix: Thêm dual-mode auth vào upload service middleware (giống JwtAuthFilter Java):
+     a. libs/go-common/auth/jwt.go đã có ValidateJWT() và ParseUserFromHeaders()
+     b. middleware.go: requireAuth(jwtSecret string) factory function
+        - Mode 1: X-User-Id header có → trust từ gateway, next()
+        - Mode 2: Authorization: Bearer → validate JWT, set X-User-Id/X-User-Role, next()
+        - Else: 401
+     c. DraftHandler + JobsHandler: thêm field jwtSecret, update constructor
+     d. main.go: truyền cfg.JWTSecret vào NewDraftHandler và NewJobsHandler
+
+KẾT QUẢ: POST /upload/drafts qua gateway → 413 (auth passed, business logic reached)
+
+10. Upload service: draftId = "undefined" — Go struct thiếu json tags
+   - Vấn đề: POST /api/v1/upload/drafts/undefined/tracks — draftId là chuỗi JS "undefined"
+     → sau khi createDraft thành công, data.id là undefined → setDraftId(undefined)
+     → URL template literal tạo ra "/upload/drafts/undefined/tracks"
+   - Root cause: domain.UploadDraft và domain.DraftTrack không có json struct tags.
+     Go encoding/json serialize fields theo tên gốc: "ID", "ThumbnailURL", "Tracks", "StorageURL"...
+     Frontend DraftDto expect: "id", "thumbnailUrl", "tracks", "audioConfirmed" → hoàn toàn không match.
+     Ngoài ra "audioConfirmed" không có field trong Go (derived từ StorageURL != nil).
+   - Fix: Thêm response DTOs vào internal/adapter/http/draft_handler.go:
+     a. draftResponse: json tags camelCase ("id", "uploaderId", "releaseType", "thumbnailUrl", ...)
+     b. trackResponse: json tags + audioConfirmed bool (= StorageURL != nil)
+     c. toDraftResponse(*domain.UploadDraft) → draftResponse
+     d. toTrackResponse(domain.DraftTrack) → trackResponse
+     e. Thay thế tất cả jsonResponse(w, status, draft/track) bằng toDraftResponse/toTrackResponse
+
+KẾT QUẢ: createDraft trả về {"id":"<uuid>",...} → draftId được set đúng → addTrack đến đúng URL
+
+11. Gateway 401 — AI khác revert lại file:// scheme
+   - Vấn đề: Toàn bộ protected endpoints trả 401 sau khi AI khác "fix" gateway
+   - Root cause: AI kia đổi lại jwk_url từ "http://localhost:8088/" về "file:///etc/krakend/jwk.json"
+     và thêm COPY jwk.json vào Dockerfile. KrakenD CE 2.7 không hỗ trợ file:// cho jwk_url
+     → JWT validation bị disable hoàn toàn → mọi request đều 401.
+   - Fix: sed replace toàn bộ 58 occurrences trong krakend.json:
+     "file:///etc/krakend/jwk.json" → "http://localhost:8088/"
+     (cache, propagate_claims vẫn còn nguyên, chỉ jwk_url bị sai)
+   - Lưu ý: Đây là lỗi tái phát. KHÔNG ĐƯỢC dùng file://, env://, hoặc secret_url cho jwk_url
+     trong KrakenD CE 2.7. Chỉ dùng http://localhost:8088/ (nc server trong entrypoint.sh).
+
+KẾT QUẢ: Rebuild gateway image + restart → JWT validation hoạt động lại bình thường
+
+12. Recommend service 500 — propagate_claims không inject X-User-Id header
+   - Vấn đề: GET /api/v1/recommendations và /api/v1/recommendations/discover-weekly trả 500
+     KrakenD log: "invalid status code" từ backend (backend trả 422 Unprocessable Entity)
+   - Root cause: KrakenD CE 2.7 propagate_claims (sub→X-User-Id) KHÔNG inject header vào backend
+     request, dù dùng encoding "json" hay "no-op". Đây là giới hạn cơ bản của CE, không phải bug.
+     Recommend service (Python/FastAPI) require_user_id() chỉ check X-User-Id header → không thấy
+     → FastAPI trả 422 (missing required header) → KrakenD nhận 422, log "invalid status code" → 500.
+   - Fix: Thêm dual-mode auth vào services/recommend-service/recommend_service/dependencies.py:
+     a. require_user_id(): nhận cả x_user_id (Header) và authorization (Header)
+        - Mode 1: X-User-Id header có → return ngay (trusted from gateway)
+        - Mode 2: Authorization: Bearer <token> → decode JWT thủ công bằng HMAC-SHA256
+          hàm _decode_sub(token, secret): split 3 parts, verify sig, check exp, return sub
+        - Else: raise HTTPException 401
+     b. config.py: thêm jwt_secret: str = "change-me-in-production-min-32-chars"
+     c. app.py (lifespan): thêm app.state.jwt_secret = cfg.jwt_secret
+   - Lưu ý: Pattern này áp dụng cho TẤT CẢ services phía sau gateway với CE.
+     Không thể dùng propagate_claims để inject headers — service phải tự decode JWT.
+
+KẾT QUẢ: /api/v1/recommendations → 200; /api/v1/recommendations/discover-weekly → 200
+
+13. Catalog service 500 — Redis cache deserialization "Unexpected token (END_ARRAY)"
+   - Vấn đề: GET /api/v1/tracks/popular trả 500
+     SerializationException: "Unexpected token (END_ARRAY), expected VALUE_STRING: need String...
+     type id (for subtype of java.lang.Object) at [line: 1, column: 2]"
+   - Root cause:
+     a. Stale Redis entry chứa dữ liệu ở định dạng cũ (ví dụ: `[]` plain array không có type wrapper)
+     b. GenericJackson2JsonRedisSerializer dùng AsArrayTypeDeserializer, expect format
+        ["java.util.ArrayList",[...]] → gặp [] rỗng ở column 2 (dấu `]`) → fail
+     c. GenericJackson2JsonRedisSerializer đã bị deprecated từ Spring Data Redis 4.0
+     d. com.fasterxml.jackson.datatype.jsr310.JavaTimeModule (Jackson 2.x) không có trong
+        compile classpath — chỉ có tools.jackson.core:jackson-databind:3.1.2 (Jackson 3.x)
+        có hỗ trợ LocalDate natively trong core jar
+   - Fix: Sửa CatalogService/config/CacheConfig.java:
+     a. Thay GenericJackson2JsonRedisSerializer → GenericJacksonJsonRedisSerializer (Jackson 3.x)
+        Constructor: GenericJacksonJsonRedisSerializer(tools.jackson.databind.ObjectMapper)
+     b. Tạo ObjectMapper dùng tools.jackson:
+        JsonMapper.builder()
+          .activateDefaultTyping(validator, DefaultTyping.NON_FINAL_AND_RECORDS, WRAPPER_ARRAY)
+          .build()
+        - NON_FINAL_AND_RECORDS: type ArrayList (non-final) + TrackSummaryDto (record)
+        - LocalDate trong field TrackSummaryDto không cần type riêng (Jackson 3.x biết declared type)
+        - WRAPPER_ARRAY: serialize as ["type", value] — an toàn cho empty list []
+     c. Thêm .prefixCacheNameWith("c1:") → Redis keys mới: "c1:tracks:popular::..."
+        → tránh đọc stale entries dưới key cũ, không cần flush Redis thủ công
+   - Lưu ý: GenericJacksonJsonRedisSerializer (không có "2") là bản Jackson 3.x của SDR 4.0.
+     DefaultTyping.EVERYTHING không còn tồn tại trong Jackson 3.x. Dùng NON_FINAL_AND_RECORDS
+     để cover cả Java records (final class) cùng với non-final collections.
+
+KẾT QUẢ: /api/v1/tracks/popular → 200; cache entries mới dưới prefix "c1:" không conflict
+
+14. Catalog service — "No Artist record found for uploader" khi user upload nhạc
+   - Vấn đề: POST transcode-completed event → TrackService.publishTrack() throw
+     IllegalArgumentException: "No Artist record found for uploader: <userId>"
+     vì catalog-service chỉ tạo Artist khi user được promote lên ARTIST role,
+     nhưng business rule là ANY user có thể upload nhạc.
+   - Root cause: TranscodeCompletedEvent (Java + Go) không có uploaderName.
+     JWT chỉ có sub + role, không có displayName. KrakenD CE không propagate name claim.
+     → Không có nguồn nào cung cấp displayName tại thời điểm transcode xong.
+   - Fix:
+     a. Tạo UserRegisteredEventConsumer: lắng nghe UserRegisteredEvent (có displayName)
+        → gọi ArtistService.createArtistForUser() cho MỌI user khi đăng ký
+        → Artist record tồn tại trước khi user upload lần đầu
+     b. Thêm queue catalog.user.registered vào CatalogRabbitConfig + application.yml
+     c. TrackService.publishTrack(): đổi orElseThrow → orElseGet với fallback
+        auto-create Artist tên "User-<8chars userId>" cho users cũ (trước khi deploy fix)
+     d. ArtistService.createArtistForUser() đã idempotent (existsByUserId check)
+        → safe khi cả UserRegisteredEvent lẫn UserRoleUpdatedEvent cùng fire
+   - Lưu ý: UserRegisteredEvent.Data(userId, displayName, email) — đây là nguồn duy nhất
+     có displayName tại thời điểm user tạo tài khoản. Không thêm uploaderName vào
+     TranscodeCompletedEvent vì pipeline quá dài (Go struct → Go events → Java events →
+     upload-service middleware → KrakenD propagate_claims → JWT claim).
+
+KẾT QUẢ: TranscodeCompletedEvent xử lý thành công — Artist record luôn tồn tại khi publishTrack() chạy
+
+15. Catalog service — Artist name không đồng bộ khi user đổi displayName
+   - Vấn đề: UserService.updateCurrentUser() chỉ lưu DB, không publish event.
+     Catalog-service không biết về thay đổi → artists.name giữ tên cũ mãi mãi.
+   - Fix:
+     a. Tạo UserProfileUpdatedEvent mới trong libs/events/java:
+        Data(userId, displayName) — chỉ carry field cần thiết
+     b. Thêm RoutingKeys.USER_PROFILE_UPDATED = "events.user.profile.updated" vào EventConstants
+     c. UserService.updateCurrentUser(): so sánh req.displayName() với giá trị hiện tại,
+        chỉ publish event khi thực sự thay đổi (tránh noise)
+     d. Catalog-service: thêm queue catalog.user.profile.updated + binding trong CatalogRabbitConfig
+     e. Tạo UserProfileUpdatedEventConsumer: findByUserId → setName → save
+        Nếu user chưa có Artist record (chưa upload lần nào) thì skip (log debug, không throw)
+   - Lưu ý: Consumer dùng ifPresentOrElse — không tạo mới Artist ở đây vì
+     UserRegisteredEventConsumer đã lo việc đó. Hai consumer độc lập, không overlap.
+
+KẾT QUẢ: PATCH /api/v1/users/me {displayName} → artists.name tự động cập nhật qua RabbitMQ
+
+16. Upload jobs page — RefreshCw icon vẫn quay sau khi track đã published
+   - Vấn đề: Catalog log "Track published from upload job=..." thành công nhưng
+     frontend jobs page vẫn hiển thị job ở trạng thái cũ (Loader2 spin / nút Retry).
+   - Root cause: TrackPublishedEvent.Data (Java) thiếu field uploadJobId.
+     Upload-service CatalogConsumer nhận event, check evt.Data.UploadJobID == nil → skip
+     → jobRepo.SetPublished() không được gọi → job status mãi là TRANSCODING/PUBLISHING
+     → frontend poll mỗi 5s thấy status không đổi → icon quay mãi.
+     Go TrackPublishedData đã có UploadJobID *string (omitempty) — chỉ Java thiếu.
+   - Fix:
+     a. TrackPublishedEvent.Data (Java): thêm uploadJobId String
+     b. TrackService.publishTrack(): pass req.uploadJobId() vào TrackPublishedEvent.Data
+   - Lưu ý: PublishTrackRequest đã có uploadJobId từ trước, chỉ bị bỏ quên khi build event.
+
+KẾT QUẢ: Upload-service nhận TrackPublishedEvent với uploadJobId → SetPublished() → job PUBLISHED → icon dừng quay
+
+17. Catalog service — LazyInitializationException cho Artist proxy
+   - Vấn đề: GET /api/v1/tracks/popular và /new-releases trả 500
+     LazyInitializationException: "could not initialize proxy [...Artist...] — no Session"
+   - Root cause: 4 derived query methods trong TrackRepository load Track mà không JOIN FETCH
+     cho artist, album, assets. Hibernate load Track với lazy proxy → khi mapper gọi
+     track.getArtist().getName() ngoài transaction → exception.
+   - Fix: Thêm @EntityGraph("Track.withArtistAndAssets") vào 4 methods:
+     a. findByStatusOrderByPlayCountDesc
+     b. findByStatusAndGenreOrderByPlayCountDesc
+     c. findByArtistIdAndStatusOrderByPlayCountDesc
+     d. findByStatusOrderByCreatedAtDesc
+   - Lưu ý: Track entity đã có @NamedEntityGraph("Track.withArtistAndAssets") với
+     attributeNodes artist, album, assets. findWithAssetsById đã dùng @EntityGraph từ trước.
+     Chỉ 4 derived query methods cho popular/new-releases bị thiếu.
+
+KẾT QUẢ: GET /api/v1/tracks/popular → không còn LazyInitializationException
+
+18. Catalog service — Redis SerializationException sau khi fix LazyInit
+   - Vấn đề: GET /api/v1/tracks/popular vẫn trả 500 (sau fix #17)
+     SerializationException: "Unexpected token (START_ARRAY), expected VALUE_STRING:
+     need String...type id (for subtype of java.lang.Object) at byte offset: #1"
+   - Root cause: Jackson 3.x với NON_FINAL_AND_RECORDS + WRAPPER_ARRAY KHÔNG thêm outer
+     type wrapper cho ArrayList ở root level. Serialize ra [[TypedItem1],[TypedItem2],...]
+     thay vì ["java.util.ArrayList",[...]]. Khi deserialize, AsArrayTypeDeserializer thấy
+     byte 0 = '[' (wrapper start), byte 1 = '[' (inner array thay vì type string) → exception.
+     Đây là behavior khác so với Jackson 2.x.
+   - Fix: Thay GenericJacksonJsonRedisSerializer bằng strongly-typed RedisSerializer:
+     a. ObjectMapper om = JsonMapper.builder().build() — không cần default typing
+     b. TypeReference<List<TrackSummaryDto>> trackListType — biết chính xác kiểu
+     c. Custom RedisSerializer<List<TrackSummaryDto>>:
+        serialize: om.writeValueAsBytes(value) → plain JSON array
+        deserialize: om.readValue(bytes, trackListType) → type-safe
+     d. Bump prefix c1: → c2: để tránh đọc stale entries
+   - Lưu ý: Không cần type info trong JSON khi dùng TypeReference — serializer tự biết
+     kiểu cần deserialize. WRAPPER_ARRAY fix (fix #13) là hướng sai với Jackson 3.x
+     vì ArrayList (non-final) không được wrap ở root level.
+
+KẾT QUẢ: GET /api/v1/tracks/popular → 200; cache entries mới dưới prefix "c2:"
+
+19. Streaming service 401 — requireAuth chỉ check X-User-Id header
+   - Vấn đề: Các endpoints streaming (stream, play-sessions, history) trả 401
+   - Root cause: requireAuth() trong streaming-service chỉ gọi auth.ParseUserFromHeaders()
+     tức chỉ check X-User-Id header. KrakenD CE 2.7 không inject header này qua
+     propagate_claims khi endpoint dùng no-op encoding → header không có → 401.
+     Cùng root cause với fix #9 (upload-service) và fix #12 (recommend-service).
+   - Fix: Dual-mode auth — cùng pattern với upload-service:
+     a. middleware.go: đổi requireAuth(w, r) → requireAuth(jwtSecret string, w, r)
+        - Mode 1: X-User-Id header có → trust gateway, return ngay
+        - Mode 2: Authorization: Bearer → ValidateJWT(), set X-User-Id/X-User-Role, return
+        - Else: 401
+     b. StreamHandler, SessionHandler, HistoryHandler: thêm jwtSecret string field
+     c. NewStreamHandler, NewSessionHandler, NewHistoryHandler: thêm jwtSecret param
+     d. main.go: pass cfg.JWTSecret vào cả 3 handler constructors
+   - Lưu ý: Pattern này là chuẩn cho TẤT CẢ Go services phía sau KrakenD CE.
+     Xem fix #9 (upload-service) để tham khảo implementation đầy đủ.
+
+KẾT QUẢ: Streaming endpoints nhận JWT trực tiếp hoặc qua gateway đều pass auth
+
+20. Streaming service — pathSegment index sai cho heartbeat/end
+   - Vấn đề: POST /api/v1/play-sessions/{sessionId}/heartbeat trả 500
+     "scan session: ERROR: invalid input syntax for type uuid: \"heartbeat\""
+   - Root cause: session.go dùng pathSegment(r, 4) để lấy sessionId.
+     Path /api/v1/play-sessions/{id}/heartbeat: index 0=api, 1=v1, 2=play-sessions,
+     3={sessionId}, 4=heartbeat → index 4 trả "heartbeat" thay vì UUID.
+   - Fix: Đổi pathSegment(r, 4) → pathSegment(r, 3) cho cả heartbeat và endSession.
+
+KẾT QUẢ: POST /play-sessions/{id}/heartbeat → 200; sessionId đúng UUID
+
+21. Streaming service — MinIO bucket sai khi stream audio
+   - Vấn đề: GET /api/v1/stream/{trackId} trả 500
+     "minio stat streams/.../128k.mp3: The specified bucket does not exist"
+   - Root cause: AudioStore.GetObject dùng parseStorageURL() split theo "/" đầu tiên
+     để tách bucket/key. Upload-service StoreTranscoded lưu vào bucket "audio" với key
+     "streams/{jobId}/{bitrate}k.mp3" và chỉ trả về key (không có bucket prefix).
+     → parseStorageURL("streams/...") → bucket="streams" (không tồn tại), key="..."
+   - Fix: Bỏ parseStorageURL, AudioStore nhận bucket string ở constructor.
+     NewAudioStore(client, "audio") — dùng storageURL trực tiếp làm object key.
+     main.go: pass "audio" vào NewAudioStore. Health check đổi "audio-transcoded" → "audio".
+
+KẢT QUẢ: Bucket đúng → error đổi sang "key does not exist" (data cũ không có file)
+
+22. Go services — Application Control chặn go run . (AppData temp path)
+   - Vấn đề: pnpm nx run streaming-service:serve lỗi
+     "An Application Control policy has blocked this file"
+     Binary compiled bởi go run . nằm trong AppData\Local\go-build\ — bị Windows block.
+   - Fix: Đổi serve target trong project.json dùng commands array (sequential):
+     1. go build -o dist/streaming-service.exe .  (build vào local dist/)
+     2. dist\streaming-service.exe                (chạy từ project dir, không bị block)
+     Áp dụng cho cả streaming-service và upload-service project.json.
+
+KẾT QUẢ: pnpm nx run streaming-service:serve khởi động thành công
+
+23. Upload jobs page — job mãi PUBLISHING dù track đã published trong catalog
+   - Vấn đề: Upload job stuck ở PUBLISHING, job trong catalog_db đã PUBLISHED.
+     Queue upload-service.catalog.events: 0 messages, 1 consumer → event đã consumed
+     nhưng SetPublished() không được gọi.
+   - Root cause: OutboxProcessor.processOutbox() gọi
+     rabbitTemplate.convertAndSend(exchange, routingKey, payload) với payload là String.
+     JacksonJsonMessageConverter.toMessage(String) gọi objectMapper.writeValueAsBytes(string)
+     → serialize String thành JSON string value: "{ \"header\":...}" (double-encoded, có outer quotes).
+     Go consumer json.Unmarshal(body, &evt) thấy JSON string thay vì JSON object
+     → fail với MismatchedInput → consumer log warn + return nil → message ACKed, discarded.
+     Java-Java hoạt động nhờ Spring AMQP SmartMessageConverter double-conversion magic.
+     Java-Go không có magic này → silent discard.
+   - Fix: Đổi OutboxProcessor (catalog-service + user-service) dùng rabbitTemplate.send()
+     với raw bytes thay vì convertAndSend:
+       MessageProperties props = new MessageProperties();
+       props.setContentType(MessageProperties.CONTENT_TYPE_JSON);
+       Message msg = new Message(payload.getBytes(UTF_8), props);
+       rabbitTemplate.send(exchange, routingKey, msg);
+     Bypasses converter hoàn toàn → body là clean JSON bytes.
+     Java @RabbitListener: JacksonJsonMessageConverter dùng method parameter type để
+     deserialize → không cần __TypeId__ header → vẫn hoạt động.
+     Go consumer: json.Unmarshal(body, &evt) → hoạt động trực tiếp.
+   - Data fix: Job 2c263b18 manually UPDATE status=PUBLISHED, track_id=5685784b.
+   - Lưu ý: convertAndSend(String) là silent pitfall của Spring AMQP + JacksonJsonMessageConverter.
+     LUÔN dùng rabbitTemplate.send() với raw bytes trong outbox pattern để tương thích đa ngôn ngữ.
+
+KẾT QUẢ: TrackPublishedEvent được Go consumer deserialize đúng → SetPublished() chạy → job PUBLISHED
+
+24. Streaming service — HLS playlist sai format (master playlist thay vì media playlist)
+   - Vấn đề: Frontend bấm Play → nhạc không phát được, HLS.js báo lỗi fatal
+   - Root cause: GetHLSPlaylist() trả về HLS master playlist với #EXT-X-STREAM-INF entries,
+     các entry này trỏ tới URLs trả raw MP3 data (không phải m3u8 media playlist).
+     HLS.js nhận master playlist → chọn variant → fetch variant URL → nhận MP3 binary
+     → parse as m3u8 → fail → fatal error.
+     Fallback audio.src = getStreamUrl() với ?token=... query param, nhưng KrakenD
+     chỉ check Authorization header, không check query param → 401.
+   - Fix: Đổi GetHLSPlaylist() trả về HLS VOD media playlist (single segment):
+       #EXTM3U
+       #EXT-X-VERSION:3
+       #EXT-X-TARGETDURATION:{durationSec}
+       #EXT-X-PLAYLIST-TYPE:VOD
+       #EXT-X-MEDIA-SEQUENCE:0
+       #EXTINF:{durationSec.3f},
+       /api/v1/stream/{trackId}?bitrate={bitrate}
+       #EXT-X-ENDLIST
+     HLS.js fetch segment URL qua XHR với xhrSetup → Authorization header được set → auth pass.
+     HLS.js hỗ trợ MP3 audio-only segments.
+   - Lưu ý: Master playlist (#EXT-X-STREAM-INF) chỉ dùng khi các entries là media playlists
+     (.m3u8), không phải direct audio files. Để adaptive bitrate thực sự cần transcoding sang
+     HLS segments (.ts files) — không thực tế với MP3 pipeline hiện tại.
+
+KẾT QUẢ: HLS.js parse media playlist → fetch MP3 segment với auth → nhạc phát được
+
+25. Frontend player — pause không dừng nhạc / play() gọi trước khi HLS load xong
+   - Vấn đề 1: Bấm Pause ở PlayerBar → nhạc không dừng
+   - Vấn đề 2: audio.play() called trước khi HLS có data → Promise reject → store.setPlaying(false)
+     → player hiển thị paused dù HLS đang load
+   - Root cause:
+     usePlayer() được gọi ở 5+ components (PlayerBar, TrackRow, TrackCard, TrackPage, ...).
+     Mỗi call tạo audioRef và hlsRef riêng (React ref local). TrackPage load track vào audio
+     element của TrackPage. PlayerBar.togglePlay() gọi getAudio() → tạo Audio mới rỗng ở
+     PlayerBar's ref → pause() trên audio rỗng → audio đang phát không bị ảnh hưởng.
+     Ngoài ra audio.play() gọi ngay sau hls.attachMedia() (trước MANIFEST_PARSED) → fail
+     → catch → store.setPlaying(false) sau store.setPlaying(true) (async microtask) → paused.
+   - Fix (use-player.ts):
+     a. Singletons module-level: _audio, _hls, _heartbeat thay vì React refs
+        → tất cả usePlayer() calls dùng chung 1 Audio element + HLS instance
+     b. Dedup guard _activeTrackId: useEffect chỉ gọi loadTrack lần đầu tiên
+        (component mount nào chạy effect trước thì gọi, các component khác skip)
+     c. HLS path: bỏ audio.play() immediate, thêm hls.once(MANIFEST_PARSED, () => audio.play())
+        → play chỉ gọi khi HLS đã ready
+     d. Non-HLS path: audio.src set trước, rồi audio.play() như cũ
+   - Lưu ý: Pattern "hook shared state qua module-level singleton" phù hợp khi:
+     - State là truly global (1 audio player cho toàn app)
+     - Không cần React lifecycle management cho resource đó
+     Thay thế cho Provider pattern (PlayerContext) — ít boilerplate hơn.
+
+KẾT QUẢ: Pause dừng nhạc đúng; Play bắt đầu phát khi HLS manifest đã parse xong
+
+26. Catalog service — coverUrl null, thumbnail không hiển thị
+   - Vấn đề: Tất cả track thumbnails bị broken (null coverUrl)
+   - Root cause chuỗi:
+     a. Java TranscodeCompletedEvent.Data thiếu field thumbnailUrl
+        (Go version có ThumbnailURL *string, Java version không có)
+     b. TranscodeEventConsumer build PublishTrackRequest không có coverUrl
+     c. PublishTrackRequest record không có coverUrl field
+     d. TrackService.publishTrack() không set track.setCoverUrl()
+     → thumbnailUrl được upload-service gửi trong event nhưng catalog-service bỏ qua hoàn toàn
+   - Fix:
+     a. TranscodeCompletedEvent.Data (Java): thêm @JsonProperty("thumbnailUrl") String thumbnailUrl
+     b. PublishTrackRequest: thêm String coverUrl field
+     c. TranscodeEventConsumer: map event.data().thumbnailUrl() → coverUrl trong PublishTrackRequest
+     d. TrackService.publishTrack(): thêm track.setCoverUrl(req.coverUrl())
+   - Lưu ý: thumbnailUrl là relative MinIO key (e.g. "artworks/{draftId}/cover_large.png"),
+     KHÔNG phải full URL. Frontend cần dùng storageUrl() để convert sang full URL.
+
+KẾT QUẢ: track.coverUrl được lưu đúng trong catalog DB
+
+27. Frontend — coverUrl/avatarUrl là relative MinIO key, dùng trực tiếp làm src bị broken
+   - Vấn đề: Tất cả ảnh bìa track, album, avatar artist/user không hiển thị
+   - Root cause:
+     a. Upload/User service lưu relative keys (e.g. "artworks/xxx/cover_large.png")
+        thay vì full URLs vào database
+     b. Frontend dùng coverUrl/avatarUrl trực tiếp làm src cho <Image> và <img>
+        → browser cố load http://localhost:3000/artworks/... → 404
+     c. storageUrl() helper đã có sẵn trong constants.ts nhưng không được dùng
+   - Fix: Áp dụng storageUrl() tại mọi điểm render ảnh:
+     a. CoverImage component (cover-image.tsx): apply storageUrl(src) — fix toàn bộ
+        track-row, track-card, album-card, history page (dùng CoverImage)
+     b. ArtistCard: storageUrl(artist.avatarUrl)
+     c. PlayerBar: storageUrl(currentTrack.coverUrl)
+     d. Pages: track/[trackId], album/[albumId], artist/[artistId], history, page.tsx (home)
+     e. AvatarImage: app-sidebar, profile/page, admin/users, playlists/[id]
+   - Lưu ý: storageUrl() logic:
+     - null/undefined → null (component hiển thị placeholder)
+     - "http://..." → pass through
+     - "artworks/..." → http://MINIO_URL/images/artworks/...
+     - khác → http://MINIO_URL/audio/...
+
+KẾT QUẢ: Track thumbnails và artist/user avatars hiển thị đúng từ MinIO
+
+28. Next.js Image — 400 Bad Request / "resolved to private ip"
+   - Vấn đề 1: GET /_next/image?url=http://localhost:9000/... → 400 Bad Request
+   - Vấn đề 2: "upstream image http://localhost:9000/... resolved to private ip"
+   - Root cause:
+     a. remotePatterns { hostname: 'localhost' } không match localhost:9000 trong một số
+        phiên bản Next.js (port 9000 không được khớp nếu thiếu port field)
+     b. Next.js Image Optimization chặn private/loopback IPs (127.0.0.1, ::1) như một
+        biện pháp bảo vệ SSRF — không thể bypass bằng remotePatterns
+   - Fix:
+     a. Thêm { protocol: 'http', hostname: 'localhost', port: '9000' } vào remotePatterns
+     b. Thêm images.unoptimized: true — bypass Next.js image optimizer hoàn toàn
+        → browser load ảnh trực tiếp từ MinIO, không qua /_next/image proxy
+   - Lưu ý: unoptimized: true phù hợp cho môi trường dev. Production nên dùng CDN
+     hoặc Next.js image optimization với hostname public (không phải localhost).
+
+KẾT QUẢ: Ảnh từ MinIO (localhost:9000) hiển thị bình thường trong browser
+
+29. Catalog service — Specification.and(null) throws IllegalArgumentException (Spring Data JPA 4.0.5)
+   - Vấn đề: GET /api/v1/tracks → 500
+     IllegalArgumentException: "Other specification must not be null"
+     at TrackService.listTracks(TrackService.java:60)
+   - Root cause: Spring Data JPA 4.0.5 (Spring Boot 4) thay đổi behavior của Specification.and():
+     Phiên bản cũ: .and(null) là no-op (bỏ qua null silently)
+     Phiên bản mới: .and(null) throw IllegalArgumentException
+     Code cũ dùng ternary: .and(genre != null ? genreEquals(genre) : null) → null được pass vào
+     khi filter không có giá trị.
+   - Fix: Đổi sang conditional chaining — không pass null vào and():
+       Specification<Track> spec = Specification.where(statusPublished());
+       if (genre    != null) spec = spec.and(genreEquals(genre));
+       if (artistId != null) spec = spec.and(artistIdEquals(artistId));
+       if (albumId  != null) spec = spec.and(albumIdEquals(albumId));
+   - Lưu ý: Pattern này là chuẩn với Spring Data JPA 4.x. Luôn kiểm tra null trước khi
+     chain Specification — không dựa vào null no-op behavior của phiên bản cũ.
+
+KẾT QUẢ: GET /api/v1/tracks trả 200 với đúng filters
+
+30. Catalog service — LazyInitializationException khi listTracks dùng Specification
+   - Vấn đề: GET /api/v1/tracks → 500 LazyInitializationException
+     "Could not initialize proxy [Artist#...] — no session"
+     at TrackMapperImpl.artistToArtistRefDto (mapper gọi artist.getName())
+   - Root cause: TrackRepository.findAll(Specification, Pageable) đến từ JpaSpecificationExecutor
+     interface mặc định — không có @EntityGraph → Hibernate load Track với Artist là lazy proxy.
+     Khi mapper gọi track.getArtist().getName() ngoài Hibernate session → LazyInitializationException.
+     Fix #17 đã thêm @EntityGraph cho 4 derived query methods (popular, new-releases...) nhưng
+     không cover được findAll(Specification, Pageable) vì đó là method từ JpaSpecificationExecutor.
+   - Fix: Override findAll(Specification, Pageable) trong TrackRepository với @EntityGraph:
+       @EntityGraph("Track.withArtistAndAssets")
+       @Override
+       Page<Track> findAll(Specification<Track> spec, Pageable pageable);
+     Spring Data JPA cho phép override interface default methods và áp dụng @EntityGraph lên đó.
+   - Lưu ý: Cần thêm import Page, Specification. Track đã có @NamedEntityGraph("Track.withArtistAndAssets")
+     với attributeNodes artist, album, assets từ trước.
+
+KẾT QUẢ: GET /api/v1/tracks → không còn LazyInitializationException; artist name trả về đúng

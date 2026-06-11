@@ -26,7 +26,7 @@ export function googleAuth(idToken: string) {
 }
 
 export function getMe() {
-  return apiFetch<UserProfileDto>('/users/me');
+  return apiFetch<UserProfileDto>('/users/me', { noRedirect: true });
 }
 
 export function updateMe(body: { displayName?: string; bio?: string }) {

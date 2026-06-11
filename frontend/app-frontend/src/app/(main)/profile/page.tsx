@@ -28,6 +28,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
 import { getMe, updateMe, updateAvatar, changePassword } from '@/lib/api/auth';
+import { storageUrl } from '@/lib/constants';
 import { useAuthStore } from '@/stores/auth-store';
 import { toast } from 'sonner';
 
@@ -105,7 +106,7 @@ export default function ProfilePage() {
         <CardContent className="flex items-center gap-6 p-6">
           <div className="relative">
             <Avatar className="h-24 w-24">
-              <AvatarImage src={profile.avatarUrl ?? undefined} />
+              <AvatarImage src={storageUrl(profile.avatarUrl) ?? undefined} />
               <AvatarFallback className="text-2xl">{profile.displayName[0]}</AvatarFallback>
             </Avatar>
             <button

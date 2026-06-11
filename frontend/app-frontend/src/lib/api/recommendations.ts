@@ -14,11 +14,11 @@ export function getRecommendations(params: {
   const q = new URLSearchParams(
     Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)])
   ).toString();
-  return apiGet<RecommendationsResponse>(`/recommendations${q ? `?${q}` : ''}`);
+  return apiGet<RecommendationsResponse>(`/recommendations${q ? `?${q}` : ''}`, { noRedirect: true });
 }
 
 export function getDiscoverWeekly() {
-  return apiGet<DiscoverWeeklyResponse>('/recommendations/discover-weekly');
+  return apiGet<DiscoverWeeklyResponse>('/recommendations/discover-weekly', { noRedirect: true });
 }
 
 export function getSimilarTracks(trackId: string, limit = 10) {

@@ -21,7 +21,6 @@ version = "1.0.0"
 description = "RabbitMQ event DTOs generated from libs/api-specs/events.asyncapi.yaml"
 authors = []
 license = "Proprietary"
-readme = "README.md"
 
   [[tool.poetry.packages]]
   include = "music_events"

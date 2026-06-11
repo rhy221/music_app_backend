@@ -9,29 +9,28 @@ import (
 )
 
 type JobsHandler struct {
-	listJobs   *usecase.ListJobsUseCase
-	getJob     *usecase.GetJobUseCase
-	retryJob   *usecase.RetryJobUseCase
-	cancelJob  *usecase.CancelJobUseCase
+	jwtSecret string
+	listJobs  *usecase.ListJobsUseCase
+	getJob    *usecase.GetJobUseCase
+	retryJob  *usecase.RetryJobUseCase
+	cancelJob *usecase.CancelJobUseCase
 }
 
 func NewJobsHandler(
+	jwtSecret string,
 	listJobs *usecase.ListJobsUseCase,
 	getJob *usecase.GetJobUseCase,
 	retryJob *usecase.RetryJobUseCase,
 	cancelJob *usecase.CancelJobUseCase,
 ) *JobsHandler {
-	return &JobsHandler{listJobs: listJobs, getJob: getJob, retryJob: retryJob, cancelJob: cancelJob}
+	return &JobsHandler{jwtSecret: jwtSecret, listJobs: listJobs, getJob: getJob, retryJob: retryJob, cancelJob: cancelJob}
 }
 
 // Register mounts job routes on mux under the given prefix (e.g. "/api/v1/upload/jobs").
 func (h *JobsHandler) Register(mux *http.ServeMux, prefix string) {
-	// GET /jobs  (list)
-	mux.HandleFunc(prefix, requireAuth(h.listHandler))
-	// GET /jobs/{id}
-	// POST /jobs/{id}/retry
-	// POST /jobs/{id}/cancel
-	mux.HandleFunc(prefix+"/", requireAuth(h.routeByID))
+	auth := requireAuth(h.jwtSecret)
+	mux.HandleFunc(prefix, auth(h.listHandler))
+	mux.HandleFunc(prefix+"/", auth(h.routeByID))
 }
 
 func (h *JobsHandler) listHandler(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +62,7 @@ func (h *JobsHandler) listHandler(w http.ResponseWriter, r *http.Request) {
 		handleDomainError(w, err)
 		return
 	}
-	jsonResponse(w, http.StatusOK, result)
+	jsonResponse(w, http.StatusOK, toPaginatedJobs(result))
 }
 
 func (h *JobsHandler) routeByID(w http.ResponseWriter, r *http.Request) {
@@ -106,7 +105,7 @@ func (h *JobsHandler) getJobHandler(w http.ResponseWriter, r *http.Request, jobI
 		handleDomainError(w, err)
 		return
 	}
-	jsonResponse(w, http.StatusOK, result)
+	jsonResponse(w, http.StatusOK, toJobDetail(result))
 }
 
 func (h *JobsHandler) retryHandler(w http.ResponseWriter, r *http.Request, jobID string) {
@@ -115,7 +114,7 @@ func (h *JobsHandler) retryHandler(w http.ResponseWriter, r *http.Request, jobID
 		handleDomainError(w, err)
 		return
 	}
-	jsonResponse(w, http.StatusAccepted, job)
+	jsonResponse(w, http.StatusOK, toJobSummary(*job))
 }
 
 func (h *JobsHandler) cancelHandler(w http.ResponseWriter, r *http.Request, jobID string) {
@@ -124,5 +123,5 @@ func (h *JobsHandler) cancelHandler(w http.ResponseWriter, r *http.Request, jobI
 		handleDomainError(w, err)
 		return
 	}
-	jsonResponse(w, http.StatusOK, job)
+	jsonResponse(w, http.StatusOK, toJobSummary(*job))
 }

@@ -1,38 +1,44 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import Hls from 'hls.js';
 import { usePlayerStore } from '@/stores/player-store';
 import { startPlaySession, sendHeartbeat, endPlaySession, getHlsUrl, getStreamUrl } from '@/lib/api/stream';
-import { API_BASE, COOKIE_ACCESS_TOKEN } from '@/lib/constants';
+import { COOKIE_ACCESS_TOKEN } from '@/lib/constants';
 import Cookies from 'js-cookie';
+
+// Singletons shared across every usePlayer() call — ensures all components
+// operate on the same Audio element and HLS instance.
+const _audio = { current: null as HTMLAudioElement | null };
+const _hls = { current: null as Hls | null };
+const _heartbeat = { current: null as ReturnType<typeof setInterval> | null };
+// Dedup guard: prevents multiple mounted components from each calling loadTrack
+// for the same track when currentTrack.id changes.
+let _activeTrackId: string | null = null;
+
+function getAudio(): HTMLAudioElement {
+  if (!_audio.current) {
+    _audio.current = new Audio();
+    _audio.current.volume = usePlayerStore.getState().volume;
+  }
+  return _audio.current;
+}
 
 export function usePlayer() {
   const store = usePlayerStore();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const hlsRef = useRef<Hls | null>(null);
-  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const getAudio = useCallback(() => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-      audioRef.current.volume = store.volume;
-    }
-    return audioRef.current;
-  }, [store.volume]);
 
   const stopHeartbeat = useCallback(() => {
-    if (heartbeatRef.current) {
-      clearInterval(heartbeatRef.current);
-      heartbeatRef.current = null;
+    if (_heartbeat.current) {
+      clearInterval(_heartbeat.current);
+      _heartbeat.current = null;
     }
   }, []);
 
   const startHeartbeat = useCallback(
     (sessionId: string) => {
       stopHeartbeat();
-      heartbeatRef.current = setInterval(() => {
-        const pos = Math.floor((audioRef.current?.currentTime ?? 0) * 1000);
+      _heartbeat.current = setInterval(() => {
+        const pos = Math.floor((_audio.current?.currentTime ?? 0) * 1000);
         sendHeartbeat(sessionId, pos).catch(() => {});
       }, 10_000);
     },
@@ -52,17 +58,17 @@ export function usePlayer() {
         store.setSessionId(null);
       }
 
-      // Destroy previous HLS
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
+      // Destroy previous HLS instance
+      if (_hls.current) {
+        _hls.current.destroy();
+        _hls.current = null;
       }
 
       audio.pause();
       store.setPosition(0);
       store.setDuration(0);
 
-      // Start new session
+      // Start play session
       const session = await startPlaySession({ trackId }).catch(() => null);
       if (session) {
         store.setSessionId(session.id);
@@ -80,22 +86,22 @@ export function usePlayer() {
         });
         hls.loadSource(hlsUrl);
         hls.attachMedia(audio);
+        hls.once(Hls.Events.MANIFEST_PARSED, () => {
+          audio.play().catch(() => {});
+        });
         hls.on(Hls.Events.ERROR, (_, data) => {
           if (data.fatal) {
-            // Fallback to direct stream
             audio.src = getStreamUrl(trackId);
             audio.load();
-            audio.play().catch(() => {});
+            audio.play().catch(() => store.setPlaying(false));
           }
         });
-        hlsRef.current = hls;
-      } else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
-        audio.src = hlsUrl;
+        _hls.current = hls;
       } else {
-        audio.src = getStreamUrl(trackId);
+        audio.src = audio.canPlayType('application/vnd.apple.mpegurl') ? hlsUrl : getStreamUrl(trackId);
+        audio.play().catch(() => store.setPlaying(false));
       }
 
-      audio.play().catch(() => store.setPlaying(false));
       store.setPlaying(true);
 
       audio.ondurationchange = () => {
@@ -114,17 +120,38 @@ export function usePlayer() {
           }).catch(() => {});
           store.setSessionId(null);
         }
+
+        if (usePlayerStore.getState().repeat === 'one') {
+          audio.currentTime = 0;
+          store.setPosition(0);
+          audio.play().catch(() => {});
+          store.setPlaying(true);
+          const trackId =
+            usePlayerStore.getState().queue[usePlayerStore.getState().currentIndex]?.id;
+          if (trackId) {
+            const session = await startPlaySession({ trackId }).catch(() => null);
+            if (session) {
+              store.setSessionId(session.id);
+              startHeartbeat(session.id);
+            }
+          }
+          return;
+        }
+
         store.next();
       };
     },
-    [getAudio, startHeartbeat, stopHeartbeat, store]
+    [startHeartbeat, stopHeartbeat, store]
   );
 
   const currentTrack = store.queue[store.currentIndex];
 
-  // When current track changes, load it
+  // Fires in every component that mounts usePlayer(). The dedup guard ensures
+  // only the first component to react actually calls loadTrack.
   useEffect(() => {
     if (currentTrack && store.isPlaying) {
+      if (_activeTrackId === currentTrack.id) return;
+      _activeTrackId = currentTrack.id;
       loadTrack(currentTrack.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -147,7 +174,7 @@ export function usePlayer() {
       audio.play().catch(() => {});
       store.setPlaying(true);
     }
-  }, [getAudio, store]);
+  }, [store]);
 
   const seek = useCallback(
     (ms: number) => {
@@ -155,7 +182,7 @@ export function usePlayer() {
       audio.currentTime = ms / 1000;
       store.setPosition(ms);
     },
-    [getAudio, store]
+    [store]
   );
 
   const setVolume = useCallback(
@@ -164,7 +191,7 @@ export function usePlayer() {
       audio.volume = v;
       store.setVolume(v);
     },
-    [getAudio, store]
+    [store]
   );
 
   return { play, togglePlay, seek, setVolume, loadTrack };

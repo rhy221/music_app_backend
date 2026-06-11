@@ -1,6 +1,6 @@
 -- play_sessions partitioned by month for efficient time-series queries and DROP PARTITION cleanup
 CREATE TABLE play_sessions (
-    id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    id          UUID        NOT NULL DEFAULT gen_random_uuid(),
     user_id     UUID        NOT NULL,
     track_id    UUID        NOT NULL,
     started_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -11,7 +11,8 @@ CREATE TABLE play_sessions (
     status      VARCHAR(20) NOT NULL DEFAULT 'PLAYING',
     source      VARCHAR(30),
     bitrate     INTEGER,
-    end_reason  VARCHAR(30)
+    end_reason  VARCHAR(30),
+    PRIMARY KEY (id, started_at)
 ) PARTITION BY RANGE (started_at);
 
 -- Monthly partitions for 2026
@@ -42,8 +43,9 @@ CREATE TABLE play_sessions_2027_01 PARTITION OF play_sessions
 -- Catch-all partition for any other dates
 CREATE TABLE play_sessions_default PARTITION OF play_sessions DEFAULT;
 
-CREATE INDEX idx_sessions_user     ON play_sessions (user_id, started_at DESC);
-CREATE INDEX idx_sessions_track    ON play_sessions (track_id);
+CREATE INDEX idx_sessions_id        ON play_sessions (id);
+CREATE INDEX idx_sessions_user      ON play_sessions (user_id, started_at DESC);
+CREATE INDEX idx_sessions_track     ON play_sessions (track_id);
 CREATE INDEX idx_sessions_completed ON play_sessions (user_id, completed, started_at DESC);
 
 -- Local CQRS read model: synced from events.catalog via RabbitMQ consumer

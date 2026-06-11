@@ -17,6 +17,7 @@ public record TranscodeCompletedEvent(
             @JsonProperty("genre")        String genre,
             @JsonProperty("albumId")      String albumId,
             @JsonProperty("durationMs")   Integer durationMs,
+            @JsonProperty("thumbnailUrl") String thumbnailUrl,
             @JsonProperty("waveformUrl")  String waveformUrl,
             @JsonProperty("assets")       List<AudioAsset> assets
     ) {}

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { RefreshCw, XCircle, CheckCircle2, Clock, Loader2 } from 'lucide-react';
+import { RefreshCw, XCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,12 +10,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getUploadJobs, retryJob, cancelJob } from '@/lib/api/upload';
 import { toast } from 'sonner';
 
-const STATUS_CONFIG = {
-  PENDING: { icon: Clock, color: 'secondary' as const, label: 'Pending' },
-  TRANSCODING: { icon: Loader2, color: 'default' as const, label: 'Transcoding' },
-  COMPLETED: { icon: CheckCircle2, color: 'default' as const, label: 'Completed' },
-  FAILED: { icon: XCircle, color: 'destructive' as const, label: 'Failed' },
-  CANCELLED: { icon: XCircle, color: 'secondary' as const, label: 'Cancelled' },
+const STATUS_CONFIG: Record<string, { icon: React.ElementType; color: 'default' | 'secondary' | 'destructive' | 'outline'; label: string }> = {
+  UPLOADING:   { icon: Loader2,       color: 'default',      label: 'Uploading' },
+  TRANSCODING: { icon: Loader2,       color: 'default',      label: 'Transcoding' },
+  PUBLISHING:  { icon: Loader2,       color: 'default',      label: 'Publishing' },
+  PUBLISHED:   { icon: CheckCircle2,  color: 'default',      label: 'Published' },
+  FAILED:      { icon: XCircle,       color: 'destructive',  label: 'Failed' },
+  CANCELLED:   { icon: XCircle,       color: 'secondary',    label: 'Cancelled' },
 };
 
 export default function JobsPage() {
@@ -60,7 +61,7 @@ export default function JobsPage() {
             return (
               <Card key={job.id}>
                 <CardContent className="flex items-center gap-4 p-4">
-                  <Icon className={`h-5 w-5 flex-shrink-0 ${job.status === 'TRANSCODING' ? 'animate-spin text-primary' : job.status === 'COMPLETED' ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <Icon className={`h-5 w-5 flex-shrink-0 ${ ['UPLOADING','TRANSCODING','PUBLISHING'].includes(job.status) ? 'animate-spin text-primary' : job.status === 'PUBLISHED' ? 'text-primary' : 'text-muted-foreground'}`} />
                   <div className="flex-1">
                     <p className="font-medium">{job.trackTitle}</p>
                     <p className="text-xs text-muted-foreground">
@@ -79,7 +80,7 @@ export default function JobsPage() {
                       Retry
                     </Button>
                   )}
-                  {(job.status === 'PENDING' || job.status === 'TRANSCODING') && (
+                  {['UPLOADING', 'TRANSCODING', 'PUBLISHING'].includes(job.status) && (
                     <Button
                       size="sm"
                       variant="ghost"

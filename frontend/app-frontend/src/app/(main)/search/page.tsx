@@ -7,12 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrackRow } from '@/components/tracks/track-row';
 import { ArtistCard } from '@/components/artists/artist-card';
+import { AddToPlaylistDialog } from '@/components/playlists/add-to-playlist-dialog';
 import { useDebounce } from '@/hooks/use-debounce';
 import { search } from '@/lib/api/search';
 import type { TrackSummaryDto } from '@/lib/api/types';
 
 export default function SearchPage() {
   const [query, setQuery] = useState('');
+  const [addTarget, setAddTarget] = useState<TrackSummaryDto | null>(null);
   const debouncedQ = useDebounce(query, 300);
 
   const { data, isLoading, isFetching } = useQuery({
@@ -69,7 +71,7 @@ export default function SearchPage() {
                 <h3 className="mb-2 font-semibold">Tracks</h3>
                 <div className="space-y-1">
                   {tracksAsSummary.slice(0, 5).map((track, i) => (
-                    <TrackRow key={track.id} track={track} index={i} queue={tracksAsSummary} queueIndex={i} />
+                    <TrackRow key={track.id} track={track} index={i} queue={tracksAsSummary} queueIndex={i} onAddToPlaylist={setAddTarget} />
                   ))}
                 </div>
               </div>
@@ -94,7 +96,7 @@ export default function SearchPage() {
 
           <TabsContent value="tracks" className="mt-4 space-y-1">
             {tracksAsSummary.map((track, i) => (
-              <TrackRow key={track.id} track={track} index={i} queue={tracksAsSummary} queueIndex={i} />
+              <TrackRow key={track.id} track={track} index={i} queue={tracksAsSummary} queueIndex={i} onAddToPlaylist={setAddTarget} />
             ))}
           </TabsContent>
 
@@ -107,6 +109,8 @@ export default function SearchPage() {
           </TabsContent>
         </Tabs>
       )}
+
+      <AddToPlaylistDialog track={addTarget} onClose={() => setAddTarget(null)} />
     </div>
   );
 }

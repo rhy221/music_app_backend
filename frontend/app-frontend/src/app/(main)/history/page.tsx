@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { getHistory, getListeningStats } from '@/lib/api/stream';
+import { storageUrl } from '@/lib/constants';
 
 function formatMs(ms: number) {
   const h = Math.floor(ms / 3600000);
@@ -49,7 +50,7 @@ export default function HistoryPage() {
                 <div key={i} className="flex items-center gap-3 rounded-lg p-3 hover:bg-accent">
                   <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded bg-muted">
                     {entry.coverUrl ? (
-                      <Image src={entry.coverUrl} alt={entry.trackTitle} fill className="object-cover" sizes="48px" />
+                      <Image src={storageUrl(entry.coverUrl)!} alt={entry.trackTitle} fill className="object-cover" sizes="48px" />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
                         <Music2 className="h-5 w-5 text-muted-foreground" />

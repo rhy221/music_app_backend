@@ -37,6 +37,7 @@ public class TranscodeEventConsumer {
                     event.data().durationMs(),
                     event.data().genre(),
                     event.data().albumId() != null ? UUID.fromString(event.data().albumId()) : null,
+                    event.data().thumbnailUrl(),
                     event.data().waveformUrl(),
                     assets
             );

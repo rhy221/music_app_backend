@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Plus, Library, Lock, Globe, Link2 } from 'lucide-react';
+import { Plus, Library, Lock, Globe, Link2, Music2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getMyPlaylists, createPlaylist } from '@/lib/api/playlists';
+import { storageUrl } from '@/lib/constants';
 import { toast } from 'sonner';
 
 const schema = z.object({
@@ -165,8 +166,16 @@ export default function PlaylistsPage() {
               <Link key={playlist.id} href={`/playlists/${playlist.id}`}>
                 <Card className="cursor-pointer hover:bg-accent transition-colors">
                   <CardContent className="flex items-center gap-4 p-4">
-                    <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-md bg-primary/20">
-                      <Library className="h-6 w-6 text-primary" />
+                    <div className="relative flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-md bg-primary/20">
+                      {playlist.coverUrl ? (
+                        <img
+                          src={storageUrl(playlist.coverUrl)!}
+                          alt={playlist.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <Music2 className="h-6 w-6 text-primary" />
+                      )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium">{playlist.name}</p>

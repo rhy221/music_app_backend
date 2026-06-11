@@ -7,8 +7,13 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "env $(cat .env | grep -v '^#' | xargs) go run .",
-        "cwd": "{projectRoot}"
+        "commands": [
+          "go build -o dist/streaming-service.exe .",
+          "dist\\streaming-service.exe"
+        ],
+        "parallel": false,
+        "cwd": "{projectRoot}",
+        "envFile": "{projectRoot}/.env"
       }
     },
     "build": {

@@ -14,6 +14,7 @@ public record PublishTrackRequest(
         @NotNull Integer durationMs,
         String genre,
         UUID albumId,
+        String coverUrl,
         String waveformUrl,
         @NotEmpty List<AssetRequest> assets
 ) {

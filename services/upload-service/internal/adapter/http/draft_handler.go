@@ -4,27 +4,86 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	"music-app/upload-service/internal/domain"
 	"music-app/upload-service/internal/usecase"
 )
 
+// ── Response DTOs ─────────────────────────────────────────────────────────────
+// Domain structs have no json tags; these DTOs produce the camelCase shape the
+// frontend expects (e.g. "id", "thumbnailUrl", "audioConfirmed").
+
+type trackResponse struct {
+	ID             string    `json:"id"`
+	DraftID        string    `json:"draftId"`
+	Title          string    `json:"title"`
+	TrackNumber    int       `json:"trackNumber"`
+	AudioConfirmed bool      `json:"audioConfirmed"`
+	CreatedAt      time.Time `json:"createdAt"`
+}
+
+type draftResponse struct {
+	ID           string          `json:"id"`
+	UploaderID   string          `json:"uploaderId"`
+	ReleaseType  string          `json:"releaseType"`
+	Title        string          `json:"title"`
+	Genre        *string         `json:"genre"`
+	ThumbnailURL *string         `json:"thumbnailUrl"`
+	Status       string          `json:"status"`
+	Tracks       []trackResponse `json:"tracks"`
+	CreatedAt    time.Time       `json:"createdAt"`
+	UpdatedAt    time.Time       `json:"updatedAt"`
+}
+
+func toTrackResponse(t domain.DraftTrack) trackResponse {
+	return trackResponse{
+		ID:             t.ID,
+		DraftID:        t.DraftID,
+		Title:          t.Title,
+		TrackNumber:    t.TrackNumber,
+		AudioConfirmed: t.StorageURL != nil,
+		CreatedAt:      t.CreatedAt,
+	}
+}
+
+func toDraftResponse(d *domain.UploadDraft) draftResponse {
+	tracks := make([]trackResponse, len(d.Tracks))
+	for i, t := range d.Tracks {
+		tracks[i] = toTrackResponse(t)
+	}
+	return draftResponse{
+		ID:           d.ID,
+		UploaderID:   d.UploaderID,
+		ReleaseType:  string(d.ReleaseType),
+		Title:        d.Title,
+		Genre:        d.Genre,
+		ThumbnailURL: d.ThumbnailURL,
+		Status:       string(d.Status),
+		Tracks:       tracks,
+		CreatedAt:    d.CreatedAt,
+		UpdatedAt:    d.UpdatedAt,
+	}
+}
+
 const maxThumbnailSize = 10 << 20 // 10 MB
 
 type DraftHandler struct {
-	prefix      string
-	createDraft *usecase.CreateDraftUseCase
-	getDraft    *usecase.GetDraftUseCase
-	addTrack    *usecase.AddTrackUseCase
-	deleteTrack *usecase.DeleteTrackUseCase
-	audioURL    *usecase.GetAudioUploadURLUseCase
+	prefix       string
+	jwtSecret    string
+	createDraft  *usecase.CreateDraftUseCase
+	getDraft     *usecase.GetDraftUseCase
+	addTrack     *usecase.AddTrackUseCase
+	deleteTrack  *usecase.DeleteTrackUseCase
+	audioURL     *usecase.GetAudioUploadURLUseCase
 	confirmAudio *usecase.ConfirmAudioUseCase
-	submitDraft *usecase.SubmitDraftUseCase
-	cancelDraft *usecase.CancelDraftUseCase
+	submitDraft  *usecase.SubmitDraftUseCase
+	cancelDraft  *usecase.CancelDraftUseCase
 }
 
 func NewDraftHandler(
 	prefix string,
+	jwtSecret string,
 	createDraft *usecase.CreateDraftUseCase,
 	getDraft *usecase.GetDraftUseCase,
 	addTrack *usecase.AddTrackUseCase,
@@ -36,6 +95,7 @@ func NewDraftHandler(
 ) *DraftHandler {
 	return &DraftHandler{
 		prefix:       prefix,
+		jwtSecret:    jwtSecret,
 		createDraft:  createDraft,
 		getDraft:     getDraft,
 		addTrack:     addTrack,
@@ -48,8 +108,9 @@ func NewDraftHandler(
 }
 
 func (h *DraftHandler) Register(mux *http.ServeMux) {
-	mux.HandleFunc(h.prefix, requireAuth(h.handleRoot))
-	mux.HandleFunc(h.prefix+"/", requireAuth(h.handleByID))
+	auth := requireAuth(h.jwtSecret)
+	mux.HandleFunc(h.prefix, auth(h.handleRoot))
+	mux.HandleFunc(h.prefix+"/", auth(h.handleByID))
 }
 
 // handleRoot: POST /drafts (create draft)
@@ -179,7 +240,7 @@ func (h *DraftHandler) handleCreate(w http.ResponseWriter, r *http.Request) {
 		handleDomainError(w, err)
 		return
 	}
-	jsonResponse(w, http.StatusCreated, draft)
+	jsonResponse(w, http.StatusCreated, toDraftResponse(draft))
 }
 
 func (h *DraftHandler) handleGet(w http.ResponseWriter, r *http.Request, draftID string) {
@@ -188,7 +249,7 @@ func (h *DraftHandler) handleGet(w http.ResponseWriter, r *http.Request, draftID
 		handleDomainError(w, err)
 		return
 	}
-	jsonResponse(w, http.StatusOK, draft)
+	jsonResponse(w, http.StatusOK, toDraftResponse(draft))
 }
 
 func (h *DraftHandler) handleAddTrack(w http.ResponseWriter, r *http.Request, draftID string) {
@@ -210,7 +271,7 @@ func (h *DraftHandler) handleAddTrack(w http.ResponseWriter, r *http.Request, dr
 		handleDomainError(w, err)
 		return
 	}
-	jsonResponse(w, http.StatusCreated, track)
+	jsonResponse(w, http.StatusCreated, toTrackResponse(*track))
 }
 
 func (h *DraftHandler) handleDeleteTrack(w http.ResponseWriter, r *http.Request, draftID, trackID string) {
@@ -248,7 +309,7 @@ func (h *DraftHandler) handleConfirmAudio(w http.ResponseWriter, r *http.Request
 		handleDomainError(w, err)
 		return
 	}
-	jsonResponse(w, http.StatusOK, draft)
+	jsonResponse(w, http.StatusOK, toDraftResponse(draft))
 }
 
 func (h *DraftHandler) handleSubmit(w http.ResponseWriter, r *http.Request, draftID string) {
@@ -257,7 +318,11 @@ func (h *DraftHandler) handleSubmit(w http.ResponseWriter, r *http.Request, draf
 		handleDomainError(w, err)
 		return
 	}
-	jsonResponse(w, http.StatusAccepted, jobs)
+	summaries := make([]jobSummaryResponse, len(jobs))
+	for i, j := range jobs {
+		summaries[i] = toJobSummary(j)
+	}
+	jsonResponse(w, http.StatusOK, summaries)
 }
 
 func (h *DraftHandler) handleCancel(w http.ResponseWriter, r *http.Request, draftID string) {

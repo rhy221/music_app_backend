@@ -81,7 +81,7 @@ func main() {
 	outboxRepo := repository.NewOutboxRepository(pool)
 
 	// ── Infrastructure adapters ───────────────────────────────────────────────
-	audioStore := inframinio.NewAudioStore(mc)
+	audioStore := inframinio.NewAudioStore(mc, "audio")
 	catalogClient := infracatalog.NewHTTPCatalogClient(catalogURL)
 	eventPublisher := infraevent.NewRabbitMQEventPublisher(pub)
 	playCounter := infraredis.NewPlayCounter(redisClient)
@@ -119,7 +119,7 @@ func main() {
 		return commonredis.Ping(ctx, redisClient)
 	})
 	health.AddCheck("minio", func(ctx context.Context) error {
-		_, err := mc.BucketExists(ctx, "audio-transcoded")
+		_, err := mc.BucketExists(ctx, "audio")
 		return err
 	})
 	mux.HandleFunc("/health", health.Handler())
@@ -128,11 +128,11 @@ func main() {
 		return metrics.MetricsMiddleware(observability.RequestLogger(log)(h))
 	}
 
-	mux.Handle("/api/v1/stream/", chain(handler.NewStreamHandler(streamUC, log)))
-	mux.Handle("/api/v1/play-sessions", chain(handler.NewSessionHandler(sessionUC, log)))
-	mux.Handle("/api/v1/play-sessions/", chain(handler.NewSessionHandler(sessionUC, log)))
-	mux.Handle("/api/v1/history", chain(handler.NewHistoryHandler(historyUC, log)))
-	mux.Handle("/api/v1/history/", chain(handler.NewHistoryHandler(historyUC, log)))
+	mux.Handle("/api/v1/stream/", chain(handler.NewStreamHandler(streamUC, log, cfg.JWTSecret)))
+	mux.Handle("/api/v1/play-sessions", chain(handler.NewSessionHandler(sessionUC, log, cfg.JWTSecret)))
+	mux.Handle("/api/v1/play-sessions/", chain(handler.NewSessionHandler(sessionUC, log, cfg.JWTSecret)))
+	mux.Handle("/api/v1/history", chain(handler.NewHistoryHandler(historyUC, log, cfg.JWTSecret)))
+	mux.Handle("/api/v1/history/", chain(handler.NewHistoryHandler(historyUC, log, cfg.JWTSecret)))
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,

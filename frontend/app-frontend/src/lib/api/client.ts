@@ -1,20 +1,22 @@
 import Cookies from 'js-cookie';
-import { API_BASE, COOKIE_ACCESS_TOKEN, COOKIE_REFRESH_TOKEN } from '@/lib/constants';
+import { API_BASE, COOKIE_ACCESS_TOKEN } from '@/lib/constants';
 
 let isRefreshing = false;
 let refreshPromise: Promise<string | null> | null = null;
 
 async function refreshAccessToken(): Promise<string | null> {
-  const refreshToken = Cookies.get(COOKIE_REFRESH_TOKEN);
-  if (!refreshToken) return null;
   try {
-    const res = await fetch('/api/auth/refresh', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-    });
+    // refresh_token is HttpOnly — the Next.js route reads it server-side, no need to send it in body
+    const res = await fetch('/api/auth/refresh', { method: 'POST' });
     if (!res.ok) return null;
-    return Cookies.get(COOKIE_ACCESS_TOKEN) ?? null;
+    const data = await res.json();
+    if (!data.accessToken) return null;
+    Cookies.set(COOKIE_ACCESS_TOKEN, data.accessToken, {
+      expires: data.expiresIn ? new Date(Date.now() + data.expiresIn * 1000) : new Date(Date.now() + 15 * 60 * 1000),
+      path: '/',
+      sameSite: 'lax',
+    });
+    return data.accessToken;
   } catch {
     return null;
   }
@@ -22,9 +24,9 @@ async function refreshAccessToken(): Promise<string | null> {
 
 export async function apiFetch<T = unknown>(
   path: string,
-  options: RequestInit & { skipAuth?: boolean } = {}
+  options: RequestInit & { skipAuth?: boolean; noRedirect?: boolean } = {}
 ): Promise<T> {
-  const { skipAuth, ...fetchOptions } = options;
+  const { skipAuth, noRedirect, ...fetchOptions } = options;
   const token = skipAuth ? null : Cookies.get(COOKIE_ACCESS_TOKEN);
 
   const headers: Record<string, string> = {
@@ -53,8 +55,13 @@ export async function apiFetch<T = unknown>(
       headers['Authorization'] = `Bearer ${newToken}`;
       res = await fetch(`${API_BASE}${path}`, { ...fetchOptions, headers });
     } else {
-      if (typeof window !== 'undefined') window.location.href = '/login';
-      throw new Error('Unauthorized');
+      if (typeof window !== 'undefined') {
+        Cookies.remove(COOKIE_ACCESS_TOKEN, { path: '/' });
+      }
+      if (!noRedirect && typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
+      throw Object.assign(new Error('Unauthorized'), { status: 401 });
     }
   }
 
@@ -67,7 +74,7 @@ export async function apiFetch<T = unknown>(
   return res.json() as Promise<T>;
 }
 
-type FetchOpts = RequestInit & { skipAuth?: boolean };
+type FetchOpts = RequestInit & { skipAuth?: boolean; noRedirect?: boolean };
 
 export function apiGet<T>(path: string, init?: FetchOpts) {
   return apiFetch<T>(path, { ...init, method: 'GET' });

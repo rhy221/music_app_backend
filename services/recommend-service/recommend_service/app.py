@@ -44,6 +44,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     ]
     consumer_tasks = [asyncio.create_task(c.start()) for c in consumers]
 
+    app.state.jwt_secret = cfg.jwt_secret
     app.state.container = Container(
         neo4j_driver=neo4j_driver,
         redis_client=redis_client,

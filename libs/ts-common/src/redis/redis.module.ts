@@ -1,12 +1,8 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { RedisService } from './redis.service';
+import { REDIS_MODULE_OPTIONS, RedisModuleOptions } from './redis.constants';
 
-export interface RedisModuleOptions {
-  url: string;
-  keyPrefix?: string;
-}
-
-export const REDIS_MODULE_OPTIONS = 'REDIS_MODULE_OPTIONS';
+export type { RedisModuleOptions };
 
 /**
  * NestJS dynamic module wrapping ioredis.

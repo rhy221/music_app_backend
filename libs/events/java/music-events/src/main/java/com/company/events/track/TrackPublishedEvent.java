@@ -11,16 +11,17 @@ public record TrackPublishedEvent(
     public static final String EVENT_TYPE = "TRACK_PUBLISHED";
 
     public record Data(
-            @JsonProperty("trackId")    String trackId,
-            @JsonProperty("title")      String title,
-            @JsonProperty("durationMs") Integer durationMs,
-            @JsonProperty("coverUrl")   String coverUrl,
-            @JsonProperty("genre")      String genre,
-            @JsonProperty("artistId")   String artistId,
-            @JsonProperty("artistName") String artistName,
-            @JsonProperty("albumId")    String albumId,
-            @JsonProperty("albumTitle") String albumTitle,
-            @JsonProperty("assets")     List<AudioAsset> assets
+            @JsonProperty("trackId")     String trackId,
+            @JsonProperty("uploadJobId") String uploadJobId,
+            @JsonProperty("title")       String title,
+            @JsonProperty("durationMs")  Integer durationMs,
+            @JsonProperty("coverUrl")    String coverUrl,
+            @JsonProperty("genre")       String genre,
+            @JsonProperty("artistId")    String artistId,
+            @JsonProperty("artistName")  String artistName,
+            @JsonProperty("albumId")     String albumId,
+            @JsonProperty("albumTitle")  String albumTitle,
+            @JsonProperty("assets")      List<AudioAsset> assets
     ) {}
 
     public record AudioAsset(

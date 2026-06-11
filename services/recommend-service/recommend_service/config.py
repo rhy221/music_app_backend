@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     redis_url: str = "redis://:music_pass@localhost:6379/0"
     rabbitmq_url: str = "amqp://music_admin:music_pass@localhost:5672/music"
     port: int = 8000
+    jwt_secret: str = "change-me-in-production-min-32-chars"
     cold_start_threshold: int = 10
     rec_cache_ttl: int = 1800
     discover_cache_ttl: int = 604800

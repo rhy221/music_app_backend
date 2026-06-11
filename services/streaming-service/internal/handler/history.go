@@ -18,14 +18,16 @@ type historyService interface {
 
 // HistoryHandler serves play history endpoints.
 type HistoryHandler struct {
-	svc historyService
-	log zerolog.Logger
+	svc       historyService
+	log       zerolog.Logger
+	jwtSecret string
 }
 
-func NewHistoryHandler(svc historyService, log zerolog.Logger) *HistoryHandler {
+func NewHistoryHandler(svc historyService, log zerolog.Logger, jwtSecret string) *HistoryHandler {
 	return &HistoryHandler{
-		svc: svc,
-		log: log.With().Str("handler", "history").Logger(),
+		svc:       svc,
+		log:       log.With().Str("handler", "history").Logger(),
+		jwtSecret: jwtSecret,
 	}
 }
 
@@ -41,7 +43,7 @@ func (h *HistoryHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HistoryHandler) history(w http.ResponseWriter, r *http.Request) {
-	userID, ok := requireAuth(w, r)
+	userID, ok := requireAuth(h.jwtSecret, w, r)
 	if !ok {
 		return
 	}
@@ -87,7 +89,7 @@ func (h *HistoryHandler) history(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HistoryHandler) recentlyPlayed(w http.ResponseWriter, r *http.Request) {
-	userID, ok := requireAuth(w, r)
+	userID, ok := requireAuth(h.jwtSecret, w, r)
 	if !ok {
 		return
 	}
@@ -118,7 +120,7 @@ func (h *HistoryHandler) recentlyPlayed(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *HistoryHandler) stats(w http.ResponseWriter, r *http.Request) {
-	userID, ok := requireAuth(w, r)
+	userID, ok := requireAuth(h.jwtSecret, w, r)
 	if !ok {
 		return
 	}
