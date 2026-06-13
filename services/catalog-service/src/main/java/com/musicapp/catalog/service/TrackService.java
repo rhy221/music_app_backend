@@ -53,7 +53,14 @@ public class TrackService {
     private final ArtistService artistService;
 
     public PaginatedResponse<TrackSummaryDto> listTracks(
-            String genre, UUID artistId, UUID albumId, String sort, Pageable pageable) {
+            String genre, UUID artistId, UUID userId, UUID albumId, String sort, Pageable pageable) {
+
+        // resolve userId → artistId so we can reuse the same spec
+        if (userId != null && artistId == null) {
+            artistId = artistRepository.findByUserId(userId)
+                    .map(Artist::getId)
+                    .orElse(null);
+        }
 
         Specification<Track> spec = Specification.where(statusPublished());
         if (genre    != null) spec = spec.and(genreEquals(genre));

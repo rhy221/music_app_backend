@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Play, Pause, MoreHorizontal, Pencil, Trash2, Music2,
@@ -34,7 +34,7 @@ import { usePlayer } from '@/hooks/use-player';
 import { usePlayerStore } from '@/stores/player-store';
 import { useDebounce } from '@/hooks/use-debounce';
 import { storageUrl } from '@/lib/constants';
-import { PageGradient } from '@/components/common/page-gradient';
+import { usePageGradient } from '@/components/common/page-gradient';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -62,6 +62,7 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
 
   const [trackSearch, setTrackSearch] = useState('');
   const debouncedSearch = useDebounce(trackSearch, 400);
+  const { setSrc } = usePageGradient();
 
   const { data: playlist, isLoading } = useQuery({
     queryKey: ['playlist', playlistId],
@@ -112,6 +113,13 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
     onError: () => toast.error('Failed to add track'),
   });
 
+  const coverSrc = storageUrl(playlist?.items[0]?.trackCoverUrl ?? null);
+
+  useEffect(() => {
+    setSrc(coverSrc);
+    return () => setSrc(null);
+  }, [coverSrc, setSrc]);
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -135,7 +143,6 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
     artist: { id: '', name: item.artistName, avatarUrl: null },
   }));
 
-  const coverSrc = storageUrl(playlist.items[0]?.trackCoverUrl ?? null);
   const isContextActive = tracksAsSummary.some((t) => t.id === currentTrackId);
   const isContextPlaying = isContextActive && isGlobalPlaying;
 
@@ -158,10 +165,10 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
   const existingTrackIds = new Set(playlist.items.map((i) => i.trackId));
 
   return (
-    <PageGradient src={coverSrc}>
+    <div className="space-y-8 h-full">
       {/* Header */}
-      <div className="flex flex-col gap-6 sm:flex-row sm:items-end">
-        <div className="relative h-40 w-40 flex-shrink-0 overflow-hidden rounded-lg bg-primary/20 shadow-2xl">
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-end p-6">
+        <div className="relative h-50 w-50 flex-shrink-0 overflow-hidden rounded-lg bg-primary/20 shadow-2xl">
           {coverSrc ? (
             <img src={coverSrc} alt={playlist.name} className="h-full w-full object-cover" />
           ) : (
@@ -171,12 +178,12 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
           )}
         </div>
         <div className="flex-1">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Playlist</p>
-          <h1 className="mt-1 text-4xl font-black">{playlist.name}</h1>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Playlist</p>
+          <h1 className="mt-1 text-7xl font-black tracking-tight leading-none">{playlist.name}</h1>
           {playlist.description && (
-            <p className="mt-1 text-sm text-muted-foreground">{playlist.description}</p>
+            <p className="mt-1 text-sm text-muted-foreground font-bold">{playlist.description}</p>
           )}
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground font-bold">
             <Badge variant="secondary">{playlist.visibility.toLowerCase()}</Badge>
             <span>{playlist.trackCount} tracks</span>
             <span>·</span>
@@ -185,40 +192,44 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-3">
-        {tracksAsSummary.length > 0 && (
-          <Button onClick={handlePlayPause} size="lg" className="gap-2">
-            {isContextPlaying ? (
-              <><Pause className="h-5 w-5 fill-current" />Pause</>
-            ) : (
-              <><Play className="h-5 w-5 fill-current" />Play</>
-            )}
-          </Button>
-        )}
-        {playlist.isOwner && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreHorizontal className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={() => { setEditName(playlist.name); setEditVisibility(playlist.visibility); setEditOpen(true); }}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Edit details
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive" onClick={() => deleteMutation.mutate()}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete playlist
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </div>
-
-      {/* Tracks */}
+      <div className="space-y-8 p-6 h-full"
+       style={{
+                background: `linear-gradient(to bottom, rgba(31,31,31,0.3) 0%, rgba(31,31,31,0.4) 20%, rgba(31,31,31,0.65) 60%, rgba(31,31,31,1) 100%)`,
+              }}>
+        {/* Actions */}
+        <div className="flex items-center gap-3">
+          {tracksAsSummary.length > 0 && (
+            <Button onClick={handlePlayPause} size="lg" className="gap-2">
+              {isContextPlaying ? (
+                <><Pause className="h-5 w-5 fill-current" />Pause</>
+              ) : (
+                <><Play className="h-5 w-5 fill-current" />Play</>
+              )}
+            </Button>
+          )}
+          {playlist.isOwner && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <MoreHorizontal className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => { setEditName(playlist.name); setEditVisibility(playlist.visibility); setEditOpen(true); }}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit details
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive" onClick={() => deleteMutation.mutate()}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete playlist
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+       
+          {/* Tracks */}
       <div className="space-y-1">
         {playlist.items.map((item, i) => {
           const isItemActive = currentTrackId === item.trackId;
@@ -264,7 +275,7 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
               </div>
               <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded bg-muted">
                 {item.trackCoverUrl && (
-                  <img src={storageUrl(item.trackCoverUrl)!} alt={item.trackTitle} className="h-full w-full object-cover" />
+                  <img src={storageUrl(item.trackCoverUrl) ?? ''} alt={item.trackTitle} className="h-full w-full object-cover" />
                 )}
               </div>
               <div className="min-w-0 flex-1">
@@ -293,8 +304,7 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
           </p>
         )}
       </div>
-
-      {/* Add tracks via search */}
+         {/* Add tracks via search */}
       {playlist.canEdit && (
         <div>
           <h2 className="mb-3 text-lg font-semibold">Add tracks</h2>
@@ -320,7 +330,7 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
                   <div key={hit.id} className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-accent">
                     <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded bg-muted">
                       {hit.coverUrl && (
-                        <img src={storageUrl(hit.coverUrl)!} alt={hit.title} className="h-full w-full object-cover" />
+                        <img src={storageUrl(hit.coverUrl) ?? ''} alt={hit.title} className="h-full w-full object-cover" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -342,8 +352,7 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
           )}
         </div>
       )}
-
-      {/* Collaborators */}
+         {/* Collaborators */}
       {playlist.collaborators.length > 0 && (
         <div>
           <h2 className="mb-3 text-lg font-semibold">Collaborators</h2>
@@ -362,6 +371,14 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
         </div>
       )}
 
+      </div>
+
+      
+
+      
+     
+
+     
       {/* Edit dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
@@ -394,6 +411,6 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
           </div>
         </DialogContent>
       </Dialog>
-    </PageGradient>
+    </div>
   );
 }

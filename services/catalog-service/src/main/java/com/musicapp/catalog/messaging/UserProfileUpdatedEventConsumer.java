@@ -24,11 +24,14 @@ public class UserProfileUpdatedEventConsumer {
         artistRepository.findByUserId(userId).ifPresentOrElse(
                 artist -> {
                     artist.setName(event.data().displayName());
+                    if (event.data().avatarUrl() != null) {
+                        artist.setAvatarUrl(event.data().avatarUrl());
+                    }
                     artistRepository.save(artist);
-                    log.info("Synced artist name for userId={} → \"{}\"",
-                            userId, event.data().displayName());
+                    log.info("Synced artist profile for userId={} → name=\"{}\", avatar={}",
+                            userId, event.data().displayName(), event.data().avatarUrl());
                 },
-                () -> log.debug("No artist record for userId={}, skipping name sync", userId)
+                () -> log.debug("No artist record for userId={}, skipping profile sync", userId)
         );
     }
 }

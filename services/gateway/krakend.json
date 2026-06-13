@@ -711,6 +711,7 @@
         "size",
         "genre",
         "artistId",
+        "userId",
         "albumId",
         "sort"
       ],

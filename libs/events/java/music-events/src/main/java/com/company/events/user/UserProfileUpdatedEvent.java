@@ -11,6 +11,7 @@ public record UserProfileUpdatedEvent(
 
     public record Data(
             @JsonProperty("userId")      String userId,
-            @JsonProperty("displayName") String displayName
+            @JsonProperty("displayName") String displayName,
+            @JsonProperty("avatarUrl")   String avatarUrl
     ) {}
 }

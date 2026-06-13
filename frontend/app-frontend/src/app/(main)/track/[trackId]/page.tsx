@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrackRow } from '@/components/tracks/track-row';
 import { AddToPlaylistDialog } from '@/components/playlists/add-to-playlist-dialog';
-import { PageGradient } from '@/components/common/page-gradient';
+import { usePageGradient } from '@/components/common/page-gradient';
 import { getTrack } from '@/lib/api/tracks';
 import { getSimilarTracks } from '@/lib/api/recommendations';
 import { usePlayer } from '@/hooks/use-player';
@@ -30,6 +30,7 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
   const [addTarget, setAddTarget] = useState<TrackSummaryDto | null>(null);
   const currentTrackId = usePlayerStore((s) => s.queue[s.currentIndex]?.id);
   const isGlobalPlaying = usePlayerStore((s) => s.isPlaying);
+  const { setSrc } = usePageGradient();
 
   const { data: track, isLoading } = useQuery({
     queryKey: ['track', trackId],
@@ -41,6 +42,13 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
     queryFn: () => getSimilarTracks(trackId, 10),
     enabled: !!track,
   });
+
+  const coverSrc = track ? storageUrl(track.coverUrl) : null;
+
+  useEffect(() => {
+    setSrc(coverSrc);
+    return () => setSrc(null);
+  }, [coverSrc, setSrc]);
 
   if (isLoading) {
     return (
@@ -58,7 +66,6 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
 
   if (!track) return <div className="text-muted-foreground">Track not found.</div>;
 
-  const coverSrc = storageUrl(track.coverUrl);
   const isThisActive = currentTrackId === track.id;
   const isThisPlaying = isThisActive && isGlobalPlaying;
 
@@ -75,18 +82,15 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
   };
 
   const handlePlayPause = () => {
-    if (isThisActive) {
-      togglePlay();
-    } else {
-      play([trackAsSummary], 0);
-    }
+    if (isThisActive) togglePlay();
+    else play([trackAsSummary], 0);
   };
 
   return (
-    <PageGradient src={coverSrc}>
+    <div className="space-y-8 h-full">
       {/* Hero */}
-      <div className="flex flex-col gap-6 sm:flex-row sm:items-end">
-        <div className="relative h-48 w-48 flex-shrink-0 overflow-hidden rounded-lg shadow-2xl">
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-end p-6">
+        <div className="relative h-48 w-48 shrink-0 overflow-hidden rounded-lg shadow-2xl">
           {coverSrc ? (
             <Image src={coverSrc} alt={track.title} fill className="object-cover" sizes="192px" />
           ) : (
@@ -97,7 +101,7 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
         </div>
         <div>
           <p className="text-xs uppercase tracking-widest text-muted-foreground">Track</p>
-          <h1 className="mt-1 text-4xl font-black">{track.title}</h1>
+          <h1 className="mt-1 text-7xl font-black tracking-tight leading-none">{track.title}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <Link href={`/artist/${track.artist.id}`} className="font-medium text-foreground hover:underline">
               {track.artist.name}
@@ -140,8 +144,13 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
           </div>
         </div>
       </div>
+      
+      <div className="space-y-8 p-6 h-full"
+       style={{
+                background: `linear-gradient(to bottom, rgba(31,31,31,0.3) 0%, rgba(31,31,31,0.4) 20%, rgba(31,31,31,0.65) 60%, rgba(31,31,31,1) 100%)`,
+              }}>
 
-      {/* Audio quality */}
+        {/* Audio quality */}
       {track.assets.length > 0 && (
         <div>
           <h2 className="mb-2 text-lg font-semibold">Available quality</h2>
@@ -173,19 +182,16 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
                 artist: { id: '', name: '', avatarUrl: null },
               };
               return (
-                <TrackRow
-                  key={item.trackId}
-                  track={t}
-                  index={i}
-                  onAddToPlaylist={setAddTarget}
-                />
+                <TrackRow key={item.trackId} track={t} index={i} onAddToPlaylist={setAddTarget} />
               );
             })}
           </div>
         </div>
       )}
+      </div>
+      
 
       <AddToPlaylistDialog track={addTarget} onClose={() => setAddTarget(null)} />
-    </PageGradient>
+    </div>
   );
 }

@@ -25,11 +25,12 @@ public class TrackController {
     public PaginatedResponse<TrackSummaryDto> listTracks(
             @RequestParam(required = false) String genre,
             @RequestParam(required = false) UUID artistId,
+            @RequestParam(required = false) UUID userId,
             @RequestParam(required = false) UUID albumId,
             @RequestParam(required = false) String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return trackService.listTracks(genre, artistId, albumId, sort,
+        return trackService.listTracks(genre, artistId, userId, albumId, sort,
                 PageRequest.of(page, Math.min(size, 100)));
     }
 

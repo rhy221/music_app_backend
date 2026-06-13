@@ -4,6 +4,7 @@ import type { PaginatedResponse, TrackSummaryDto, TrackDetailDto } from './types
 interface TrackListParams {
   genre?: string;
   artistId?: string;
+  userId?: string;
   albumId?: string;
   sort?: 'newest' | 'oldest' | 'popular' | 'title_asc' | 'title_desc';
   page?: number;

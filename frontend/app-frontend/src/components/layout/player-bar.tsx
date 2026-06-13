@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import {
   Play,
@@ -66,23 +65,22 @@ export function PlayerBar() {
 
   if (!currentTrack) {
     return (
-      <div className="fixed bottom-0 left-0 right-0 h-20 border-t bg-card/95 backdrop-blur" />
+      <div className="h-20 shrink-0 border-t bg-card/95 backdrop-blur" />
     );
   }
 
   const RepeatIcon = store.repeat === 'one' ? Repeat1 : Repeat;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 flex h-20 items-center gap-4 border-t bg-card/95 px-4 backdrop-blur">
+    <div className="flex h-20 shrink-0 items-center gap-4 border-t bg-card/95 px-4 backdrop-blur">
       {/* Track info */}
       <div className="flex w-[240px] min-w-0 items-center gap-3">
         <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded">
           {currentTrack.coverUrl ? (
-            <Image
+            <img
               src={storageUrl(currentTrack.coverUrl)!}
               alt={currentTrack.title}
-              fill
-              className="object-cover"
+              className="h-full w-full object-cover"
             />
           ) : (
             <div className="h-full w-full bg-muted" />

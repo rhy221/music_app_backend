@@ -1,17 +1,5 @@
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
-import { AppSidebar } from '@/components/layout/app-sidebar';
-import { TopBar } from '@/components/layout/top-bar';
-import { PlayerBar } from '@/components/layout/player-bar';
+import { MainLayout } from '@/components/layout/main-layout';
 
-export default function MainLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset className="flex flex-col">
-        <TopBar />
-        <main className="flex-1 overflow-y-auto pb-24 px-6 py-4">{children}</main>
-      </SidebarInset>
-      <PlayerBar />
-    </SidebarProvider>
-  );
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return <MainLayout>{children}</MainLayout>;
 }

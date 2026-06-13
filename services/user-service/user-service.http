@@ -2,10 +2,10 @@
 ### Base URL: http://localhost:8081
 ### Start service: pnpm nx run user-service:serve (requires Docker infra)
 
-@baseUrl = http://localhost:8081
+@baseUrl = http://localhost:8080
 
 # Paste the accessToken returned from register/login here
-@accessToken = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwZWFlZGM1OS1kMjQ1LTQ3ODYtOWJlNS1iM2Y4YTQ4OTRmZmIiLCJyb2xlIjoiTElTVEVORVIiLCJpYXQiOjE3ODA5Mzk2NzcsImV4cCI6MTc4MDk0MzI3N30.bAlwaHAUgxoFiIXRCCy8rEEHDqyOF7svox4MRnSjEow
+@accessToken = eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3MjE2ZTExYy0yMTE3LTQ5NWQtOTFjMy05MjkyMDI1NDJlYzUiLCJyb2xlIjoiVVNFUiIsImlhdCI6MTc4MTEyMzU4MSwiZXhwIjoxNzgxMTI3MTgxfQ.FjaYESUfqHKnVd8uas98jiBEOF74fK-rI_irgGiMRWY
 @authToken = Bearer {{accessToken}}
 
 # Paste refresh token here after login/register
@@ -51,8 +51,8 @@ POST {{baseUrl}}/api/v1/auth/login
 Content-Type: application/json
 
 {
-  "email": "alice@example.com",
-  "password": "newsecret5678"
+  "email": "duckling@gmail.com",
+  "password": "secret1234"
 }
 
 ###

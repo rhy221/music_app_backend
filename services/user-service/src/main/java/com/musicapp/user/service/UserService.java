@@ -81,7 +81,11 @@ public class UserService {
         if (displayNameChanged) {
             var event = new UserProfileUpdatedEvent(
                     EventHeader.create(UserProfileUpdatedEvent.EVENT_TYPE, "user-service"),
-                    new UserProfileUpdatedEvent.Data(userId.toString(), user.getDisplayName())
+                    new UserProfileUpdatedEvent.Data(
+                            userId.toString(),
+                            user.getDisplayName(),
+                            storageUrlResolver.resolveAvatarUrl(user.getAvatarUrl())
+                    )
             );
             outboxService.write(UserProfileUpdatedEvent.EVENT_TYPE,
                     EventConstants.Exchanges.USER,
@@ -117,7 +121,17 @@ public class UserService {
 
             user.setAvatarUrl(objectPath);
             userRepository.save(user);
-            return storageUrlResolver.resolveAvatarUrl(objectPath);
+
+            String absoluteUrl = storageUrlResolver.resolveAvatarUrl(objectPath);
+            var event = new UserProfileUpdatedEvent(
+                    EventHeader.create(UserProfileUpdatedEvent.EVENT_TYPE, "user-service"),
+                    new UserProfileUpdatedEvent.Data(userId.toString(), user.getDisplayName(), absoluteUrl)
+            );
+            outboxService.write(UserProfileUpdatedEvent.EVENT_TYPE,
+                    EventConstants.Exchanges.USER,
+                    EventConstants.RoutingKeys.USER_PROFILE_UPDATED,
+                    event);
+            return absoluteUrl;
         } catch (Exception e) {
             log.error("Avatar upload failed for userId={}: {}", userId, e.getMessage());
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Avatar upload failed");
@@ -148,7 +162,8 @@ public class UserService {
         boolean isFollowing = callerId != null &&
                 followRepository.existsByIdFollowerIdAndIdFollowingId(callerId, userId);
         return new PublicUserProfileDto(
-                user.getId(), user.getDisplayName(), user.getAvatarUrl(),
+                user.getId(), user.getDisplayName(),
+                storageUrlResolver.resolveAvatarUrl(user.getAvatarUrl()),
                 user.getRole(), followers, following, isFollowing
         );
     }
@@ -266,7 +281,7 @@ public class UserService {
     private UserProfileDto buildProfile(User user, long followers, long following) {
         return new UserProfileDto(
                 user.getId(), user.getEmail(), user.getDisplayName(),
-                user.getAvatarUrl(), user.getBio(), user.getRole(),
+                storageUrlResolver.resolveAvatarUrl(user.getAvatarUrl()), user.getBio(), user.getRole(),
                 followers, following, user.getCreatedAt()
         );
     }
