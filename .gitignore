@@ -63,3 +63,7 @@ vitest.config.*.timestamp*
 # Next.js
 .next
 out
+
+# Java heap/thread dumps
+*.hprof
+*.dump
