@@ -46,37 +46,41 @@ export class CatalogEventConsumer implements OnModuleInit {
           data: { trackId, trackTitle: title },
         });
       } catch (err) {
-        this.logger.warn(`TRACK_PUBLISHED notification failed for user ${artistUserId}: ${err.message}`);
+        this.logger.warn(`TRACK_PUBLISHED notification failed for user ${artistUserId}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 
     // Fan out NEW_RELEASE to all followers
-    const resolvedUserId = artistUserId ?? (await this.catalogClient.getArtist(artistId))?.userId;
-    if (!resolvedUserId) {
-      this.logger.warn(`Cannot resolve userId for artist ${artistId}, skipping NEW_RELEASE fan-out`);
-      return;
-    }
+    try {
+      const resolvedUserId = artistUserId ?? (await this.catalogClient.getArtist(artistId))?.userId;
+      if (!resolvedUserId) {
+        this.logger.warn(`Cannot resolve userId for artist ${artistId}, skipping NEW_RELEASE fan-out`);
+        return;
+      }
 
-    const followers = await this.userClient.getFollowers(resolvedUserId);
-    if (followers.length === 0) return;
+      const followers = await this.userClient.getFollowers(resolvedUserId);
+      if (followers.length === 0) return;
 
-    this.logger.debug(`Fanning out NEW_RELEASE to ${followers.length} followers of ${artistName}`);
+      this.logger.debug(`Fanning out NEW_RELEASE to ${followers.length} followers of ${artistName}`);
 
-    const results = await Promise.allSettled(
-      followers.map((follower) =>
-        this.notifService.create({
-          userId: follower.id,
-          type: NotificationType.NEW_RELEASE,
-          title: 'New Release',
-          body: `${artistName} just released a new track: "${title}"`,
-          data: { artistId, artistName, trackId, trackTitle: title },
-        }),
-      ),
-    );
+      const results = await Promise.allSettled(
+        followers.map((follower) =>
+          this.notifService.create({
+            userId: follower.id,
+            type: NotificationType.NEW_RELEASE,
+            title: 'New Release',
+            body: `${artistName} just released a new track: "${title}"`,
+            data: { artistId, artistName, trackId, trackTitle: title },
+          }),
+        ),
+      );
 
-    const failed = results.filter((r) => r.status === 'rejected').length;
-    if (failed > 0) {
-      this.logger.warn(`${failed}/${followers.length} NEW_RELEASE notifications failed`);
+      const failed = results.filter((r) => r.status === 'rejected').length;
+      if (failed > 0) {
+        this.logger.warn(`${failed}/${followers.length} NEW_RELEASE notifications failed`);
+      }
+    } catch (err) {
+      this.logger.warn(`NEW_RELEASE fan-out failed for artist ${artistId}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 }

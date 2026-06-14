@@ -136,7 +136,7 @@ export function NowPlayingPanel({ isCollapsed, onCollapse, onExpand }: NowPlayin
     : [];
 
   return (
-    <div className="h-full overflow-auto rounded-md bg-secondary">
+    <div className="h-full overflow-auto-y rounded-md bg-secondary">
       {isCollapsed ? 
       (
       // Collapse mode

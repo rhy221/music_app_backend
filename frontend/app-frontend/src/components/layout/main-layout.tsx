@@ -41,7 +41,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
               setLeftCollapsed(size.asPercentage <= LEFT_COLLAPSED_SIZE)
             }
           >
-            <div className="h-full overflow-y-auto px-2 pt-2">
+            <div className="h-full px-2 pt-2">
               <LibraryPanel
                 isCollapsed={leftCollapsed}
                 onCollapse={() => leftRef.current?.collapse()}
@@ -54,7 +54,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
 
           {/* ── Center: Main content ── */}
           <ResizablePanel defaultSize="55%" minSize="30%">
-              <div className="h-full overflow-y-auto px-2 pt-2">
+              <div className="h-full px-2 pt-2">
                 <PageGradient>
                   {children}
                 </PageGradient>
@@ -77,7 +77,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
             }
             
           >
-            <div className="h-full overflow-y-auto px-2 pt-2">
+            <div className="h-full px-2 pt-2">
               <NowPlayingPanel
                 isCollapsed={rightCollapsed}
                 onCollapse={() => rightRef.current?.collapse()}

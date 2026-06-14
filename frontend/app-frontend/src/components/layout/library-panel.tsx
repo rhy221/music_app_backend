@@ -135,7 +135,7 @@ export function LibraryPanel({ isCollapsed, onCollapse, onExpand }: LibraryPanel
 
   return (
     <>
-      <div className="h-full rounded-md bg-secondary">
+      <div className="h-full rounded-md bg-secondary overflow-y-auto">
         {isCollapsed ? (
           /* ── Collapsed: icon-strip mode ── */
           <div className="flex h-full flex-col items-center gap-1 border-r py-3">
