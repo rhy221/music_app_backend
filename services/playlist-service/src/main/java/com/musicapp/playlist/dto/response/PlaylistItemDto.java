@@ -15,5 +15,6 @@ public record PlaylistItemDto(
         String artistName,
         UUID artistId,
         UUID albumId,
-        String albumTitle
+        String albumTitle,
+        boolean deleted
 ) {}

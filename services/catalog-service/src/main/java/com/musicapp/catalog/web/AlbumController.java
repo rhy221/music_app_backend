@@ -46,4 +46,10 @@ public class AlbumController {
             @RequestBody UpdateAlbumRequest req) {
         return albumService.updateAlbum(albumId, req);
     }
+
+    @DeleteMapping("/{albumId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteAlbum(@PathVariable UUID albumId) {
+        albumService.deleteAlbum(albumId);
+    }
 }

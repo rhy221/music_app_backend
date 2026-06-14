@@ -103,7 +103,7 @@ public class TrackService {
 
         if (req.title()       != null) track.setTitle(req.title());
         if (req.genre()       != null) track.setGenre(req.genre());
-        if (req.releaseDate() != null) track.setReleaseDate(req.releaseDate());
+        // releaseDate is frozen after publish to prevent gaming new-releases feed
         if (req.albumId()     != null) {
             Album album = albumRepository.findById(req.albumId())
                     .orElseThrow(() -> new EntityNotFoundException("Album not found: " + req.albumId()));
@@ -208,7 +208,7 @@ public class TrackService {
     @Transactional(readOnly = true)
     public List<TrackSummaryDto> getNewReleases(int limit) {
         Pageable pageable = PageRequest.of(0, Math.min(limit, 50));
-        return trackRepository.findByStatusOrderByCreatedAtDesc(TrackStatus.PUBLISHED, pageable)
+        return trackRepository.findNewReleases(TrackStatus.PUBLISHED, LocalDate.now(), pageable)
                 .stream().map(trackMapper::toSummary).toList();
     }
 
@@ -241,6 +241,7 @@ public class TrackService {
         track.setGenre(req.genre());
         track.setCoverUrl(req.coverUrl());
         track.setWaveformUrl(req.waveformUrl());
+        track.setReleaseDate(req.releaseDate() != null ? req.releaseDate() : LocalDate.now());
         track.setStatus(TrackStatus.PUBLISHED);
 
         for (PublishTrackRequest.AssetRequest a : req.assets()) {
@@ -289,6 +290,9 @@ public class TrackService {
     public InternalTrackDto getInternalTrack(UUID trackId) {
         Track track = trackRepository.findWithAssetsById(trackId)
                 .orElseThrow(() -> new EntityNotFoundException("Track not found: " + trackId));
+        if (track.getStatus() == TrackStatus.ARCHIVED) {
+            throw new EntityNotFoundException("Track not found: " + trackId);
+        }
         return trackMapper.toInternal(track);
     }
 

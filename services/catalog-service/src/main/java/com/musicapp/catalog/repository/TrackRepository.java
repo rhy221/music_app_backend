@@ -12,6 +12,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,13 +38,27 @@ public interface TrackRepository extends JpaRepository<Track, UUID>, JpaSpecific
     @EntityGraph("Track.withArtistAndAssets")
     List<Track> findByStatusOrderByCreatedAtDesc(TrackStatus status, Pageable pageable);
 
+    @EntityGraph("Track.withArtistAndAssets")
+    @Query("""
+        SELECT t FROM Track t
+        WHERE t.status = :status
+        AND (t.releaseDate IS NULL OR t.releaseDate <= :today)
+        ORDER BY t.releaseDate DESC NULLS LAST, t.createdAt DESC
+        """)
+    List<Track> findNewReleases(@Param("status") TrackStatus status, @Param("today") LocalDate today, Pageable pageable);
+
     @Query("SELECT t FROM Track t WHERE t.id IN :ids AND t.status = 'PUBLISHED'")
     @EntityGraph("Track.withArtistAndAssets")
     List<Track> findAllByIdInWithAssets(@Param("ids") List<UUID> ids);
+
+    @Query("SELECT t FROM Track t WHERE t.album.id = :albumId")
+    List<Track> findByAlbumId(@Param("albumId") UUID albumId);
 
     @Modifying
     @Query("UPDATE Track t SET t.playCount = t.playCount + :delta WHERE t.id = :id")
     void incrementPlayCount(@Param("id") UUID id, @Param("delta") long delta);
 
     long countByArtistId(UUID artistId);
+
+    int countByAlbumIdAndStatus(UUID albumId, TrackStatus status);
 }

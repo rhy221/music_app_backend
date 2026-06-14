@@ -22,10 +22,10 @@ func NewDraftRepo(pool *pgxpool.Pool) *DraftRepo {
 func (r *DraftRepo) Insert(ctx context.Context, draft *domain.UploadDraft) error {
 	q := db(ctx, r.pool)
 	_, err := q.Exec(ctx, `
-		INSERT INTO upload_drafts (id, uploader_id, release_type, title, genre, thumbnail_url, status, created_at, updated_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+		INSERT INTO upload_drafts (id, uploader_id, release_type, title, genre, thumbnail_url, release_date, status, created_at, updated_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
 		draft.ID, draft.UploaderID, string(draft.ReleaseType), draft.Title,
-		draft.Genre, draft.ThumbnailURL, string(draft.Status),
+		draft.Genre, draft.ThumbnailURL, draft.ReleaseDate, string(draft.Status),
 		draft.CreatedAt, draft.UpdatedAt,
 	)
 	return err
@@ -34,14 +34,14 @@ func (r *DraftRepo) Insert(ctx context.Context, draft *domain.UploadDraft) error
 func (r *DraftRepo) FindByID(ctx context.Context, id, uploaderID string) (*domain.UploadDraft, error) {
 	q := db(ctx, r.pool)
 	row := q.QueryRow(ctx, `
-		SELECT id, uploader_id, release_type, title, genre, thumbnail_url, status, created_at, updated_at
+		SELECT id, uploader_id, release_type, title, genre, thumbnail_url, release_date, status, created_at, updated_at
 		FROM upload_drafts WHERE id = $1 AND uploader_id = $2`, id, uploaderID)
 
 	var d domain.UploadDraft
 	var releaseType, status string
 	err := row.Scan(
 		&d.ID, &d.UploaderID, &releaseType, &d.Title,
-		&d.Genre, &d.ThumbnailURL, &status, &d.CreatedAt, &d.UpdatedAt,
+		&d.Genre, &d.ThumbnailURL, &d.ReleaseDate, &status, &d.CreatedAt, &d.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

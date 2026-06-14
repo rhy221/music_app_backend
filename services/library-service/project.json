@@ -1,0 +1,30 @@
+{
+  "name": "library-service",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "services/library-service/src",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@jnxplus/nx-gradle:run-task",
+      "outputs": ["{projectRoot}/build"],
+      "options": {
+        "task": "build",
+        "projectPath": ":services:library-service"
+      }
+    },
+    "serve": {
+      "executor": "@jnxplus/nx-gradle:run-task",
+      "options": {
+        "task": "bootRun",
+        "projectPath": ":services:library-service"
+      }
+    },
+    "test": {
+      "executor": "@jnxplus/nx-gradle:run-task",
+      "options": {
+        "task": "test",
+        "projectPath": ":services:library-service"
+      }
+    }
+  }
+}

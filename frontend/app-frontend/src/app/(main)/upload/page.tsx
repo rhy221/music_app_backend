@@ -36,6 +36,7 @@ export default function UploadPage() {
   const [title, setTitle] = useState('');
   const [genre, setGenre] = useState('');
   const [releaseType, setReleaseType] = useState<'SINGLE' | 'ALBUM'>('SINGLE');
+  const [releaseDate, setReleaseDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
 
@@ -57,6 +58,7 @@ export default function UploadPage() {
       form.append('title', title.trim());
       form.append('release_type', releaseType);
       if (genre.trim()) form.append('genre', genre.trim());
+      if (releaseDate) form.append('release_date', releaseDate);
       if (thumbnailFile) form.append('thumbnail', thumbnailFile);
       return createDraft(form);
     },
@@ -245,6 +247,17 @@ export default function UploadPage() {
               />
             </div>
 
+            {/* Release date */}
+            <div>
+              <Label>Release date</Label>
+              <Input
+                type="date"
+                value={releaseDate}
+                onChange={(e) => setReleaseDate(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+
             <Button
               className="w-full gap-2"
               onClick={() => createMutation.mutate()}
@@ -278,9 +291,9 @@ export default function UploadPage() {
                     <div key={track.id} className="rounded-lg border p-3">
                       <div className="flex items-center gap-2">
                         {track.audioConfirmed ? (
-                          <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-primary" />
+                          <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
                         ) : (
-                          <Circle className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
+                          <Circle className="h-4 w-4 shrink-0 text-muted-foreground" />
                         )}
                         <span className="flex-1 text-sm font-medium">{track.title}</span>
                         <span className="text-xs text-muted-foreground">#{track.trackNumber}</span>
@@ -379,7 +392,7 @@ export default function UploadPage() {
               {(thumbnailPreview || draft.thumbnailUrl) && (() => {
                 const coverSrc = thumbnailPreview ?? storageUrl(draft.thumbnailUrl);
                 return coverSrc ? (
-                  <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg">
+                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg">
                     <Image src={coverSrc} alt="Cover" fill className="object-cover" />
                   </div>
                 ) : null;
@@ -390,6 +403,11 @@ export default function UploadPage() {
                   {draft.releaseType.toLowerCase()}
                   {draft.genre ? ` · ${draft.genre}` : ''}
                 </p>
+                {draft.releaseDate && (
+                  <p className="text-xs text-muted-foreground">
+                    Release: {new Date(draft.releaseDate + 'T00:00:00').toLocaleDateString()}
+                  </p>
+                )}
                 <Badge variant="outline" className="mt-1 text-xs">{draft.status}</Badge>
               </div>
             </div>

@@ -4,7 +4,7 @@ import { use, useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Play, Pause, MoreHorizontal, Pencil, Trash2, Music2,
-  GripVertical, Search, PlusCircle,
+  GripVertical, Search, PlusCircle, Ban,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -131,17 +131,27 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
 
   if (!playlist) return <div className="text-muted-foreground">Playlist not found.</div>;
 
-  const tracksAsSummary: TrackSummaryDto[] = playlist.items.map((item) => ({
-    id: item.trackId,
-    title: item.trackTitle,
-    durationMs: item.trackDuration,
-    genre: null,
-    coverUrl: item.trackCoverUrl,
-    playCount: 0,
-    status: 'PUBLISHED' as const,
-    releaseDate: null,
-    artist: { id: item.artistId ?? '', name: item.artistName, avatarUrl: null },
-  }));
+  // Only non-deleted tracks go into the play queue
+  const tracksAsSummary: TrackSummaryDto[] = playlist.items
+    .filter((item) => !item.deleted)
+    .map((item) => ({
+      id: item.trackId,
+      title: item.trackTitle,
+      durationMs: item.trackDuration,
+      genre: null,
+      coverUrl: item.trackCoverUrl,
+      playCount: 0,
+      status: 'PUBLISHED' as const,
+      releaseDate: null,
+      artist: { id: item.artistId ?? '', name: item.artistName, avatarUrl: null, userId: null },
+    }));
+
+  // Map item.id → index within tracksAsSummary for correct play() call
+  const queueIndexMap = new Map<string, number>();
+  let qIdx = 0;
+  playlist.items.forEach((item) => {
+    if (!item.deleted) queueIndexMap.set(item.id, qIdx++);
+  });
 
   const isContextActive = tracksAsSummary.some((t) => t.id === currentTrackId);
   const isContextPlaying = isContextActive && isGlobalPlaying;
@@ -244,7 +254,45 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
 
           {/* Tracks */}
       <div className="space-y-1">
-        {playlist.items.map((item, i) => {
+        {playlist.items.map((item) => {
+          // ── Deleted track row ──────────────────────────────────────────
+          if (item.deleted) {
+            return (
+              <div
+                key={item.id}
+                className="group flex cursor-default items-center gap-3 rounded-md px-2 py-2 opacity-50"
+              >
+                {playlist.canEdit && <div className="w-4 shrink-0" />}
+                <div className="flex w-8 shrink-0 items-center justify-center">
+                  <Ban className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
+                  <Music2 className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="block truncate text-sm font-medium line-through text-muted-foreground">
+                    {item.trackTitle}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">Track no longer available</p>
+                </div>
+                <div className="hidden w-36 shrink-0 sm:block" />
+                <span className="w-8 text-center text-xs tabular-nums text-muted-foreground">—</span>
+                {playlist.canEdit && (
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="opacity-0 group-hover:opacity-100"
+                    onClick={() => removeTrackMutation.mutate(item.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            );
+          }
+
+          // ── Normal track row ───────────────────────────────────────────
+          const queueIdx = queueIndexMap.get(item.id) ?? 0;
           const isItemActive = currentTrackId === item.trackId;
           const isItemPlaying = isItemActive && isGlobalPlaying;
           const isDragOver = dragOverId === item.id;
@@ -262,7 +310,7 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
                 isDragOver && draggedId !== item.id && 'border-t-2 border-primary',
                 draggedId === item.id && 'opacity-50'
               )}
-              onClick={() => isItemActive ? togglePlay() : play(tracksAsSummary, i)}
+              onClick={() => isItemActive ? togglePlay() : play(tracksAsSummary, queueIdx)}
             >
               {playlist.canEdit && (
                 <div
@@ -281,7 +329,7 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
                   <>
                     <Play className={cn('hidden h-4 w-4 fill-current group-hover:block', isItemActive ? 'text-primary' : 'text-foreground')} />
                     <span className={cn('block text-sm group-hover:hidden', isItemActive ? 'text-primary font-semibold' : 'text-muted-foreground')}>
-                      {i + 1}
+                      {queueIdx + 1}
                     </span>
                   </>
                 )}
@@ -325,7 +373,7 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
                 )}
               </div>
               <span className="text-xs tabular-nums text-muted-foreground">
-                {formatMs(item.trackDuration)}
+                {item.trackDuration ? formatMs(item.trackDuration) : '—'}
               </span>
               {playlist.canEdit && (
                 <Button

@@ -1,0 +1,2 @@
+ALTER TABLE catalog_schema.albums
+    ADD COLUMN IF NOT EXISTS deleted BOOLEAN NOT NULL DEFAULT FALSE;

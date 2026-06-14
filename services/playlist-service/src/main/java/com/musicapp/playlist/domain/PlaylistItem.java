@@ -59,4 +59,7 @@ public class PlaylistItem extends BaseEntity {
 
     @Column(name = "album_title", length = 255)
     private String albumTitle;
+
+    @Column(name = "deleted", nullable = false)
+    private boolean deleted = false;
 }

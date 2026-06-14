@@ -1,5 +1,9 @@
 package com.musicapp.catalog.service;
 
+import com.company.events.EventConstants;
+import com.company.events.EventHeader;
+import com.company.events.catalog.AlbumDeletedEvent;
+import com.company.events.track.TrackDeletedEvent;
 import com.musicapp.catalog.domain.Album;
 import com.musicapp.catalog.domain.Artist;
 import com.musicapp.catalog.domain.Track;
@@ -37,6 +41,7 @@ public class AlbumService {
     private final TrackRepository trackRepository;
     private final AlbumMapper albumMapper;
     private final TrackMapper trackMapper;
+    private final OutboxService outboxService;
 
     @Transactional(readOnly = true)
     public PaginatedResponse<AlbumSummaryDto> listAlbums(UUID artistId, Pageable pageable) {
@@ -83,7 +88,8 @@ public class AlbumService {
         TrackSummaryDto.ArtistRefDto artistRef = new TrackSummaryDto.ArtistRefDto(
                 album.getArtist().getId(),
                 album.getArtist().getName(),
-                album.getArtist().getAvatarUrl()
+                album.getArtist().getAvatarUrl(),
+                album.getArtist().getUserId()
         );
 
         return new AlbumDetailDto(
@@ -107,9 +113,52 @@ public class AlbumService {
 
         if (req.title()       != null) album.setTitle(req.title());
         if (req.coverUrl()    != null) album.setCoverUrl(req.coverUrl());
-        if (req.releaseDate() != null) album.setReleaseDate(req.releaseDate());
+        // releaseDate is frozen after creation to prevent gaming new-releases feed
 
         return albumMapper.toSummary(albumRepository.save(album));
+    }
+
+    @Transactional
+    public void deleteAlbum(UUID albumId) {
+        Album album = albumRepository.findById(albumId)
+                .orElseThrow(() -> new EntityNotFoundException("Album not found: " + albumId));
+
+        verifyOwnership(album);
+
+        // Load tracks before flushing the album deletion so @SQLRestriction doesn't hide them
+        List<Track> albumTracks = trackRepository.findByAlbumId(albumId);
+
+        album.setDeleted(true);
+        albumRepository.save(album);
+
+        albumTracks.forEach(track -> {
+            if (track.getStatus() != TrackStatus.ARCHIVED) {
+                track.setStatus(TrackStatus.ARCHIVED);
+                trackRepository.save(track);
+                outboxService.write(
+                        TrackDeletedEvent.EVENT_TYPE,
+                        EventConstants.Exchanges.CATALOG,
+                        EventConstants.RoutingKeys.TRACK_DELETED,
+                        new TrackDeletedEvent(
+                                EventHeader.create(TrackDeletedEvent.EVENT_TYPE, "catalog-service"),
+                                new TrackDeletedEvent.Data(track.getId().toString())
+                        )
+                );
+            }
+        });
+
+        outboxService.write(
+                AlbumDeletedEvent.EVENT_TYPE,
+                EventConstants.Exchanges.CATALOG,
+                EventConstants.RoutingKeys.ALBUM_DELETED,
+                new AlbumDeletedEvent(
+                        EventHeader.create(AlbumDeletedEvent.EVENT_TYPE, "catalog-service"),
+                        new AlbumDeletedEvent.Data(
+                                albumId.toString(),
+                                album.getArtist().getId().toString()
+                        )
+                )
+        );
     }
 
     @Transactional

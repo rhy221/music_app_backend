@@ -39,12 +39,12 @@ public interface PlaylistItemRepository extends JpaRepository<PlaylistItem, UUID
             @Param("artistName") String artistName);
 
     @Modifying
-    @Query("UPDATE PlaylistItem i SET i.trackTitle = '[Deleted]', i.trackCoverUrl = null WHERE i.trackId = :trackId")
+    @Query("UPDATE PlaylistItem i SET i.deleted = true, i.trackCoverUrl = null WHERE i.trackId = :trackId")
     void markTrackAsDeleted(@Param("trackId") UUID trackId);
 
     void deleteByPlaylistId(UUID playlistId);
 
-    @Query("SELECT i.trackCoverUrl FROM PlaylistItem i WHERE i.playlistId = :playlistId ORDER BY i.position ASC LIMIT 1")
+    @Query("SELECT i.trackCoverUrl FROM PlaylistItem i WHERE i.playlistId = :playlistId AND i.deleted = false ORDER BY i.position ASC LIMIT 1")
     java.util.Optional<String> findFirstCoverUrlByPlaylistId(@Param("playlistId") UUID playlistId);
 
     java.util.Optional<PlaylistItem> findByPlaylistIdAndTrackId(UUID playlistId, UUID trackId);

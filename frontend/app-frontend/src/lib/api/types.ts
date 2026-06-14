@@ -40,6 +40,7 @@ export interface ArtistRef {
   id: string;
   name: string;
   avatarUrl: string | null;
+  userId: string | null;
 }
 
 export interface AlbumRef {
@@ -131,6 +132,7 @@ export interface PlaylistItemDto {
   artistId: string | null;
   albumId: string | null;
   albumTitle: string | null;
+  deleted: boolean;
 }
 
 export interface CollaboratorDto {
@@ -188,6 +190,7 @@ export interface DraftDto {
   releaseType: string;
   genre: string | null;
   thumbnailUrl: string | null;
+  releaseDate: string | null;
   status: string;
   tracks: TrackDraftDto[];
   createdAt: string;

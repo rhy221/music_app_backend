@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,6 +17,7 @@ public record PublishTrackRequest(
         UUID albumId,
         String coverUrl,
         String waveformUrl,
+        LocalDate releaseDate,
         @NotEmpty List<AssetRequest> assets
 ) {
     public record AssetRequest(

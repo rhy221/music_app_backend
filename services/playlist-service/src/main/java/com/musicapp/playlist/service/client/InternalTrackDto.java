@@ -10,5 +10,6 @@ public record InternalTrackDto(
         String genre,
         UUID artistId,
         String artistName,
-        UUID albumId
+        UUID albumId,
+        String albumTitle
 ) {}

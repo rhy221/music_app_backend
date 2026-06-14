@@ -7,6 +7,7 @@ type TranscodeWork struct {
 	Genre        *string
 	AlbumID      *string
 	AlbumTitle   *string
+	ReleaseDate  *string
 	StorageKey   string
 	ThumbnailURL *string
 }

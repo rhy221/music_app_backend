@@ -16,6 +16,7 @@ type CreateDraftInput struct {
 	ReleaseType       domain.ReleaseType
 	Title             string
 	Genre             *string
+	ReleaseDate       *time.Time
 	ThumbnailFilename string
 	ThumbnailReader   io.Reader
 	ThumbnailSize     int64
@@ -47,6 +48,7 @@ func (uc *CreateDraftUseCase) Execute(ctx context.Context, in CreateDraftInput) 
 		ReleaseType: in.ReleaseType,
 		Title:       in.Title,
 		Genre:       in.Genre,
+		ReleaseDate: in.ReleaseDate,
 		Status:      domain.DraftStatusDraft,
 		CreatedAt:   now,
 		UpdatedAt:   now,

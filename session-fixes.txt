@@ -737,3 +737,165 @@ KẾT QUẢ: Cancelled job giữ nguyên CANCELLED status; không có ghost trac
 
 KẾT QUẢ: Nhiều TranscodeCompletedEvent cho cùng album chạy đồng thời không còn conflict;
           album chỉ được INSERT một lần, các lần sau DO NOTHING.
+
+40. Streaming service migrations — "relation play_sessions already exists"
+   - Vấn đề: pnpm nx run streaming-service:serve lỗi
+     "ERROR: relation \"play_sessions\" already exists"
+   - Root cause: Go custom migration runner track version trong schema_migrations table.
+     Các tables đã tồn tại trong DB (từ session trước) nhưng schema_migrations không có record
+     → runner coi đây là migration chưa chạy → cố tạo lại tables đã có → fail.
+   - Fix: Thêm IF NOT EXISTS vào tất cả CREATE TABLE (kể cả partitions) và CREATE INDEX
+     trong cả 2 migration files:
+     - 001_create_streaming_schema.up.sql: play_sessions, partitions, tất cả indexes
+     - 002_create_outbox.up.sql: outbox_events, idx_outbox_pending
+   - Lưu ý: IF NOT EXISTS làm migration idempotent — an toàn khi schema_migrations bị
+     reset hoặc DB đã có schema từ chạy manual. Không ảnh hưởng đến data hiện có.
+
+KẾT QUẢ: streaming-service khởi động bình thường, migrations chạy không lỗi.
+
+41. Upload-service + Streaming-service — Windows Device Guard chặn dist/ binary
+   - Vấn đề: pnpm nx run upload-service:serve lỗi
+     "'...\dist\upload-service.exe' was blocked by your organization's Device Guard policy"
+   - Root cause: Fix #22 đổi serve target sang "go build -o dist/service.exe . && dist\service.exe"
+     để tránh AppData temp path bị block. Nhưng dist/ binary cũng bị Application Control
+     chặn trong session này (policy không nhất quán giữa các session).
+   - Fix: Đổi serve target trong project.json của cả upload-service và streaming-service
+     về "go run ." (single command). Đây là chiều ngược lại với fix #22.
+     Nếu "go run ." bị block lại trong tương lai → thử compile sang path khác ngoài project dir.
+   - Lưu ý: Windows Device Guard / Application Control behavior không nhất quán.
+     "go run ." compile binary vào AppData\Local\go-build\ temp — có thể bị block hoặc không
+     tùy thuộc vào policy hiện tại. Cần test lại nếu môi trường thay đổi.
+
+KẾT QUẢ: pnpm nx run upload-service:serve và streaming-service:serve khởi động bình thường.
+
+42. Catalog service — LazyInitializationException trên các read methods (album + track)
+   - Vấn đề: GET /api/v1/albums (và một số track endpoints) trả 500
+     LazyInitializationException: "Could not initialize proxy [Artist#...] — no Session"
+     khi AlbumMapper / TrackMapper gọi artist.getName() / artist.getAvatarUrl() ngoài session.
+   - Root cause: Các service read methods thiếu @Transactional(readOnly = true) → Hibernate
+     session đóng ngay sau khi JPA query kết thúc → mapper cố access lazy association Artist
+     → session đã đóng → exception.
+     @Transactional(readOnly = true) giữ session mở suốt toàn bộ service method call
+     → lazy proxy có thể initialize trong quá trình mapping.
+   - Fix: Thêm @Transactional(readOnly = true) vào:
+     AlbumService: listAlbums(), getAlbumById()
+     TrackService: getTrackById(), getPopularTracks(), getNewReleases(),
+                   getInternalTrack(), getInternalTracksBatch()
+   - Lưu ý: deleteTrack/updateTrack/deleteAlbum/updateAlbum đã có @Transactional (write) từ trước.
+     getAlbumById() đặc biệt dễ bị lỗi vì load tracks in-memory rồi filter,
+     sau đó mapper gọi track.getArtist().getName() nhiều lần.
+
+KẾT QUẢ: GET /api/v1/albums và /api/v1/tracks không còn LazyInitializationException.
+
+43. Notification service — fan-out NEW_RELEASE không isolate khỏi message handler
+   - Vấn đề: Nếu userClient.getFollowers() throw exception → toàn bộ RabbitMQ message
+     có thể bị NACK và retry mãi. TypeScript err.message gây compile error.
+   - Root cause:
+     a. Fan-out block không có try-catch riêng → exception bubble lên handleTrackPublished()
+        → RabbitMQ NACK → message retry vô hạn.
+     b. TypeScript: err trong catch block có type unknown → err.message là compile error
+        "Object is of type 'unknown'".
+   - Fix: catalog-event.consumer.ts:
+     a. Bọc toàn bộ fan-out section (getFollowers + Promise.allSettled) trong try-catch
+        độc lập → lỗi fan-out chỉ log warn, không ảnh hưởng ACK/NACK.
+     b. Đổi err.message → err instanceof Error ? err.message : String(err) ở cả 2 catch.
+
+KẾT QUẢ: Fan-out lỗi chỉ log warn, không ảnh hưởng đến message ACK; TypeScript compile clean.
+
+44. Implement edit và soft-delete cho tracks và albums (backend + frontend)
+   - Backend: Track PUT/DELETE đã có. Album thiếu DELETE và không có soft-delete flag.
+     Frontend: Không có UI. ArtistRef thiếu userId → không thể check ownership client-side.
+   - Fix (catalog-service):
+     a. V6 Flyway migration: thêm deleted BOOLEAN NOT NULL DEFAULT FALSE vào catalog_schema.albums
+     b. Album entity: @SQLRestriction("deleted = false") — tất cả JPA queries tự động
+        exclude deleted albums; thêm boolean deleted field.
+     c. TrackSummaryDto.ArtistRefDto: thêm UUID userId — truyền artist userId vào mọi
+        response có ArtistRef (TrackSummaryDto, TrackDetailDto, AlbumSummaryDto, AlbumDetailDto)
+     d. TrackMapper + AlbumMapper: @Mapping(target = "artist.userId", source = "artist.userId")
+     e. AlbumService.getAlbumById(): cập nhật manual ArtistRefDto constructor để include userId
+     f. TrackRepository: thêm findByAlbumId() JPQL query (không cần @EntityGraph vì
+        deleteAlbum chỉ truy cập getId() và getStatus(), không access artist)
+     g. AlbumService: inject OutboxService; thêm deleteAlbum() — QUAN TRỌNG: load tracks
+        TRƯỚC khi gọi albumRepository.save(album.setDeleted=true) vì Hibernate AUTO flush
+        mode sẽ flush album update trước khi query tracks nếu làm ngược lại,
+        và @SQLRestriction sẽ hide tracks khi JOIN vào albums table đã bị restrict.
+        Sau đó archive từng track + publish TrackDeletedEvent per track qua outbox.
+     h. AlbumController: DELETE /{albumId} → 204 No Content
+     i. krakend.json: DELETE /api/v1/albums/{albumId} với cùng JWT auth config như PUT
+   - Fix (Frontend):
+     a. ArtistRef type (types.ts): thêm userId: string | null
+     b. albums.ts: thêm deleteAlbum() dùng apiDelete
+     c. components/tracks/edit-track-dialog.tsx: Dialog với fields (title, genre, releaseDate),
+        gọi updateTrack + invalidate ['track', trackId] query cache
+     d. components/albums/edit-album-dialog.tsx: tương tự (title, coverUrl, releaseDate)
+     e. track/[trackId]/page.tsx: Pencil + Trash2 buttons hiển thị khi
+        track.artist.userId === user.id || user.role === 'ADMIN';
+        edit → EditTrackDialog; delete → confirm Dialog → deleteTrack() → redirect /
+     f. album/[albumId]/page.tsx: tương tự; delete confirm cảnh báo "all tracks will be archived"
+   - Lưu ý: @SQLRestriction("deleted = false") trên Album áp dụng cho TẤT CẢ JPA queries
+     kể cả lazy-load qua association. insertIfAbsent() native INSERT không bị ảnh hưởng.
+     Thứ tự trong deleteAlbum() (load tracks → mark deleted → archive tracks) là bắt buộc
+     để tránh @SQLRestriction hide tracks trước khi được archive.
+
+KẾT QUẢ: DELETE /api/v1/albums/{albumId} soft-delete album + archive tracks + publish events;
+          Frontend hiển thị edit/delete buttons cho owner/admin với confirm dialog trước khi xóa.
+
+45. Playlist UX — deleted track hiển thị "[Deleted]" thay vì UI rõ ràng
+   - Vấn đề: Khi track bị archive, playlist-service consumer set trackTitle = '[Deleted]' và
+     trackCoverUrl = null. Frontend không phân biệt được track deleted với track bình thường,
+     vẫn cho phép click-to-play (dẫn đến lỗi), không có visual cue rõ ràng.
+   - Fix (playlist-service):
+     a. V7 Flyway migration: thêm deleted BOOLEAN NOT NULL DEFAULT FALSE vào playlist_schema.playlist_items
+     b. PlaylistItem entity: thêm @Column(name = "deleted") boolean deleted = false
+     c. PlaylistItemRepository.markTrackAsDeleted(): đổi từ SET trackTitle = '[Deleted]'
+        thành SET deleted = true, trackCoverUrl = null — giữ nguyên trackTitle gốc để
+        hiển thị strikethrough (user biết track nào bị xóa thay vì thấy "[Deleted]" ẩn danh)
+     d. findFirstCoverUrlByPlaylistId(): thêm AND i.deleted = false — playlist cover
+        dùng cover của track còn sống đầu tiên, không dùng track đã bị xóa
+     e. PlaylistItemDto: thêm boolean deleted làm field thứ 13 (MapStruct auto-map)
+     f. PlaylistItemService.addTrack(): fix manual constructor call thêm false làm arg thứ 13
+   - Fix (frontend):
+     a. types.ts: thêm deleted: boolean vào PlaylistItemDto interface
+     b. playlists/[playlistId]/page.tsx:
+        - tracksAsSummary: filter .filter((item) => !item.deleted) — chỉ track còn sống
+          mới vào play queue; thêm userId: null vào artist stub
+        - queueIndexMap: pre-compute Map<itemId, queueIndex> cho non-deleted items
+          → play(tracksAsSummary, queueIdx) dùng đúng index
+        - Deleted item row: opacity-50, cursor-default (không click-to-play), Ban icon
+          thay số thứ tự, Music2 placeholder thay thumbnail, title có line-through,
+          subtitle "Track no longer available", Remove button luôn visible (nếu canEdit)
+        - Normal item row: dùng queueIdx thay i để tránh off-by-one khi có deleted items
+   - Lưu ý: Giữ trackTitle gốc (không overwrite '[Deleted]') là chủ ý — user nhìn thấy
+     tên track với strikethrough, hiểu ngay track nào bị xóa mà không mất context.
+     MapStruct tự generate mapping cho deleted field vì tên field trùng khớp — không cần
+     thêm @Mapping annotation vào PlaylistItemMapper.
+
+KẾT QUẢ: Deleted tracks hiển thị với visual rõ ràng (greyed, strikethrough, "Track no longer
+          available"), không thể play, nhưng vẫn có thể Remove khỏi playlist. Play queue chỉ
+          gồm các track còn sống với đúng index mapping.
+
+46. Streaming service — archived track vẫn stream được sau khi bị xóa
+   - Vấn đề: Sau khi track bị archive, streaming service vẫn có thể phát audio cho bất kỳ
+     client nào giữ trackId (direct API call, bookmark, v.v.).
+   - Root cause chuỗi:
+     a. TrackDeletedEvent → streaming consumer → track_cache.Delete() — đúng
+     b. Request tiếp theo: cache miss → gọi catalog internal API getInternalTrack()
+     c. getInternalTrack() dùng findWithAssetsById() — không có status filter
+        → Hibernate query không bị @SQLRestriction (Track entity không có annotation này)
+        → trả về track ARCHIVED đầy đủ kể cả storageUrl của file audio
+     d. Streaming service nhận metadata → fetch từ MinIO → stream audio bình thường
+     Vậy archived track vẫn streamable vô thời hạn dù cache đã bị xóa.
+   - Fix: catalog-service TrackService.getInternalTrack():
+       if (track.getStatus() == TrackStatus.ARCHIVED) {
+           throw new EntityNotFoundException("Track not found: " + trackId);
+       }
+     Đặt check ngay sau findWithAssetsById() — internal API là single source of truth
+     cho "track này có streamable không?". 404 từ catalog → ErrNotFound trong streaming
+     → client nhận 404, không stream được.
+   - Lưu ý: Fix này hoạt động đúng dù cache hit hay miss vì:
+     - Cache hit: track_cache đã bị xóa bởi consumer → không thể hit
+     - Cache miss: catalog trả 404 → streaming trả 404
+     Không cần thêm status field vào TrackCache hay thay đổi event flow.
+     TrackStatus đã được import sẵn trong TrackService → không cần thêm import.
+
+KẾT QUẢ: GET /api/v1/stream/{archivedTrackId} → 404; không thể stream track đã bị archive.

@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut } from './client';
+import { apiGet, apiPost, apiPut, apiDelete } from './client';
 import type { PaginatedResponse, AlbumSummaryDto, AlbumDetailDto } from './types';
 
 export function getAlbums(params: { artistId?: string; page?: number; size?: number } = {}) {
@@ -21,4 +21,8 @@ export function updateAlbum(
   body: { title?: string; coverUrl?: string; releaseDate?: string }
 ) {
   return apiPut<AlbumSummaryDto>(`/albums/${albumId}`, body);
+}
+
+export function deleteAlbum(albumId: string) {
+  return apiDelete(`/albums/${albumId}`);
 }

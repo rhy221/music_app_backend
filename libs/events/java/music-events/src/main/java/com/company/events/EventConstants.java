@@ -28,5 +28,6 @@ public final class EventConstants {
         public static final String PLAYLIST_SHARED       = "events.playlist.shared";
         public static final String COLLABORATOR_ADDED    = "events.playlist.collaborator.added";
         public static final String PLAYLIST_TRACK_ADDED  = "events.playlist.track.added";
+        public static final String ALBUM_DELETED          = "events.catalog.album.deleted";
     }
 }

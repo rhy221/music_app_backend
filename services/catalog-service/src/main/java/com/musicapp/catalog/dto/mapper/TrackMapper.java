@@ -15,12 +15,14 @@ public interface TrackMapper {
     @Mapping(target = "artist.id",        source = "artist.id")
     @Mapping(target = "artist.name",      source = "artist.name")
     @Mapping(target = "artist.avatarUrl", source = "artist.avatarUrl")
+    @Mapping(target = "artist.userId",    source = "artist.userId")
     @Mapping(target = "status",           expression = "java(track.getStatus().name())")
     TrackSummaryDto toSummary(Track track);
 
     @Mapping(target = "artist.id",        source = "artist.id")
     @Mapping(target = "artist.name",      source = "artist.name")
     @Mapping(target = "artist.avatarUrl", source = "artist.avatarUrl")
+    @Mapping(target = "artist.userId",    source = "artist.userId")
     @Mapping(target = "album.id",         source = "album.id")
     @Mapping(target = "album.title",      source = "album.title")
     @Mapping(target = "album.coverUrl",   source = "album.coverUrl")

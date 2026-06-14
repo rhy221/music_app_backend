@@ -107,7 +107,7 @@ public class PlaylistItemService {
         return new PlaylistItemDto(item.getId(), item.getTrackId(), item.getPosition(),
                 item.getAddedBy(), item.getAddedAt(), item.getTrackTitle(),
                 item.getTrackDuration(), item.getTrackCoverUrl(), item.getArtistName(),
-                item.getArtistId(), item.getAlbumId(), item.getAlbumTitle());
+                item.getArtistId(), item.getAlbumId(), item.getAlbumTitle(), false);
     }
 
     @Transactional

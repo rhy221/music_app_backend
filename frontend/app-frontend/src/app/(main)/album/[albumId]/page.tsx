@@ -1,18 +1,36 @@
 'use client';
 
 import { use, useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Play, Pause, Disc3, Clock } from 'lucide-react';
+import { Play, Pause, Disc3, Clock, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { TrackRow } from '@/components/tracks/track-row';
 import { AddToPlaylistDialog } from '@/components/playlists/add-to-playlist-dialog';
+import { EditAlbumDialog } from '@/components/albums/edit-album-dialog';
 import { usePageGradient } from '@/components/common/page-gradient';
-import { getAlbum } from '@/lib/api/albums';
+import { getAlbum, deleteAlbum } from '@/lib/api/albums';
 import { usePlayer } from '@/hooks/use-player';
 import { usePlayerStore } from '@/stores/player-store';
+import { useAuthStore } from '@/stores/auth-store';
 import { storageUrl } from '@/lib/constants';
 import type { TrackSummaryDto } from '@/lib/api/types';
 
@@ -27,10 +45,14 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
   const { albumId } = use(params);
   const { play, togglePlay } = usePlayer();
   const [addTarget, setAddTarget] = useState<TrackSummaryDto | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const currentTrackId = usePlayerStore((s) => s.queue[s.currentIndex]?.id);
   const isGlobalPlaying = usePlayerStore((s) => s.isPlaying);
   const { setSrc } = usePageGradient();
-
+  const user = useAuthStore((s) => s.user);
+  const router = useRouter();
+  const queryClient = useQueryClient();
 
   const { data: album, isLoading } = useQuery({
     queryKey: ['album', albumId],
@@ -44,6 +66,20 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
     setSrc(coverSrc);
     return () => setSrc(null);
   }, [coverSrc, setSrc]);
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteAlbum(albumId),
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: ['album', albumId] });
+      toast.success('Album deleted');
+      router.push('/');
+    },
+    onError: () => toast.error('Failed to delete album'),
+  });
+
+  const isOwner =
+    !!user &&
+    (user.role === 'ADMIN' || (!!album?.artist.userId && album.artist.userId === user.id));
 
   if (isLoading) {
     return (
@@ -102,7 +138,7 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
               <Clock className="h-3 w-3" /> {formatMs(album.totalDurationMs)}
             </span>
           </div>
-          <div className="mt-4">
+          <div className="mt-4 flex items-center gap-2">
             <Button onClick={handlePlayPause} className="gap-2" size="lg">
               {isContextPlaying ? (
                 <><Pause className="h-5 w-5 fill-current" />Pause</>
@@ -110,6 +146,26 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
                 <><Play className="h-5 w-5 fill-current" />Play all</>
               )}
             </Button>
+            {isOwner && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit album
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive" onClick={() => setDeleteOpen(true)}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete album
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       </div>
@@ -118,7 +174,7 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
       style={{
                 background: `linear-gradient(to bottom, rgba(31,31,31,0.3) 0%, rgba(31,31,31,0.4) 20%, rgba(31,31,31,0.65) 60%, rgba(31,31,31,1) 100%)`,
               }}>
-            
+
       {/* Track list header */}
       <div className="grid grid-cols-[2rem_1fr_auto_2.5rem] items-center gap-3 border-b border-border/40 px-2 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         <span className="text-center">#</span>
@@ -143,8 +199,34 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
       </div>
       </div>
 
-
       <AddToPlaylistDialog track={addTarget} onClose={() => setAddTarget(null)} />
+
+      {editOpen && (
+        <EditAlbumDialog album={album} open={editOpen} onClose={() => setEditOpen(false)} />
+      )}
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete album</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete <span className="font-medium text-foreground">&ldquo;{album.title}&rdquo;</span>? All tracks in this album will also be archived. This cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -14,5 +14,5 @@ public record TrackSummaryDto(
         LocalDate releaseDate,
         ArtistRefDto artist
 ) {
-    public record ArtistRefDto(UUID id, String name, String avatarUrl) {}
+    public record ArtistRefDto(UUID id, String name, String avatarUrl, UUID userId) {}
 }

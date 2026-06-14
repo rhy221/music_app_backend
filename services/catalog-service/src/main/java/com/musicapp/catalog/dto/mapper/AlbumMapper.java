@@ -11,5 +11,6 @@ public interface AlbumMapper {
     @Mapping(target = "artist.id",        source = "artist.id")
     @Mapping(target = "artist.name",      source = "artist.name")
     @Mapping(target = "artist.avatarUrl", source = "artist.avatarUrl")
+    @Mapping(target = "artist.userId",    source = "artist.userId")
     AlbumSummaryDto toSummary(Album album);
 }

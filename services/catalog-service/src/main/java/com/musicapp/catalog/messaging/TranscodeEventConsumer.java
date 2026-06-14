@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,6 +39,10 @@ public class TranscodeEventConsumer {
                             a.bitrate(), a.format(), a.storageUrl(), a.sizeBytes()))
                     .toList();
 
+            LocalDate releaseDate = event.data().releaseDate() != null
+                    ? LocalDate.parse(event.data().releaseDate())
+                    : null;
+
             PublishTrackRequest req = new PublishTrackRequest(
                     event.data().uploadJobId(),
                     UUID.fromString(event.data().uploaderId()),
@@ -47,6 +52,7 @@ public class TranscodeEventConsumer {
                     event.data().albumId() != null ? UUID.fromString(event.data().albumId()) : null,
                     event.data().thumbnailUrl(),
                     event.data().waveformUrl(),
+                    releaseDate,
                     assets
             );
 

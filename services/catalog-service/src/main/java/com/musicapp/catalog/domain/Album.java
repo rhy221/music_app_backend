@@ -5,11 +5,13 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDate;
 
 @Entity
 @Table(name = "albums", schema = "catalog_schema")
+@SQLRestriction("deleted = false")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -27,4 +29,7 @@ public class Album extends BaseEntity {
 
     @Column(name = "release_date")
     private LocalDate releaseDate;
+
+    @Column(name = "deleted", nullable = false)
+    private boolean deleted = false;
 }

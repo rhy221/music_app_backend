@@ -1,20 +1,38 @@
 'use client';
 
 import { use, useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Play, Pause, Music2, Clock } from 'lucide-react';
+import { Play, Pause, Music2, Clock, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { TrackRow } from '@/components/tracks/track-row';
 import { AddToPlaylistDialog } from '@/components/playlists/add-to-playlist-dialog';
+import { EditTrackDialog } from '@/components/tracks/edit-track-dialog';
 import { usePageGradient } from '@/components/common/page-gradient';
-import { getTrack, getPopularTracks } from '@/lib/api/tracks';
+import { getTrack, getPopularTracks, deleteTrack } from '@/lib/api/tracks';
 import { getSimilarTracks } from '@/lib/api/recommendations';
 import { usePlayer } from '@/hooks/use-player';
 import { usePlayerStore } from '@/stores/player-store';
+import { useAuthStore } from '@/stores/auth-store';
 import { storageUrl } from '@/lib/constants';
 import type { TrackSummaryDto } from '@/lib/api/types';
 
@@ -28,9 +46,14 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
   const { trackId } = use(params);
   const { play, togglePlay } = usePlayer();
   const [addTarget, setAddTarget] = useState<TrackSummaryDto | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const currentTrackId = usePlayerStore((s) => s.queue[s.currentIndex]?.id);
   const isGlobalPlaying = usePlayerStore((s) => s.isPlaying);
   const { setSrc } = usePageGradient();
+  const user = useAuthStore((s) => s.user);
+  const router = useRouter();
+  const queryClient = useQueryClient();
 
   const { data: track, isLoading } = useQuery({
     queryKey: ['track', trackId],
@@ -54,12 +77,25 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
 
   const filteredPopular = (popular ?? []).filter((t) => t.id !== trackId);
 
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteTrack(trackId),
+    onSuccess: () => {
+      queryClient.removeQueries({ queryKey: ['track', trackId] });
+      toast.success('Track deleted');
+      router.push('/');
+    },
+    onError: () => toast.error('Failed to delete track'),
+  });
+
   const coverSrc = track ? storageUrl(track.coverUrl) : null;
 
   useEffect(() => {
     setSrc(coverSrc);
     return () => setSrc(null);
   }, [coverSrc, setSrc]);
+
+  const isOwner =
+    !!user && (user.role === 'ADMIN' || (!!track?.artist.userId && track.artist.userId === user.id));
 
   if (isLoading) {
     return (
@@ -144,7 +180,7 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
             </span>
             <span>{track.playCount.toLocaleString()} plays</span>
           </div>
-          <div className="mt-4">
+          <div className="mt-4 flex items-center gap-2">
             <Button onClick={handlePlayPause} className="gap-2" size="lg">
               {isThisPlaying ? (
                 <><Pause className="h-5 w-5 fill-current" />Pause</>
@@ -152,10 +188,30 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
                 <><Play className="h-5 w-5 fill-current" />Play</>
               )}
             </Button>
+            {isOwner && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit track
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive" onClick={() => setDeleteOpen(true)}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete track
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       </div>
-      
+
       <div className="space-y-8 p-6 h-full"
        style={{
                 background: `linear-gradient(to bottom, rgba(31,31,31,0.3) 0%, rgba(31,31,31,0.4) 20%, rgba(31,31,31,0.65) 60%, rgba(31,31,31,1) 100%)`,
@@ -216,7 +272,7 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
                     playCount: item.playCount,
                     status: 'PUBLISHED',
                     releaseDate: null,
-                    artist: { id: '', name: '', avatarUrl: null },
+                    artist: { id: '', name: '', avatarUrl: null, userId: null },
                   };
                   return (
                     <TrackRow key={item.trackId} track={t} index={i} onAddToPlaylist={setAddTarget} />
@@ -230,9 +286,35 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
         </div>
       )}
       </div>
-      
 
       <AddToPlaylistDialog track={addTarget} onClose={() => setAddTarget(null)} />
+
+      {editOpen && (
+        <EditTrackDialog track={track} open={editOpen} onClose={() => setEditOpen(false)} />
+      )}
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete track</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete <span className="font-medium text-foreground">&ldquo;{track.title}&rdquo;</span>? This cannot be undone.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

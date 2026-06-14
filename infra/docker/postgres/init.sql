@@ -22,3 +22,7 @@ GRANT ALL PRIVILEGES ON DATABASE streaming_db TO music_admin;
 -- Upload & Transcode Service
 CREATE DATABASE upload_db;
 GRANT ALL PRIVILEGES ON DATABASE upload_db TO music_admin;
+
+-- Library Service
+CREATE DATABASE library_db;
+GRANT ALL PRIVILEGES ON DATABASE library_db TO music_admin;

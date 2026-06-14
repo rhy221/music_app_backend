@@ -16,3 +16,4 @@ project(':music-events').projectDir = file('libs/events/java/music-events')
 include 'services:user-service'
 include 'services:catalog-service'
 include 'services:playlist-service'
+include 'services:library-service'

@@ -208,6 +208,7 @@ func (p *TranscoderPool) process(ctx context.Context, work port.TranscodeWork) {
 			Genre:        work.Genre,
 			AlbumID:      work.AlbumID,
 			AlbumTitle:   work.AlbumTitle,
+			ReleaseDate:  work.ReleaseDate,
 			DurationMs:   durationMs,
 			ThumbnailURL: work.ThumbnailURL,
 			WaveformURL:  waveformURL,

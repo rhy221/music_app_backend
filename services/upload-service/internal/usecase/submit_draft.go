@@ -129,6 +129,11 @@ func (uc *SubmitDraftUseCase) Execute(ctx context.Context, draftID, uploaderID s
 			return nil, fmt.Errorf("persist job for track %s: %w", t.ID, err)
 		}
 
+		var releaseDate *string
+		if draft.ReleaseDate != nil {
+			s := draft.ReleaseDate.Format("2006-01-02")
+			releaseDate = &s
+		}
 		uc.dispatcher.Submit(port.TranscodeWork{
 			JobID:        jobID,
 			UploaderID:   uploaderID,
@@ -136,6 +141,7 @@ func (uc *SubmitDraftUseCase) Execute(ctx context.Context, draftID, uploaderID s
 			Genre:        draft.Genre,
 			AlbumID:      albumID,
 			AlbumTitle:   albumTitle,
+			ReleaseDate:  releaseDate,
 			StorageKey:   storageKey,
 			ThumbnailURL: draft.ThumbnailURL,
 		})

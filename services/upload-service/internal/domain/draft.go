@@ -24,6 +24,7 @@ type UploadDraft struct {
 	Title        string
 	Genre        *string
 	ThumbnailURL *string
+	ReleaseDate  *time.Time
 	Status       DraftStatus
 	Tracks       []DraftTrack
 	CreatedAt    time.Time

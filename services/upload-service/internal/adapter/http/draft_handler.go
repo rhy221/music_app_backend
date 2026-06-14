@@ -30,6 +30,7 @@ type draftResponse struct {
 	Title        string          `json:"title"`
 	Genre        *string         `json:"genre"`
 	ThumbnailURL *string         `json:"thumbnailUrl"`
+	ReleaseDate  *string         `json:"releaseDate"`
 	Status       string          `json:"status"`
 	Tracks       []trackResponse `json:"tracks"`
 	CreatedAt    time.Time       `json:"createdAt"`
@@ -52,6 +53,11 @@ func toDraftResponse(d *domain.UploadDraft) draftResponse {
 	for i, t := range d.Tracks {
 		tracks[i] = toTrackResponse(t)
 	}
+	var releaseDate *string
+	if d.ReleaseDate != nil {
+		s := d.ReleaseDate.Format("2006-01-02")
+		releaseDate = &s
+	}
 	return draftResponse{
 		ID:           d.ID,
 		UploaderID:   d.UploaderID,
@@ -59,6 +65,7 @@ func toDraftResponse(d *domain.UploadDraft) draftResponse {
 		Title:        d.Title,
 		Genre:        d.Genre,
 		ThumbnailURL: d.ThumbnailURL,
+		ReleaseDate:  releaseDate,
 		Status:       string(d.Status),
 		Tracks:       tracks,
 		CreatedAt:    d.CreatedAt,
@@ -221,11 +228,19 @@ func (h *DraftHandler) handleCreate(w http.ResponseWriter, r *http.Request) {
 		releaseType = domain.ReleaseTypeSingle
 	}
 
+	var releaseDate *time.Time
+	if raw := strings.TrimSpace(r.FormValue("release_date")); raw != "" {
+		if t, err := time.Parse("2006-01-02", raw); err == nil {
+			releaseDate = &t
+		}
+	}
+
 	in := usecase.CreateDraftInput{
 		UploaderID:  userIDFromRequest(r),
 		ReleaseType: releaseType,
 		Title:       strings.TrimSpace(r.FormValue("title")),
 		Genre:       nilIfEmpty(r.FormValue("genre")),
+		ReleaseDate: releaseDate,
 	}
 
 	if f, fh, err := r.FormFile("thumbnail"); err == nil {
