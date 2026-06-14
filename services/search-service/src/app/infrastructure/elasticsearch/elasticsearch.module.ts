@@ -4,6 +4,7 @@ import { Client } from '@elastic/elasticsearch';
 import { IndexInitializerService } from './index-initializer.service';
 import { TrackEsRepository } from './track-es.repository';
 import { ArtistEsRepository } from './artist-es.repository';
+import { AlbumEsRepository } from './album-es.repository';
 import { ELASTICSEARCH_CLIENT } from './elasticsearch.tokens';
 
 export { ELASTICSEARCH_CLIENT } from './elasticsearch.tokens';
@@ -26,7 +27,8 @@ export { ELASTICSEARCH_CLIENT } from './elasticsearch.tokens';
     IndexInitializerService,
     TrackEsRepository,
     ArtistEsRepository,
+    AlbumEsRepository,
   ],
-  exports: [TrackEsRepository, ArtistEsRepository],
+  exports: [TrackEsRepository, ArtistEsRepository, AlbumEsRepository],
 })
 export class ElasticsearchModule {}

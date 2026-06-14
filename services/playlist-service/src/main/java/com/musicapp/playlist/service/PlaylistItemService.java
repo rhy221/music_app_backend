@@ -148,8 +148,8 @@ public class PlaylistItemService {
         var playlist = playlistService.loadPlaylist(playlistId);
         playlistService.checkAccess(playlist, userId);
 
-        if (!playlistService.canEdit(playlistId, playlist.getOwnerId(), userId)) {
-            throw new AccessDeniedException("You do not have edit permission for this playlist");
+        if (!userId.equals(playlist.getOwnerId())) {
+            throw new AccessDeniedException("Only the playlist owner can reorder tracks");
         }
 
         var currentItems = itemRepository.findByPlaylistIdOrderByPosition(playlistId);

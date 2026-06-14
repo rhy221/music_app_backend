@@ -3533,181 +3533,589 @@
     {
       "endpoint": "/api/v1/library/albums",
       "method": "POST",
-      "input_headers": ["Content-Type", "Authorization"],
+      "input_headers": [
+        "Content-Type",
+        "Authorization"
+      ],
       "input_query_strings": [],
       "extra_config": {
-        "qos/ratelimit/router": { "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip" },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100,
+          "client_capacity": 100,
+          "every": "1m",
+          "strategy": "ip"
+        },
         "auth/validator": {
-          "alg": "HS256", "jwk_url": "http://localhost:8088/", "disable_jwk_security": true, "cache": true, "cache_duration": 300,
-          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+          "alg": "HS256",
+          "jwk_url": "http://localhost:8088/",
+          "disable_jwk_security": true,
+          "cache": true,
+          "cache_duration": 300,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ],
+            [
+              "role",
+              "X-User-Role"
+            ]
+          ]
         }
       },
-      "backend": [{ "url_pattern": "/api/v1/library/albums", "method": "POST", "host": ["http://host.docker.internal:8088"], "encoding": "no-op" }],
+      "backend": [
+        {
+          "url_pattern": "/api/v1/library/albums",
+          "method": "POST",
+          "host": [
+            "http://host.docker.internal:8088"
+          ],
+          "encoding": "no-op"
+        }
+      ],
       "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/library/albums/{albumId}",
       "method": "DELETE",
-      "input_headers": ["Authorization"],
+      "input_headers": [
+        "Authorization"
+      ],
       "input_query_strings": [],
       "extra_config": {
-        "qos/ratelimit/router": { "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip" },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100,
+          "client_capacity": 100,
+          "every": "1m",
+          "strategy": "ip"
+        },
         "auth/validator": {
-          "alg": "HS256", "jwk_url": "http://localhost:8088/", "disable_jwk_security": true, "cache": true, "cache_duration": 300,
-          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+          "alg": "HS256",
+          "jwk_url": "http://localhost:8088/",
+          "disable_jwk_security": true,
+          "cache": true,
+          "cache_duration": 300,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ],
+            [
+              "role",
+              "X-User-Role"
+            ]
+          ]
         }
       },
-      "backend": [{ "url_pattern": "/api/v1/library/albums/{albumId}", "method": "DELETE", "host": ["http://host.docker.internal:8088"], "encoding": "no-op" }],
+      "backend": [
+        {
+          "url_pattern": "/api/v1/library/albums/{albumId}",
+          "method": "DELETE",
+          "host": [
+            "http://host.docker.internal:8088"
+          ],
+          "encoding": "no-op"
+        }
+      ],
       "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/library/albums",
       "method": "GET",
-      "input_headers": ["Accept", "Authorization"],
-      "input_query_strings": ["page", "size"],
+      "input_headers": [
+        "Accept",
+        "Authorization"
+      ],
+      "input_query_strings": [
+        "page",
+        "size"
+      ],
       "extra_config": {
-        "qos/ratelimit/router": { "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip" },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100,
+          "client_capacity": 100,
+          "every": "1m",
+          "strategy": "ip"
+        },
         "auth/validator": {
-          "alg": "HS256", "jwk_url": "http://localhost:8088/", "disable_jwk_security": true, "cache": true, "cache_duration": 300,
-          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+          "alg": "HS256",
+          "jwk_url": "http://localhost:8088/",
+          "disable_jwk_security": true,
+          "cache": true,
+          "cache_duration": 300,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ],
+            [
+              "role",
+              "X-User-Role"
+            ]
+          ]
         }
       },
-      "backend": [{ "url_pattern": "/api/v1/library/albums", "method": "GET", "host": ["http://host.docker.internal:8088"], "encoding": "no-op" }],
+      "backend": [
+        {
+          "url_pattern": "/api/v1/library/albums",
+          "method": "GET",
+          "host": [
+            "http://host.docker.internal:8088"
+          ],
+          "encoding": "no-op"
+        }
+      ],
       "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/library/albums/{albumId}/saved",
       "method": "GET",
-      "input_headers": ["Authorization"],
+      "input_headers": [
+        "Authorization"
+      ],
       "input_query_strings": [],
       "extra_config": {
-        "qos/ratelimit/router": { "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip" },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100,
+          "client_capacity": 100,
+          "every": "1m",
+          "strategy": "ip"
+        },
         "auth/validator": {
-          "alg": "HS256", "jwk_url": "http://localhost:8088/", "disable_jwk_security": true, "cache": true, "cache_duration": 300,
-          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+          "alg": "HS256",
+          "jwk_url": "http://localhost:8088/",
+          "disable_jwk_security": true,
+          "cache": true,
+          "cache_duration": 300,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ],
+            [
+              "role",
+              "X-User-Role"
+            ]
+          ]
         }
       },
-      "backend": [{ "url_pattern": "/api/v1/library/albums/{albumId}/saved", "method": "GET", "host": ["http://host.docker.internal:8088"], "encoding": "no-op" }],
+      "backend": [
+        {
+          "url_pattern": "/api/v1/library/albums/{albumId}/saved",
+          "method": "GET",
+          "host": [
+            "http://host.docker.internal:8088"
+          ],
+          "encoding": "no-op"
+        }
+      ],
       "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/library/playlists",
       "method": "POST",
-      "input_headers": ["Content-Type", "Authorization"],
+      "input_headers": [
+        "Content-Type",
+        "Authorization"
+      ],
       "input_query_strings": [],
       "extra_config": {
-        "qos/ratelimit/router": { "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip" },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100,
+          "client_capacity": 100,
+          "every": "1m",
+          "strategy": "ip"
+        },
         "auth/validator": {
-          "alg": "HS256", "jwk_url": "http://localhost:8088/", "disable_jwk_security": true, "cache": true, "cache_duration": 300,
-          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+          "alg": "HS256",
+          "jwk_url": "http://localhost:8088/",
+          "disable_jwk_security": true,
+          "cache": true,
+          "cache_duration": 300,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ],
+            [
+              "role",
+              "X-User-Role"
+            ]
+          ]
         }
       },
-      "backend": [{ "url_pattern": "/api/v1/library/playlists", "method": "POST", "host": ["http://host.docker.internal:8088"], "encoding": "no-op" }],
+      "backend": [
+        {
+          "url_pattern": "/api/v1/library/playlists",
+          "method": "POST",
+          "host": [
+            "http://host.docker.internal:8088"
+          ],
+          "encoding": "no-op"
+        }
+      ],
       "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/library/playlists/{playlistId}",
       "method": "DELETE",
-      "input_headers": ["Authorization"],
+      "input_headers": [
+        "Authorization"
+      ],
       "input_query_strings": [],
       "extra_config": {
-        "qos/ratelimit/router": { "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip" },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100,
+          "client_capacity": 100,
+          "every": "1m",
+          "strategy": "ip"
+        },
         "auth/validator": {
-          "alg": "HS256", "jwk_url": "http://localhost:8088/", "disable_jwk_security": true, "cache": true, "cache_duration": 300,
-          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+          "alg": "HS256",
+          "jwk_url": "http://localhost:8088/",
+          "disable_jwk_security": true,
+          "cache": true,
+          "cache_duration": 300,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ],
+            [
+              "role",
+              "X-User-Role"
+            ]
+          ]
         }
       },
-      "backend": [{ "url_pattern": "/api/v1/library/playlists/{playlistId}", "method": "DELETE", "host": ["http://host.docker.internal:8088"], "encoding": "no-op" }],
+      "backend": [
+        {
+          "url_pattern": "/api/v1/library/playlists/{playlistId}",
+          "method": "DELETE",
+          "host": [
+            "http://host.docker.internal:8088"
+          ],
+          "encoding": "no-op"
+        }
+      ],
       "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/library/playlists",
       "method": "GET",
-      "input_headers": ["Accept", "Authorization"],
-      "input_query_strings": ["page", "size"],
+      "input_headers": [
+        "Accept",
+        "Authorization"
+      ],
+      "input_query_strings": [
+        "page",
+        "size"
+      ],
       "extra_config": {
-        "qos/ratelimit/router": { "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip" },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100,
+          "client_capacity": 100,
+          "every": "1m",
+          "strategy": "ip"
+        },
         "auth/validator": {
-          "alg": "HS256", "jwk_url": "http://localhost:8088/", "disable_jwk_security": true, "cache": true, "cache_duration": 300,
-          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+          "alg": "HS256",
+          "jwk_url": "http://localhost:8088/",
+          "disable_jwk_security": true,
+          "cache": true,
+          "cache_duration": 300,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ],
+            [
+              "role",
+              "X-User-Role"
+            ]
+          ]
         }
       },
-      "backend": [{ "url_pattern": "/api/v1/library/playlists", "method": "GET", "host": ["http://host.docker.internal:8088"], "encoding": "no-op" }],
+      "backend": [
+        {
+          "url_pattern": "/api/v1/library/playlists",
+          "method": "GET",
+          "host": [
+            "http://host.docker.internal:8088"
+          ],
+          "encoding": "no-op"
+        }
+      ],
       "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/library/playlists/{playlistId}/followed",
       "method": "GET",
-      "input_headers": ["Authorization"],
+      "input_headers": [
+        "Authorization"
+      ],
       "input_query_strings": [],
       "extra_config": {
-        "qos/ratelimit/router": { "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip" },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100,
+          "client_capacity": 100,
+          "every": "1m",
+          "strategy": "ip"
+        },
         "auth/validator": {
-          "alg": "HS256", "jwk_url": "http://localhost:8088/", "disable_jwk_security": true, "cache": true, "cache_duration": 300,
-          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+          "alg": "HS256",
+          "jwk_url": "http://localhost:8088/",
+          "disable_jwk_security": true,
+          "cache": true,
+          "cache_duration": 300,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ],
+            [
+              "role",
+              "X-User-Role"
+            ]
+          ]
         }
       },
-      "backend": [{ "url_pattern": "/api/v1/library/playlists/{playlistId}/followed", "method": "GET", "host": ["http://host.docker.internal:8088"], "encoding": "no-op" }],
+      "backend": [
+        {
+          "url_pattern": "/api/v1/library/playlists/{playlistId}/followed",
+          "method": "GET",
+          "host": [
+            "http://host.docker.internal:8088"
+          ],
+          "encoding": "no-op"
+        }
+      ],
       "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/library/tracks",
       "method": "POST",
-      "input_headers": ["Content-Type", "Authorization"],
+      "input_headers": [
+        "Content-Type",
+        "Authorization"
+      ],
       "input_query_strings": [],
       "extra_config": {
-        "qos/ratelimit/router": { "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip" },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100,
+          "client_capacity": 100,
+          "every": "1m",
+          "strategy": "ip"
+        },
         "auth/validator": {
-          "alg": "HS256", "jwk_url": "http://localhost:8088/", "disable_jwk_security": true, "cache": true, "cache_duration": 300,
-          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+          "alg": "HS256",
+          "jwk_url": "http://localhost:8088/",
+          "disable_jwk_security": true,
+          "cache": true,
+          "cache_duration": 300,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ],
+            [
+              "role",
+              "X-User-Role"
+            ]
+          ]
         }
       },
-      "backend": [{ "url_pattern": "/api/v1/library/tracks", "method": "POST", "host": ["http://host.docker.internal:8088"], "encoding": "no-op" }],
+      "backend": [
+        {
+          "url_pattern": "/api/v1/library/tracks",
+          "method": "POST",
+          "host": [
+            "http://host.docker.internal:8088"
+          ],
+          "encoding": "no-op"
+        }
+      ],
       "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/library/tracks/{trackId}",
       "method": "DELETE",
-      "input_headers": ["Authorization"],
+      "input_headers": [
+        "Authorization"
+      ],
       "input_query_strings": [],
       "extra_config": {
-        "qos/ratelimit/router": { "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip" },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100,
+          "client_capacity": 100,
+          "every": "1m",
+          "strategy": "ip"
+        },
         "auth/validator": {
-          "alg": "HS256", "jwk_url": "http://localhost:8088/", "disable_jwk_security": true, "cache": true, "cache_duration": 300,
-          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+          "alg": "HS256",
+          "jwk_url": "http://localhost:8088/",
+          "disable_jwk_security": true,
+          "cache": true,
+          "cache_duration": 300,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ],
+            [
+              "role",
+              "X-User-Role"
+            ]
+          ]
         }
       },
-      "backend": [{ "url_pattern": "/api/v1/library/tracks/{trackId}", "method": "DELETE", "host": ["http://host.docker.internal:8088"], "encoding": "no-op" }],
+      "backend": [
+        {
+          "url_pattern": "/api/v1/library/tracks/{trackId}",
+          "method": "DELETE",
+          "host": [
+            "http://host.docker.internal:8088"
+          ],
+          "encoding": "no-op"
+        }
+      ],
       "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/library/tracks",
       "method": "GET",
-      "input_headers": ["Accept", "Authorization"],
-      "input_query_strings": ["page", "size"],
+      "input_headers": [
+        "Accept",
+        "Authorization"
+      ],
+      "input_query_strings": [
+        "page",
+        "size"
+      ],
       "extra_config": {
-        "qos/ratelimit/router": { "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip" },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100,
+          "client_capacity": 100,
+          "every": "1m",
+          "strategy": "ip"
+        },
         "auth/validator": {
-          "alg": "HS256", "jwk_url": "http://localhost:8088/", "disable_jwk_security": true, "cache": true, "cache_duration": 300,
-          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+          "alg": "HS256",
+          "jwk_url": "http://localhost:8088/",
+          "disable_jwk_security": true,
+          "cache": true,
+          "cache_duration": 300,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ],
+            [
+              "role",
+              "X-User-Role"
+            ]
+          ]
         }
       },
-      "backend": [{ "url_pattern": "/api/v1/library/tracks", "method": "GET", "host": ["http://host.docker.internal:8088"], "encoding": "no-op" }],
+      "backend": [
+        {
+          "url_pattern": "/api/v1/library/tracks",
+          "method": "GET",
+          "host": [
+            "http://host.docker.internal:8088"
+          ],
+          "encoding": "no-op"
+        }
+      ],
       "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/library/tracks/{trackId}/saved",
       "method": "GET",
-      "input_headers": ["Authorization"],
+      "input_headers": [
+        "Authorization"
+      ],
       "input_query_strings": [],
       "extra_config": {
-        "qos/ratelimit/router": { "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip" },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100,
+          "client_capacity": 100,
+          "every": "1m",
+          "strategy": "ip"
+        },
         "auth/validator": {
-          "alg": "HS256", "jwk_url": "http://localhost:8088/", "disable_jwk_security": true, "cache": true, "cache_duration": 300,
-          "propagate_claims": [["sub", "X-User-Id"], ["role", "X-User-Role"]]
+          "alg": "HS256",
+          "jwk_url": "http://localhost:8088/",
+          "disable_jwk_security": true,
+          "cache": true,
+          "cache_duration": 300,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ],
+            [
+              "role",
+              "X-User-Role"
+            ]
+          ]
         }
       },
-      "backend": [{ "url_pattern": "/api/v1/library/tracks/{trackId}/saved", "method": "GET", "host": ["http://host.docker.internal:8088"], "encoding": "no-op" }],
+      "backend": [
+        {
+          "url_pattern": "/api/v1/library/tracks/{trackId}/saved",
+          "method": "GET",
+          "host": [
+            "http://host.docker.internal:8088"
+          ],
+          "encoding": "no-op"
+        }
+      ],
+      "output_encoding": "no-op"
+    },
+    {
+      "endpoint": "/api/v1/library/tracks/reorder",
+      "method": "PUT",
+      "input_headers": [
+        "Content-Type",
+        "Authorization"
+      ],
+      "input_query_strings": [],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100,
+          "client_capacity": 100,
+          "every": "1m",
+          "strategy": "ip"
+        },
+        "auth/validator": {
+          "alg": "HS256",
+          "jwk_url": "http://localhost:8088/",
+          "disable_jwk_security": true,
+          "cache": true,
+          "cache_duration": 300,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ],
+            [
+              "role",
+              "X-User-Role"
+            ]
+          ]
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/api/v1/library/tracks/reorder",
+          "method": "PUT",
+          "host": [
+            "http://host.docker.internal:8088"
+          ],
+          "encoding": "no-op"
+        }
+      ],
       "output_encoding": "no-op"
     }
   ]

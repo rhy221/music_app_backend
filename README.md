@@ -6,18 +6,19 @@
 
 ## Tổng quan kiến trúc
 
-| Service | Stack | Port |
-|---|---|---|
-| **Gateway** | KrakenD | `8080` |
-| **user-service** | Java 26 / Spring Boot 4 | `8081` |
-| **catalog-service** | Java 26 / Spring Boot 4 | `8082` |
-| **playlist-service** | Java 26 / Spring Boot 4 | `8083` |
-| **streaming-service** | Go 1.22 | `8084` |
-| **search-service** | TypeScript / NestJS 11 | `8085` |
-| **upload-service** | Go 1.22 | `8086` |
-| **notification-service** | TypeScript / NestJS 11 | `8087` |
-| **recommend-service** | Python 3.10+ / FastAPI | `8000` |
-| **Frontend** | Next.js 16 / React 19 | `3000` |
+| Service | Stack | Port | Nhiệm vụ |
+|---|---|---|---|
+| **Gateway** | KrakenD | `8080` | Reverse proxy, JWT validation, rate limiting — single entry point cho toàn bộ API |
+| **user-service** | Java 26 / Spring Boot 4 | `8081` | Đăng ký / đăng nhập (email + Google OAuth2), quản lý profile, avatar, follow/unfollow user, phát JWT |
+| **catalog-service** | Java 26 / Spring Boot 4 | `8082` | Quản lý bài hát, album, nghệ sĩ; nhận kết quả transcode và publish track; cung cấp internal API cho các service khác |
+| **playlist-service** | Java 26 / Spring Boot 4 | `8083` | Tạo và quản lý playlist, thêm/xóa/sắp xếp track, phân quyền collaborator (EDITOR/VIEWER) |
+| **streaming-service** | Go 1.22 | `8084` | Phát stream audio từ MinIO với presigned URL, ghi nhận lượt nghe, kiểm tra quyền truy cập file |
+| **search-service** | TypeScript / NestJS 11 | `8085` | Full-text search track, artist, album trên Elasticsearch; tiêu thụ catalog events để cập nhật index |
+| **upload-service** | Go 1.22 | `8086` | Nhận file audio upload, lưu vào MinIO, phát sự kiện TRACK_UPLOADED để trigger pipeline transcode |
+| **notification-service** | TypeScript / NestJS 11 | `8087` | Gửi thông báo real-time (Socket.IO) và email (Nodemailer); tiêu thụ các event từ nhiều service |
+| **library-service** | Java 26 / Spring Boot 4 | `8088` | Quản lý thư viện cá nhân: saved tracks, saved albums, followed playlists; đồng bộ metadata qua RabbitMQ |
+| **recommend-service** | Python 3.10+ / FastAPI | `8000` | Gợi ý bài hát cá nhân hóa dựa trên lịch sử nghe; dùng Neo4j (graph) + Redis (cache) |
+| **Frontend** | Next.js 16 / React 19 | `3000` | SPA streaming music player: browse, search, playlist, upload, profile |
 
 ---
 
@@ -45,7 +46,7 @@ docker compose up -d
 ```
 
 Lần đầu sẽ pull images và khởi tạo tự động:
-- PostgreSQL: tạo 5 databases (user_db, catalog_db, playlist_db, streaming_db, upload_db)
+- PostgreSQL: tạo 6 databases (user_db, catalog_db, playlist_db, streaming_db, upload_db, library_db)
 - MinIO: tạo buckets `images` và `audio`
 - RabbitMQ: tạo topic exchanges
 
@@ -134,6 +135,7 @@ cd services/recommend-service && poetry install && cd ../..
 pnpm nx run user-service:serve          # port 8081
 pnpm nx run catalog-service:serve       # port 8082
 pnpm nx run playlist-service:serve      # port 8083
+pnpm nx run library-service:serve       # port 8088
 
 # Go services
 pnpm nx run streaming-service:serve     # port 8084
@@ -153,7 +155,7 @@ pnpm nx run recommend-service:serve     # port 8000
 
 ```bash
 pnpm nx run-many -t serve \
-  --projects=user-service,catalog-service,playlist-service,streaming-service,search-service,upload-service,notification-service,recommend-service \
+  --projects=user-service,catalog-service,playlist-service,library-service,streaming-service,search-service,upload-service,notification-service,recommend-service \
   --parallel \
   --output-style=stream
 ```

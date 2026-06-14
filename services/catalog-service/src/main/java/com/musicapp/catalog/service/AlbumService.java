@@ -111,9 +111,7 @@ public class AlbumService {
 
         verifyOwnership(album);
 
-        if (req.title()       != null) album.setTitle(req.title());
-        if (req.coverUrl()    != null) album.setCoverUrl(req.coverUrl());
-        // releaseDate is frozen after creation to prevent gaming new-releases feed
+        if (req.title() != null) album.setTitle(req.title());
 
         return albumMapper.toSummary(albumRepository.save(album));
     }

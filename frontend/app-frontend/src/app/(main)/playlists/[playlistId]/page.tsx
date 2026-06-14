@@ -4,7 +4,7 @@ import { use, useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Play, Pause, MoreHorizontal, Pencil, Trash2, Music2,
-  GripVertical, Search, PlusCircle, Ban,
+  GripVertical, Search, PlusCircle, Ban, Heart,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +29,7 @@ import {
   getPlaylist, deletePlaylist, removeTrackFromPlaylist,
   updatePlaylist, reorderPlaylistItems, addTrackToPlaylist,
 } from '@/lib/api/playlists';
+import { isPlaylistFollowed, followPlaylist, unfollowPlaylist } from '@/lib/api/library';
 import { searchTracks } from '@/lib/api/search';
 import { usePlayer } from '@/hooks/use-player';
 import { usePlayerStore } from '@/stores/player-store';
@@ -38,6 +39,7 @@ import { usePageGradient } from '@/components/common/page-gradient';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { useAuthStore } from '@/stores/auth-store';
 import type { TrackSummaryDto } from '@/lib/api/types';
 
 function formatMs(ms: number) {
@@ -52,6 +54,7 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
   const queryClient = useQueryClient();
   const currentTrackId = usePlayerStore((s) => s.queue[s.currentIndex]?.id);
   const isGlobalPlaying = usePlayerStore((s) => s.isPlaying);
+  const user = useAuthStore((s) => s.user);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState('');
@@ -111,6 +114,29 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
       toast.success('Track added');
     },
     onError: () => toast.error('Failed to add track'),
+  });
+
+  const { data: followedData } = useQuery({
+    queryKey: ['playlist-followed', playlistId],
+    queryFn: () => isPlaylistFollowed(playlistId),
+    enabled: !!user && !playlist?.isOwner,
+    staleTime: 60_000,
+  });
+  const isFollowed = followedData?.followed ?? false;
+
+  const followMutation = useMutation({
+    mutationFn: async () => {
+      queryClient.setQueryData(['playlist-followed', playlistId], { followed: !isFollowed });
+      await (isFollowed ? unfollowPlaylist(playlistId) : followPlaylist(playlistId));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['followed-playlists'] });
+      toast.success(isFollowed ? 'Unfollowed playlist' : 'Following playlist');
+    },
+    onError: () => {
+      queryClient.setQueryData(['playlist-followed', playlistId], { followed: isFollowed });
+      toast.error('Failed to update library');
+    },
   });
 
   const coverSrc = storageUrl(playlist?.items[0]?.trackCoverUrl ?? null);
@@ -217,6 +243,17 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
               )}
             </Button>
           )}
+          {!playlist.isOwner && user && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => followMutation.mutate()}
+              disabled={followMutation.isPending}
+              title={isFollowed ? 'Unfollow playlist' : 'Follow playlist'}
+            >
+              <Heart className={`h-5 w-5 ${isFollowed ? 'fill-current text-primary' : ''}`} />
+            </Button>
+          )}
           {playlist.isOwner && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -241,7 +278,7 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
        
           {/* Track list header */}
       <div className="flex items-center gap-3 border-b border-border/40 px-2 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        {playlist.canEdit && <span className="w-4 shrink-0" />}
+        {playlist.isOwner && <span className="w-4 shrink-0" />}
         <span className="w-8 shrink-0 text-center">#</span>
         <span className="w-10 shrink-0" />
         <span className="min-w-0 flex-1">Title</span>
@@ -249,7 +286,7 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
         <span className="flex items-center">
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         </span>
-        {playlist.canEdit && <span className="w-8 shrink-0" />}
+        {playlist.isOwner && <span className="w-8 shrink-0" />}
       </div>
 
           {/* Tracks */}
@@ -262,7 +299,7 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
                 key={item.id}
                 className="group flex cursor-default items-center gap-3 rounded-md px-2 py-2 opacity-50"
               >
-                {playlist.canEdit && <div className="w-4 shrink-0" />}
+                {playlist.isOwner && <div className="w-4 shrink-0" />}
                 <div className="flex w-8 shrink-0 items-center justify-center">
                   <Ban className="h-4 w-4 text-muted-foreground" />
                 </div>
@@ -299,7 +336,7 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
           return (
             <div
               key={item.id}
-              draggable={playlist.canEdit}
+              draggable={playlist.isOwner}
               onDragStart={() => setDraggedId(item.id)}
               onDragOver={(e) => { e.preventDefault(); setDragOverId(item.id); }}
               onDrop={() => { handleDrop(item.id); setDraggedId(null); setDragOverId(null); }}
@@ -312,7 +349,7 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
               )}
               onClick={() => isItemActive ? togglePlay() : play(tracksAsSummary, queueIdx)}
             >
-              {playlist.canEdit && (
+              {playlist.isOwner && (
                 <div
                   className="w-4 cursor-grab opacity-0 group-hover:opacity-60"
                   onClick={(e) => e.stopPropagation()}

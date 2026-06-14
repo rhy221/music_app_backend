@@ -9,6 +9,7 @@ import {
 } from '@org/music-events';
 import { TrackEsRepository } from '../elasticsearch/track-es.repository';
 import { ArtistEsRepository } from '../elasticsearch/artist-es.repository';
+import { AlbumEsRepository } from '../elasticsearch/album-es.repository';
 import { TrackDocument } from '../../domain/track.document';
 import { ArtistDocument } from '../../domain/artist.document';
 
@@ -22,6 +23,7 @@ export class CatalogEventConsumer implements OnModuleInit {
     private readonly rabbitmq: RabbitMQService,
     private readonly trackRepo: TrackEsRepository,
     private readonly artistRepo: ArtistEsRepository,
+    private readonly albumRepo: AlbumEsRepository,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -74,6 +76,15 @@ export class CatalogEventConsumer implements OnModuleInit {
     };
     await this.artistRepo.upsert(artistDoc);
     await this.artistRepo.incrTrackCount(artistId, artistName, genre);
+
+    if (albumId && albumTitle) {
+      await this.albumRepo.incrTrackCount(
+        albumId,
+        albumTitle,
+        { id: artistId, name: artistName },
+        coverUrl,
+      );
+    }
 
     this.logger.debug(`Indexed track ${trackId} and upserted artist ${artistId}`);
   }

@@ -239,6 +239,16 @@ export interface SearchTrackHit {
   score: number;
 }
 
+export interface SearchAlbumHit {
+  id: string;
+  title: string;
+  coverUrl: string | null;
+  releaseDate: string | null;
+  trackCount: number;
+  artist: { id: string; name: string };
+  score: number;
+}
+
 export interface SearchArtistHit {
   id: string;
   name: string;
@@ -322,4 +332,41 @@ export interface TasteProfileResponse {
   totalListeningMs: number;
   profileStrength: 'WEAK' | 'MODERATE' | 'STRONG';
   updatedAt: string;
+}
+
+export interface SavedAlbumDto {
+  id: string;
+  albumId: string;
+  albumTitle: string;
+  coverUrl: string | null;
+  artistName: string;
+  artistId: string;
+  trackCount: number;
+  savedAt: string;
+}
+
+export interface FollowedPlaylistDto {
+  id: string;
+  playlistId: string;
+  playlistName: string;
+  coverUrl: string | null;
+  ownerId: string;
+  ownerName: string | null;
+  trackCount: number;
+  followedAt: string;
+}
+
+export interface SavedTrackDto {
+  id: string;
+  trackId: string;
+  trackTitle: string;
+  coverUrl: string | null;
+  artistName: string;
+  artistId: string;
+  durationMs: number | null;
+  albumId: string | null;
+  albumTitle: string | null;
+  deleted: boolean;
+  savedAt: string;
+  position: number;
 }

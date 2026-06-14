@@ -7,11 +7,13 @@ import { Play, Pause, User, UserPlus, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlbumCard } from '@/components/albums/album-card';
+import { PlaylistCard } from '@/components/playlists/playlist-card';
 import { TrackRow } from '@/components/tracks/track-row';
 import { SectionHeader } from '@/components/common/section-header';
 import { AddToPlaylistDialog } from '@/components/playlists/add-to-playlist-dialog';
 import { getArtist } from '@/lib/api/artists';
 import { getUser, followUser, unfollowUser } from '@/lib/api/users';
+import { getUserPlaylists } from '@/lib/api/playlists';
 import { storageUrl } from '@/lib/constants';
 import { usePlayer } from '@/hooks/use-player';
 import { usePlayerStore } from '@/stores/player-store';
@@ -39,6 +41,14 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
     queryFn: () => getUser(artist?.userId ?? ''),
     enabled: !!artist?.userId,
   });
+
+  const { data: playlistsData } = useQuery({
+    queryKey: ['artist-playlists', artist?.userId],
+    queryFn: () => getUserPlaylists(artist?.userId ?? '', { size: 20 }),
+    enabled: !!artist?.userId,
+  });
+
+  const publicPlaylists = playlistsData?.content.filter((p) => p.visibility === 'PUBLIC') ?? [];
 
   const followMutation = useMutation({
     mutationFn: () =>
@@ -155,6 +165,18 @@ export default function ArtistPage({ params }: { params: Promise<{ artistId: str
                 queueIndex={i}
                 onAddToPlaylist={setAddTarget}
               />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Public Playlists */}
+      {publicPlaylists.length > 0 && (
+        <div>
+          <SectionHeader title="Playlists" />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {publicPlaylists.map((playlist) => (
+              <PlaylistCard key={playlist.id} playlist={playlist} />
             ))}
           </div>
         </div>

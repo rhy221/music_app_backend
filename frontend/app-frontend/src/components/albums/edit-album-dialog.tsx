@@ -24,15 +24,10 @@ interface Props {
 
 export function EditAlbumDialog({ album, open, onClose }: Props) {
   const [title, setTitle] = useState(album.title);
-  const [coverUrl, setCoverUrl] = useState(album.coverUrl ?? '');
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: () =>
-      updateAlbum(album.id, {
-        title: title || undefined,
-        coverUrl: coverUrl || undefined,
-      }),
+    mutationFn: () => updateAlbum(album.id, { title: title || undefined }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['album', album.id] });
       toast.success('Album updated');
@@ -47,24 +42,14 @@ export function EditAlbumDialog({ album, open, onClose }: Props) {
         <DialogHeader>
           <DialogTitle>Edit album</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div className="space-y-1">
-            <Label htmlFor="album-title">Title</Label>
-            <Input
-              id="album-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="album-cover">Cover URL</Label>
-            <Input
-              id="album-cover"
-              value={coverUrl}
-              onChange={(e) => setCoverUrl(e.target.value)}
-              placeholder="https://..."
-            />
-          </div>
+        <div className="py-2">
+          <Label htmlFor="album-title">Title</Label>
+          <Input
+            id="album-title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="mt-1"
+          />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>

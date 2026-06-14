@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Play, Pause, Music2, Clock, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Play, Pause, Music2, Clock, MoreHorizontal, Pencil, Trash2, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +30,7 @@ import { EditTrackDialog } from '@/components/tracks/edit-track-dialog';
 import { usePageGradient } from '@/components/common/page-gradient';
 import { getTrack, getPopularTracks, deleteTrack } from '@/lib/api/tracks';
 import { getSimilarTracks } from '@/lib/api/recommendations';
+import { isTrackSaved, saveTrack, unsaveTrack } from '@/lib/api/library';
 import { usePlayer } from '@/hooks/use-player';
 import { usePlayerStore } from '@/stores/player-store';
 import { useAuthStore } from '@/stores/auth-store';
@@ -76,6 +77,29 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
   });
 
   const filteredPopular = (popular ?? []).filter((t) => t.id !== trackId);
+
+  const { data: savedData } = useQuery({
+    queryKey: ['track-saved', trackId],
+    queryFn: () => isTrackSaved(trackId),
+    enabled: !!user,
+    staleTime: 60_000,
+  });
+  const saved = savedData?.saved ?? false;
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      queryClient.setQueryData(['track-saved', trackId], { saved: !saved });
+      await (saved ? unsaveTrack(trackId) : saveTrack(trackId));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['saved-tracks'] });
+      toast.success(saved ? 'Removed from Liked Songs' : 'Added to Liked Songs');
+    },
+    onError: () => {
+      queryClient.setQueryData(['track-saved', trackId], { saved });
+      toast.error('Failed to update library');
+    },
+  });
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteTrack(trackId),
@@ -188,6 +212,17 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
                 <><Play className="h-5 w-5 fill-current" />Play</>
               )}
             </Button>
+            {user && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending}
+                title={saved ? 'Remove from Liked Songs' : 'Save to Liked Songs'}
+              >
+                <Heart className={`h-5 w-5 ${saved ? 'fill-current text-primary' : ''}`} />
+              </Button>
+            )}
             {isOwner && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

@@ -75,6 +75,24 @@ export class SearchArtistsQueryDto {
   size = 20;
 }
 
+export class SearchAlbumsQueryDto {
+  @IsString()
+  q = '';
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  page = 0;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  size = 20;
+}
+
 export class AutocompleteQueryDto {
   @IsString()
   q = '';

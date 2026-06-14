@@ -19,6 +19,16 @@ export interface SearchArtistHit {
   score: number;
 }
 
+export interface SearchAlbumHit {
+  id: string;
+  title: string;
+  coverUrl?: string;
+  releaseDate?: string;
+  trackCount: number;
+  artist: { id: string; name: string };
+  score: number;
+}
+
 export interface PagedResponse<T> {
   content: T[];
   page: number;
@@ -31,6 +41,7 @@ export interface PagedResponse<T> {
 export interface UnifiedSearchResponse {
   tracks: { items: SearchTrackHit[]; total: number };
   artists: { items: SearchArtistHit[]; total: number };
+  albums: { items: SearchAlbumHit[]; total: number };
   totalResults: number;
   queryTimeMs: number;
 }

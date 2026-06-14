@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,7 +18,12 @@ public interface SavedTrackRepository extends JpaRepository<SavedTrack, UUID> {
 
     boolean existsByUserIdAndTrackId(UUID userId, UUID trackId);
 
-    Page<SavedTrack> findByUserIdAndDeletedFalseOrderBySavedAtDesc(UUID userId, Pageable pageable);
+    Page<SavedTrack> findByUserIdAndDeletedFalseOrderByPositionAsc(UUID userId, Pageable pageable);
+
+    List<SavedTrack> findByUserIdAndDeletedFalse(UUID userId);
+
+    @Query("SELECT COALESCE(MAX(s.position), -1) FROM SavedTrack s WHERE s.userId = :userId")
+    int findMaxPositionByUserId(@Param("userId") UUID userId);
 
     @Modifying
     @Query("UPDATE SavedTrack s SET s.deleted = true WHERE s.trackId = :trackId")

@@ -21,6 +21,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -90,6 +94,10 @@ public class LibraryService {
 
         PlaylistClient.InternalPlaylistDto remote = playlistClient.getPlaylist(playlistId);
 
+        if (remote.ownerId().equals(userId.toString())) {
+            throw new IllegalArgumentException("Cannot follow your own playlist");
+        }
+
         FollowedPlaylist entity = new FollowedPlaylist();
         entity.setUserId(userId);
         entity.setPlaylistId(UUID.fromString(remote.playlistId()));
@@ -132,16 +140,19 @@ public class LibraryService {
 
         CatalogClient.InternalTrackDto remote = catalogClient.getTrack(trackId);
 
+        int nextPosition = savedTrackRepository.findMaxPositionByUserId(userId) + 1;
+
         SavedTrack entity = new SavedTrack();
         entity.setUserId(userId);
-        entity.setTrackId(UUID.fromString(remote.trackId()));
+        entity.setTrackId(UUID.fromString(remote.id()));
         entity.setTrackTitle(remote.title());
         entity.setCoverUrl(remote.coverUrl());
-        entity.setArtistId(UUID.fromString(remote.artistId()));
+        entity.setArtistId(remote.artistId() != null ? UUID.fromString(remote.artistId()) : null);
         entity.setArtistName(remote.artistName());
         entity.setDurationMs(remote.durationMs());
         entity.setAlbumId(remote.albumId() != null ? UUID.fromString(remote.albumId()) : null);
         entity.setAlbumTitle(remote.albumTitle());
+        entity.setPosition(nextPosition);
 
         return toTrackDto(savedTrackRepository.save(entity));
     }
@@ -155,13 +166,33 @@ public class LibraryService {
 
     @Transactional(readOnly = true)
     public Page<SavedTrackDto> listSavedTracks(UUID userId, Pageable pageable) {
-        return savedTrackRepository.findByUserIdAndDeletedFalseOrderBySavedAtDesc(userId, pageable)
+        return savedTrackRepository.findByUserIdAndDeletedFalseOrderByPositionAsc(userId, pageable)
                 .map(this::toTrackDto);
     }
 
     @Transactional(readOnly = true)
     public Map<String, Boolean> isTrackSaved(UUID userId, UUID trackId) {
         return Map.of("saved", savedTrackRepository.existsByUserIdAndTrackId(userId, trackId));
+    }
+
+    @Transactional
+    public void reorderSavedTracks(UUID userId, List<UUID> trackIds) {
+        List<SavedTrack> nonDeleted = savedTrackRepository.findByUserIdAndDeletedFalse(userId);
+
+        Map<UUID, SavedTrack> byTrackId = new HashMap<>();
+        for (var t : nonDeleted) byTrackId.put(t.getTrackId(), t);
+
+        if (!new HashSet<>(trackIds).equals(byTrackId.keySet())) {
+            throw new IllegalArgumentException("trackIds must contain exactly all saved tracks");
+        }
+
+        List<SavedTrack> toSave = new ArrayList<>();
+        for (int i = 0; i < trackIds.size(); i++) {
+            SavedTrack track = byTrackId.get(trackIds.get(i));
+            track.setPosition(i);
+            toSave.add(track);
+        }
+        savedTrackRepository.saveAll(toSave);
     }
 
     // ── Mappers ───────────────────────────────────────────────────────────────
@@ -179,6 +210,6 @@ public class LibraryService {
     private SavedTrackDto toTrackDto(SavedTrack e) {
         return new SavedTrackDto(e.getId(), e.getTrackId(), e.getTrackTitle(),
                 e.getCoverUrl(), e.getArtistName(), e.getArtistId(), e.getDurationMs(),
-                e.getAlbumId(), e.getAlbumTitle(), e.isDeleted(), e.getSavedAt());
+                e.getAlbumId(), e.getAlbumTitle(), e.isDeleted(), e.getSavedAt(), e.getPosition());
     }
 }

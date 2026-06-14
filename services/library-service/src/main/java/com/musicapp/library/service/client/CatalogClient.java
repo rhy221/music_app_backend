@@ -50,7 +50,7 @@ public class CatalogClient {
     ) {}
 
     public record InternalTrackDto(
-            String trackId,
+            String id,
             String title,
             Integer durationMs,
             String coverUrl,

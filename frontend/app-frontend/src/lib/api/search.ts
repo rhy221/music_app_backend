@@ -1,5 +1,5 @@
 import { apiGet } from './client';
-import type { SearchTrackHit, SearchArtistHit, AutocompleteSuggestion } from './types';
+import type { SearchAlbumHit, SearchArtistHit, SearchTrackHit, AutocompleteSuggestion } from './types';
 
 interface PagedResponse<T> {
   content: T[];
@@ -26,6 +26,7 @@ export function search(params: {
   return apiGet<{
     tracks: { items: SearchTrackHit[]; total: number };
     artists: { items: SearchArtistHit[]; total: number };
+    albums: { items: SearchAlbumHit[]; total: number };
     totalResults: number;
     queryTimeMs: number;
   }>(`/search?${q.toString()}`, { skipAuth: true });
@@ -50,6 +51,13 @@ export function searchArtists(params: { q: string; page?: number; size?: number 
     Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)])
   ).toString();
   return apiGet<PagedResponse<SearchArtistHit>>(`/search/artists?${q}`);
+}
+
+export function searchAlbums(params: { q: string; page?: number; size?: number }) {
+  const q = new URLSearchParams(
+    Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)])
+  ).toString();
+  return apiGet<PagedResponse<SearchAlbumHit>>(`/search/albums?${q}`);
 }
 
 export function autocomplete(q: string, limit = 5) {

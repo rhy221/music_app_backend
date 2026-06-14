@@ -3,15 +3,19 @@ import { TrackDocument } from '../domain/track.document';
 import { ArtistDocument } from '../domain/artist.document';
 import { TrackEsRepository } from '../infrastructure/elasticsearch/track-es.repository';
 import { ArtistEsRepository } from '../infrastructure/elasticsearch/artist-es.repository';
+import { AlbumEsRepository } from '../infrastructure/elasticsearch/album-es.repository';
+import { AlbumDocument } from '../domain/album.document';
 import {
   SearchAllQueryDto,
   SearchTracksQueryDto,
   SearchArtistsQueryDto,
+  SearchAlbumsQueryDto,
   AutocompleteQueryDto,
 } from '../presentation/dto/search-query.dto';
 import {
   AutocompleteResponse,
   PagedResponse,
+  SearchAlbumHit,
   SearchArtistHit,
   SearchTrackHit,
   UnifiedSearchResponse,
@@ -22,15 +26,17 @@ export class SearchService {
   constructor(
     private readonly trackRepo: TrackEsRepository,
     private readonly artistRepo: ArtistEsRepository,
+    private readonly albumRepo: AlbumEsRepository,
   ) {}
 
   async searchAll(query: SearchAllQueryDto): Promise<UnifiedSearchResponse> {
     const { q, page = 0, size = 20 } = query;
     const start = Date.now();
 
-    const [trackResult, artistResult] = await Promise.all([
+    const [trackResult, artistResult, albumResult] = await Promise.all([
       this.trackRepo.search({ q, page, size }),
       this.artistRepo.search({ q, page, size }),
+      this.albumRepo.search({ q, page, size }),
     ]);
 
     return {
@@ -42,7 +48,27 @@ export class SearchService {
         items: artistResult.items.map(toArtistHit),
         total: artistResult.total,
       },
-      totalResults: trackResult.total + artistResult.total,
+      albums: {
+        items: albumResult.items.map(toAlbumHit),
+        total: albumResult.total,
+      },
+      totalResults: trackResult.total + artistResult.total + albumResult.total,
+      queryTimeMs: Date.now() - start,
+    };
+  }
+
+  async searchAlbums(query: SearchAlbumsQueryDto): Promise<PagedResponse<SearchAlbumHit>> {
+    const { q, page = 0, size = 20 } = query;
+    const start = Date.now();
+
+    const result = await this.albumRepo.search({ q, page, size });
+
+    return {
+      content: result.items.map(toAlbumHit),
+      page,
+      size,
+      totalElements: result.total,
+      totalPages: Math.ceil(result.total / size),
       queryTimeMs: Date.now() - start,
     };
   }
@@ -119,6 +145,18 @@ function toArtistHit(doc: ArtistDocument): SearchArtistHit {
     avatarUrl: doc.avatarUrl,
     trackCount: doc.trackCount,
     genreTags: doc.genreTags,
+    score: 0,
+  };
+}
+
+function toAlbumHit(doc: AlbumDocument): SearchAlbumHit {
+  return {
+    id: doc.id,
+    title: doc.title,
+    coverUrl: doc.coverUrl,
+    releaseDate: doc.releaseDate,
+    trackCount: doc.trackCount,
+    artist: doc.artist,
     score: 0,
   };
 }

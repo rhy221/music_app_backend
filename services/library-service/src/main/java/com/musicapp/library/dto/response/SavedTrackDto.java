@@ -14,5 +14,6 @@ public record SavedTrackDto(
         UUID albumId,
         String albumTitle,
         boolean deleted,
-        Instant savedAt
+        Instant savedAt,
+        int position
 ) {}

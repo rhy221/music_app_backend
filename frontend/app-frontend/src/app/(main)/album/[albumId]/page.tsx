@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Play, Pause, Disc3, Clock, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Play, Pause, Disc3, Clock, MoreHorizontal, Pencil, Trash2, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,6 +28,7 @@ import { AddToPlaylistDialog } from '@/components/playlists/add-to-playlist-dial
 import { EditAlbumDialog } from '@/components/albums/edit-album-dialog';
 import { usePageGradient } from '@/components/common/page-gradient';
 import { getAlbum, deleteAlbum } from '@/lib/api/albums';
+import { isAlbumSaved, saveAlbum, unsaveAlbum } from '@/lib/api/library';
 import { usePlayer } from '@/hooks/use-player';
 import { usePlayerStore } from '@/stores/player-store';
 import { useAuthStore } from '@/stores/auth-store';
@@ -57,6 +58,28 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
   const { data: album, isLoading } = useQuery({
     queryKey: ['album', albumId],
     queryFn: () => getAlbum(albumId),
+  });
+
+  const { data: savedData } = useQuery({
+    queryKey: ['album-saved', albumId],
+    queryFn: () => isAlbumSaved(albumId),
+    enabled: !!user,
+  });
+  const saved = savedData?.saved ?? false;
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      queryClient.setQueryData(['album-saved', albumId], { saved: !saved });
+      await (saved ? unsaveAlbum(albumId) : saveAlbum(albumId));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['saved-albums'] });
+      toast.success(saved ? 'Removed from library' : 'Saved to library');
+    },
+    onError: () => {
+      queryClient.setQueryData(['album-saved', albumId], { saved });
+      toast.error('Failed to update library');
+    },
   });
 
   const coverSrc = album ? storageUrl(album.coverUrl ?? null) : null;
@@ -146,6 +169,17 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
                 <><Play className="h-5 w-5 fill-current" />Play all</>
               )}
             </Button>
+            {user && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending}
+                title={saved ? 'Remove from library' : 'Save to library'}
+              >
+                <Heart className={`h-5 w-5 ${saved ? 'fill-current text-primary' : ''}`} />
+              </Button>
+            )}
             {isOwner && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

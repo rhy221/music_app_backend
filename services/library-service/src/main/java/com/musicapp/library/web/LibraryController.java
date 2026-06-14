@@ -4,6 +4,7 @@ import com.musicapp.common.security.CurrentUser;
 import com.musicapp.common.web.PaginatedResponse;
 import com.musicapp.common.web.PaginationMapper;
 import com.musicapp.library.dto.request.FollowPlaylistRequest;
+import com.musicapp.library.dto.request.ReorderTracksRequest;
 import com.musicapp.library.dto.request.SaveAlbumRequest;
 import com.musicapp.library.dto.request.SaveTrackRequest;
 import com.musicapp.library.dto.response.FollowedPlaylistDto;
@@ -120,5 +121,12 @@ public class LibraryController {
     public Map<String, Boolean> isTrackSaved(@PathVariable UUID trackId) {
         UUID userId = UUID.fromString(CurrentUser.getUserId());
         return libraryService.isTrackSaved(userId, trackId);
+    }
+
+    @PutMapping("/tracks/reorder")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void reorderSavedTracks(@Valid @RequestBody ReorderTracksRequest req) {
+        UUID userId = UUID.fromString(CurrentUser.getUserId());
+        libraryService.reorderSavedTracks(userId, req.trackIds());
     }
 }

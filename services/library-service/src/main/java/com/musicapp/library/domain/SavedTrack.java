@@ -50,6 +50,9 @@ public class SavedTrack extends BaseEntity {
     @Column(name = "album_title", length = 255)
     private String albumTitle;
 
+    @Column(name = "position", nullable = false)
+    private int position;
+
     @Column(name = "deleted", nullable = false)
     private boolean deleted = false;
 }

@@ -4,10 +4,11 @@ import { SearchService } from '../application/search.service';
 import {
   AutocompleteQueryDto,
   SearchAllQueryDto,
+  SearchAlbumsQueryDto,
   SearchArtistsQueryDto,
   SearchTracksQueryDto,
 } from './dto/search-query.dto';
-import { AutocompleteResponse, PagedResponse, SearchArtistHit, SearchTrackHit, UnifiedSearchResponse } from './dto/search-response.dto';
+import { AutocompleteResponse, PagedResponse, SearchAlbumHit, SearchArtistHit, SearchTrackHit, UnifiedSearchResponse } from './dto/search-response.dto';
 
 @Public()
 @Controller('v1/search')
@@ -27,6 +28,11 @@ export class SearchController {
   @Get('artists')
   searchArtists(@Query() query: SearchArtistsQueryDto): Promise<PagedResponse<SearchArtistHit>> {
     return this.searchService.searchArtists(query);
+  }
+
+  @Get('albums')
+  searchAlbums(@Query() query: SearchAlbumsQueryDto): Promise<PagedResponse<SearchAlbumHit>> {
+    return this.searchService.searchAlbums(query);
   }
 
   @Get('autocomplete')

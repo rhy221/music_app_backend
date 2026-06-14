@@ -4,6 +4,7 @@ import { ELASTICSEARCH_CLIENT } from './elasticsearch.tokens';
 
 const TRACKS_INDEX = 'tracks';
 const ARTISTS_INDEX = 'artists';
+const ALBUMS_INDEX = 'albums';
 
 @Injectable()
 export class IndexInitializerService implements OnApplicationBootstrap {
@@ -18,6 +19,7 @@ export class IndexInitializerService implements OnApplicationBootstrap {
     }
     await this.ensureTracksIndex(useIcu);
     await this.ensureArtistsIndex(useIcu);
+    await this.ensureAlbumsIndex(useIcu);
   }
 
   private async detectIcuPlugin(): Promise<boolean> {
@@ -143,6 +145,48 @@ export class IndexInitializerService implements OnApplicationBootstrap {
       this.logger.log(`Index '${ARTISTS_INDEX}' created`);
     } catch (err: unknown) {
       this.logger.error(`Failed to create index '${ARTISTS_INDEX}': ${String(err)}`);
+    }
+  }
+
+  private async ensureAlbumsIndex(useIcu: boolean): Promise<void> {
+    try {
+      const exists = await this.client.indices.exists({ index: ALBUMS_INDEX });
+      if (exists) {
+        this.logger.log(`Index '${ALBUMS_INDEX}' already exists — skipping creation`);
+        return;
+      }
+      await this.client.indices.create({
+        index: ALBUMS_INDEX,
+        settings: this.buildAnalysisSettings(useIcu),
+        mappings: {
+          properties: {
+            id: { type: 'keyword' },
+            title: {
+              type: 'text',
+              analyzer: 'vietnamese',
+              fields: {
+                keyword: { type: 'keyword' },
+              },
+            },
+            coverUrl: { type: 'keyword', index: false, doc_values: false },
+            releaseDate: { type: 'date' },
+            trackCount: { type: 'integer' },
+            artist: {
+              properties: {
+                id: { type: 'keyword' },
+                name: {
+                  type: 'text',
+                  analyzer: 'vietnamese',
+                  fields: { keyword: { type: 'keyword' } },
+                },
+              },
+            },
+          },
+        },
+      });
+      this.logger.log(`Index '${ALBUMS_INDEX}' created`);
+    } catch (err: unknown) {
+      this.logger.error(`Failed to create index '${ALBUMS_INDEX}': ${String(err)}`);
     }
   }
 }

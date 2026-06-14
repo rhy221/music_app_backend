@@ -17,9 +17,8 @@ import { useMyPlaylistTrackIds } from '@/hooks/use-in-playlist';
 import type { TrackSummaryDto } from '@/lib/api/types';
 import { cn } from '@/lib/utils';
 
-interface TrackRowProps {
+interface SearchTrackCardProps {
   track: TrackSummaryDto;
-  index?: number;
   queue?: TrackSummaryDto[];
   queueIndex?: number;
   onAddToPlaylist?: (track: TrackSummaryDto) => void;
@@ -30,7 +29,7 @@ function formatMs(ms: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-export function TrackRow({ track, index, queue, queueIndex = 0, onAddToPlaylist }: TrackRowProps) {
+export function SearchTrackCard({ track, queue, queueIndex = 0, onAddToPlaylist }: SearchTrackCardProps) {
   const { play, togglePlay } = usePlayer();
   const currentTrackId = usePlayerStore((s) => s.queue[s.currentIndex]?.id);
   const isGlobalPlaying = usePlayerStore((s) => s.isPlaying);
@@ -50,70 +49,61 @@ export function TrackRow({ track, index, queue, queueIndex = 0, onAddToPlaylist 
   return (
     <div
       className={cn(
-        'group flex items-center gap-3 rounded-md px-2 py-2 hover:bg-accent',
+        'group flex items-center gap-4 rounded-md px-3 py-3 hover:bg-accent transition-colors',
         isActive && 'bg-accent/60'
       )}
     >
-      {/* Index / Play / Pause cell */}
-      <div className="flex w-8 shrink-0 items-center justify-center">
+      {/* Play button */}
+      <button
+        onClick={handlePlayPause}
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-foreground hover:text-primary"
+      >
         {isThisPlaying ? (
-          <button onClick={togglePlay} className="text-primary">
-            <Pause className="h-4 w-4 fill-current" />
-          </button>
+          <Pause className="h-5 w-5 fill-current text-primary" />
         ) : (
           <>
-            <button className="hidden group-hover:block" onClick={handlePlayPause}>
-              <Play className={cn('h-4 w-4 fill-current', isActive ? 'text-primary' : 'text-foreground')} />
-            </button>
-            <span
-              className={cn(
-                'block text-sm group-hover:hidden',
-                isActive ? 'text-primary font-semibold' : 'text-muted-foreground'
-              )}
-            >
-              {index != null ? index + 1 : <Play className="h-4 w-4" />}
-            </span>
+            <Play className={cn('hidden h-5 w-5 fill-current group-hover:block', isActive ? 'text-primary' : 'text-foreground')} />
+            <Play className={cn('h-5 w-5 fill-current group-hover:hidden', isActive ? 'text-primary' : 'text-muted-foreground')} />
           </>
         )}
-      </div>
+      </button>
 
       <CoverImage
         src={track.coverUrl}
         alt={track.title}
-        className="h-10 w-10 flex-shrink-0 rounded"
-        sizes="40px"
+        className="h-16 w-16 shrink-0 rounded-md"
+        sizes="64px"
       />
 
       <div className="min-w-0 flex-1">
         <Link
           href={`/track/${track.id}`}
-          className={cn('block truncate text-sm font-medium hover:underline', isActive && 'text-primary')}
+          className={cn('block truncate text-base font-semibold hover:underline', isActive && 'text-primary')}
         >
           {track.title}
         </Link>
         <Link
           href={`/artist/${track.artist.id}`}
-          className="block truncate text-xs text-muted-foreground hover:underline"
+          className="block truncate text-sm text-muted-foreground hover:underline"
         >
           {track.artist.name}
         </Link>
+        {track.genre && (
+          <span className="text-xs text-muted-foreground/70">{track.genre}</span>
+        )}
       </div>
 
-      <span className="text-xs tabular-nums text-muted-foreground">{formatMs(track.durationMs)}</span>
+      <span className="text-sm tabular-nums text-muted-foreground">{formatMs(track.durationMs)}</span>
 
       {isInPlaylist && (
-        <CheckCircle2 className="h-4 w-4 flex-shrink-0 text-primary" />
+        <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
       )}
 
       <SaveTrackButton trackId={track.id} className="opacity-0 group-hover:opacity-100" />
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="opacity-0 group-hover:opacity-100"
-          >
+          <Button variant="ghost" size="icon-sm" className="opacity-0 group-hover:opacity-100">
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
