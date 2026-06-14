@@ -148,12 +148,15 @@ func (r *JobRepo) UpdateThumbnail(ctx context.Context, id, thumbnailURL string) 
 	return err
 }
 
-func (r *JobRepo) SetPublished(ctx context.Context, id, trackID string) error {
+func (r *JobRepo) SetPublished(ctx context.Context, id, trackID string) (bool, error) {
 	q := db(ctx, r.pool)
-	_, err := q.Exec(ctx,
-		`UPDATE upload_jobs SET status='PUBLISHED', track_id=$1, updated_at=NOW() WHERE id=$2`,
+	tag, err := q.Exec(ctx,
+		`UPDATE upload_jobs SET status='PUBLISHED', track_id=$1, updated_at=NOW() WHERE id=$2 AND status <> 'CANCELLED'`,
 		trackID, id)
-	return err
+	if err != nil {
+		return false, err
+	}
+	return tag.RowsAffected() > 0, nil
 }
 
 // scanJob works with both pgx.Row and pgx.Rows via the common Scan interface.

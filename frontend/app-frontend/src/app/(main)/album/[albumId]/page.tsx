@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrackRow } from '@/components/tracks/track-row';
 import { AddToPlaylistDialog } from '@/components/playlists/add-to-playlist-dialog';
-import { PageGradient } from '@/components/common/page-gradient';
+import { usePageGradient } from '@/components/common/page-gradient';
 import { getAlbum } from '@/lib/api/albums';
 import { usePlayer } from '@/hooks/use-player';
 import { usePlayerStore } from '@/stores/player-store';
@@ -29,11 +29,21 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
   const [addTarget, setAddTarget] = useState<TrackSummaryDto | null>(null);
   const currentTrackId = usePlayerStore((s) => s.queue[s.currentIndex]?.id);
   const isGlobalPlaying = usePlayerStore((s) => s.isPlaying);
+  const { setSrc } = usePageGradient();
+
 
   const { data: album, isLoading } = useQuery({
     queryKey: ['album', albumId],
     queryFn: () => getAlbum(albumId),
   });
+
+  const coverSrc = album ? storageUrl(album.coverUrl ?? null) : null;
+
+  useEffect(() => {
+    if (!coverSrc) return;
+    setSrc(coverSrc);
+    return () => setSrc(null);
+  }, [coverSrc, setSrc]);
 
   if (isLoading) {
     return (
@@ -49,7 +59,6 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
 
   if (!album) return <div className="text-muted-foreground">Album not found.</div>;
 
-  const coverSrc = storageUrl(album.coverUrl);
   const isContextActive = album.tracks.some((t) => t.id === currentTrackId);
   const isContextPlaying = isContextActive && isGlobalPlaying;
 
@@ -62,8 +71,8 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
   };
 
   return (
-    <PageGradient src={coverSrc}>
-      <div className="flex flex-col gap-6 sm:flex-row sm:items-end">
+    <div className="h-full">
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-end p-6">
         <div className="relative h-48 w-48 flex-shrink-0 overflow-hidden rounded-lg shadow-2xl">
           {coverSrc ? (
             <Image src={coverSrc} alt={album.title} fill className="object-cover" sizes="192px" />
@@ -74,9 +83,9 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
           )}
         </div>
         <div>
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">Album</p>
-          <h1 className="mt-1 text-4xl font-black">{album.title}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Album</p>
+          <h1 className="mt-1 text-6xl font-black">{album.title}</h1>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground font-bold">
             <Link href={`/artist/${album.artist.id}`} className="font-medium text-foreground hover:underline">
               {album.artist.name}
             </Link>
@@ -105,6 +114,21 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
         </div>
       </div>
 
+      <div className="p-6 space-y-6 h-full"
+      style={{
+                background: `linear-gradient(to bottom, rgba(31,31,31,0.3) 0%, rgba(31,31,31,0.4) 20%, rgba(31,31,31,0.65) 60%, rgba(31,31,31,1) 100%)`,
+              }}>
+            
+      {/* Track list header */}
+      <div className="grid grid-cols-[2rem_1fr_auto_2.5rem] items-center gap-3 border-b border-border/40 px-2 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <span className="text-center">#</span>
+        <span>Title</span>
+        <span className="flex justify-end">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </span>
+        <span />
+      </div>
+
       <div className="space-y-1">
         {album.tracks.map((track, i) => (
           <TrackRow
@@ -117,8 +141,10 @@ export default function AlbumPage({ params }: { params: Promise<{ albumId: strin
           />
         ))}
       </div>
+      </div>
+
 
       <AddToPlaylistDialog track={addTarget} onClose={() => setAddTarget(null)} />
-    </PageGradient>
+    </div>
   );
 }

@@ -64,6 +64,7 @@ type TranscodeCompletedData struct {
 	Title        string       `json:"title"`
 	Genre        *string      `json:"genre,omitempty"`
 	AlbumID      *string      `json:"albumId,omitempty"`
+	AlbumTitle   *string      `json:"albumTitle,omitempty"`
 	DurationMs   int          `json:"durationMs"`
 	ThumbnailURL *string      `json:"thumbnailUrl,omitempty"`
 	WaveformURL  *string      `json:"waveformUrl,omitempty"`

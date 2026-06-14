@@ -30,6 +30,7 @@ public interface TrackMapper {
     @Mapping(target = "artistId",   source = "artist.id")
     @Mapping(target = "artistName", source = "artist.name")
     @Mapping(target = "albumId",    source = "album.id")
+    @Mapping(target = "albumTitle", source = "album.title")
     InternalTrackDto toInternal(Track track);
 
     AudioAssetDto toAssetDto(AudioAsset asset);

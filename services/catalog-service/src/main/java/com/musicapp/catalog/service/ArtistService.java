@@ -46,6 +46,7 @@ public class ArtistService {
         });
     }
 
+    @Transactional(readOnly = true)
     public ArtistDetailDto getArtistById(UUID artistId) {
         Artist artist = artistRepository.findById(artistId)
                 .orElseThrow(() -> new EntityNotFoundException("Artist not found: " + artistId));
@@ -100,6 +101,14 @@ public class ArtistService {
         long trackCount = trackRepository.countByArtistId(artistId);
         long albumCount = albumRepository.findByArtistIdOrderByReleaseDateDesc(artistId).size();
         return new ArtistSummaryDto(saved.getId(), saved.getName(), saved.getAvatarUrl(), trackCount, albumCount);
+    }
+
+    @Transactional(readOnly = true)
+    public ArtistDetailDto getMyArtist() {
+        UUID userId = UUID.fromString(CurrentUser.getUserId());
+        Artist artist = artistRepository.findByUserId(userId)
+                .orElseThrow(() -> new EntityNotFoundException("No artist profile for current user"));
+        return getArtistById(artist.getId());
     }
 
     @Transactional

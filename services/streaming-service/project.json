@@ -7,11 +7,7 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "commands": [
-          "go build -o dist/streaming-service.exe .",
-          "dist\\streaming-service.exe"
-        ],
-        "parallel": false,
+        "command": "go run .",
         "cwd": "{projectRoot}",
         "envFile": "{projectRoot}/.env"
       }

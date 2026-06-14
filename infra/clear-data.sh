@@ -10,7 +10,7 @@ ok()   { echo -e "${GREEN}✓${NC} $*"; }
 warn() { echo -e "${YELLOW}!${NC} $*"; }
 fail() { echo -e "${RED}✗${NC} $*"; }
 
-TRUNCATE_SQL='DO $$ DECLARE r RECORD; BEGIN FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = '"'"'public'"'"') LOOP EXECUTE '"'"'TRUNCATE TABLE public.'"'"' || quote_ident(r.tablename) || '"'"' RESTART IDENTITY CASCADE'"'"'; END LOOP; END $$;'
+SQL_FILE="$(dirname "$0")/docker/postgres/truncate-all.sql"
 
 echo "======================================================"
 echo " Clearing all application data (schemas preserved)"
@@ -18,9 +18,9 @@ echo "======================================================"
 echo ""
 
 # ── PostgreSQL ──────────────────────────────────────────────────────────────
-echo "[1/7] PostgreSQL — truncating all tables in 5 databases..."
+echo "[1/7] PostgreSQL — truncating all tables in 5 databases (all schemas)..."
 for db in user_db catalog_db playlist_db streaming_db upload_db; do
-  if docker exec music-postgres psql -U music_admin -d "$db" -c "$TRUNCATE_SQL" -q 2>/dev/null; then
+  if docker exec -i music-postgres psql -U music_admin -d "$db" -q < "$SQL_FILE" 2>/dev/null; then
     ok "  $db"
   else
     warn "  $db — no tables yet or already empty"

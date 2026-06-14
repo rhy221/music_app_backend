@@ -83,15 +83,15 @@ func (uc *StreamUseCase) GetAudio(ctx context.Context, trackID string, preferred
 	}, nil
 }
 
-// GetHLSPlaylist generates an HLS VOD media playlist (.m3u8) for the best available quality.
+// GetHLSPlaylist generates an HLS VOD media playlist (.m3u8) for the requested bitrate.
 // Returns a single-segment playlist so HLS.js can fetch the audio via XHR (with auth headers).
-func (uc *StreamUseCase) GetHLSPlaylist(ctx context.Context, trackID string) (string, error) {
+func (uc *StreamUseCase) GetHLSPlaylist(ctx context.Context, trackID string, bitrate int) (string, error) {
 	tc, err := uc.getOrFetchTrack(ctx, trackID)
 	if err != nil {
 		return "", domain.ErrNotFound
 	}
 
-	asset := selectAsset(tc, 320)
+	asset := selectAsset(tc, bitrate)
 	if asset == nil {
 		return "", domain.ErrNotFound
 	}

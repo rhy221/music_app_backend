@@ -66,7 +66,51 @@ docker compose ps
 
 ---
 
-## 2. Cài đặt dependencies (lần đầu sau khi clone)
+## 2. Cấu hình Environment Variables
+
+Mỗi service đọc config từ biến môi trường. Các file `.env.example` đã được commit vào git làm template — **không chứa secret thật**.
+
+### Bước 1 — Copy template
+
+```bash
+# Root (Java services: user, catalog, playlist + shared infra)
+cp .env.example .env
+
+# Go services (dùng connection string thay vì biến riêng lẻ)
+cp services/upload-service/.env.example    services/upload-service/.env
+cp services/streaming-service/.env.example services/streaming-service/.env
+
+# Python service
+cp services/recommend-service/.env.example services/recommend-service/.env
+
+# Frontend (Next.js)
+cp frontend/app-frontend/.env.local.example frontend/app-frontend/.env.local
+```
+
+### Bước 2 — Đặt JWT_SECRET
+
+`JWT_SECRET` **phải giống nhau** ở tất cả services. Sinh giá trị ngẫu nhiên:
+
+```bash
+openssl rand -base64 32
+```
+
+Thay thế giá trị `change-me-in-production-min-32-chars` trong **tất cả** các file `.env` vừa tạo.
+
+### Bước 3 — Điền các secret còn lại (production)
+
+| Biến | Service | Mô tả |
+|---|---|---|
+| `SMTP_USER`, `SMTP_PASS` | notification-service | Credentials SMTP để gửi email |
+| `GOOGLE_TOKEN_INFO_URL` | user-service | Endpoint verify Google OAuth2 token |
+| `ELASTICSEARCH_USERNAME/PASSWORD` | search-service | Nếu Elasticsearch bật xác thực |
+| `NEO4J_PASSWORD` | recommend-service | Mật khẩu Neo4j |
+
+> Với local dev, giá trị mặc định trong `.env.example` hoạt động được ngay với infrastructure từ Docker Compose.
+
+---
+
+## 3. Cài đặt dependencies (lần đầu sau khi clone)
 
 ```bash
 # Node.js dependencies cho toàn workspace (NestJS services + frontend)
@@ -81,7 +125,7 @@ cd services/recommend-service && poetry install && cd ../..
 
 ---
 
-## 3. Chạy Backend Services
+## 4. Chạy Backend Services
 
 ### Chạy từng service riêng lẻ
 
@@ -125,7 +169,7 @@ Không cần chạy lệnh migrate thủ công.
 
 ---
 
-## 4. Chạy Frontend
+## 5. Chạy Frontend
 
 Frontend là Next.js app nằm trong `frontend/app-frontend/`.
 
@@ -136,13 +180,7 @@ pnpm nx run app-frontend:dev
 
 Mở http://localhost:3000.
 
-Biến môi trường (tạo file `frontend/app-frontend/.env.local` nếu cần override):
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8080
-```
-
-Mặc định frontend gọi tất cả API qua Gateway ở `http://localhost:8080`.
+Biến môi trường đã được copy ở bước 2 (`frontend/app-frontend/.env.local`). Mặc định frontend gọi tất cả API qua Gateway ở `http://localhost:8080`.
 
 ### Build production
 
@@ -153,7 +191,7 @@ pnpm nx run app-frontend:start   # serve production build
 
 ---
 
-## 5. Lệnh Nx hữu ích
+## 6. Lệnh Nx hữu ích
 
 ```bash
 # Xem toàn bộ dependency graph

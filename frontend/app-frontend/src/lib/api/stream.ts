@@ -8,8 +8,8 @@ export function getStreamUrl(trackId: string, bitrate: 128 | 256 | 320 = 320): s
   return `${API_BASE}/stream/${trackId}?bitrate=${bitrate}${token ? `&token=${token}` : ''}`;
 }
 
-export function getHlsUrl(trackId: string): string {
-  return `${API_BASE}/stream/${trackId}/hls`;
+export function getHlsUrl(trackId: string, bitrate: 128 | 256 | 320 = 320): string {
+  return `${API_BASE}/stream/${trackId}/hls?bitrate=${bitrate}`;
 }
 
 export function startPlaySession(body: {

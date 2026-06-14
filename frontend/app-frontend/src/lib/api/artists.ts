@@ -12,6 +12,10 @@ export function getArtist(artistId: string) {
   return apiGet<ArtistDetailDto>(`/artists/${artistId}`);
 }
 
+export function getMyArtist() {
+  return apiGet<ArtistDetailDto>('/artists/me');
+}
+
 export function updateArtist(
   artistId: string,
   body: { name?: string; bio?: string; avatarUrl?: string }

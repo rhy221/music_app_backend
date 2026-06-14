@@ -46,7 +46,7 @@ export function usePlayer() {
   );
 
   const loadTrack = useCallback(
-    async (trackId: string) => {
+    async (trackId: string, startMs = 0) => {
       const audio = getAudio();
 
       // End previous session
@@ -68,14 +68,16 @@ export function usePlayer() {
       store.setPosition(0);
       store.setDuration(0);
 
+      const { preferredBitrate } = usePlayerStore.getState();
+
       // Start play session
-      const session = await startPlaySession({ trackId }).catch(() => null);
+      const session = await startPlaySession({ trackId, bitrate: preferredBitrate }).catch(() => null);
       if (session) {
         store.setSessionId(session.id);
         startHeartbeat(session.id);
       }
 
-      const hlsUrl = getHlsUrl(trackId);
+      const hlsUrl = getHlsUrl(trackId, preferredBitrate);
       const token = Cookies.get(COOKIE_ACCESS_TOKEN);
 
       if (Hls.isSupported()) {
@@ -87,18 +89,25 @@ export function usePlayer() {
         hls.loadSource(hlsUrl);
         hls.attachMedia(audio);
         hls.once(Hls.Events.MANIFEST_PARSED, () => {
+          if (startMs > 0) audio.currentTime = startMs / 1000;
           audio.play().catch(() => {});
         });
         hls.on(Hls.Events.ERROR, (_, data) => {
           if (data.fatal) {
-            audio.src = getStreamUrl(trackId);
+            audio.src = getStreamUrl(trackId, preferredBitrate);
             audio.load();
             audio.play().catch(() => store.setPlaying(false));
           }
         });
         _hls.current = hls;
       } else {
-        audio.src = audio.canPlayType('application/vnd.apple.mpegurl') ? hlsUrl : getStreamUrl(trackId);
+        const url = audio.canPlayType('application/vnd.apple.mpegurl')
+          ? hlsUrl
+          : getStreamUrl(trackId, preferredBitrate);
+        audio.src = url;
+        if (startMs > 0) {
+          audio.addEventListener('loadedmetadata', () => { audio.currentTime = startMs / 1000; }, { once: true });
+        }
         audio.play().catch(() => store.setPlaying(false));
       }
 
@@ -129,7 +138,7 @@ export function usePlayer() {
           const trackId =
             usePlayerStore.getState().queue[usePlayerStore.getState().currentIndex]?.id;
           if (trackId) {
-            const session = await startPlaySession({ trackId }).catch(() => null);
+            const session = await startPlaySession({ trackId, bitrate: usePlayerStore.getState().preferredBitrate }).catch(() => null);
             if (session) {
               store.setSessionId(session.id);
               startHeartbeat(session.id);
@@ -142,6 +151,19 @@ export function usePlayer() {
       };
     },
     [startHeartbeat, stopHeartbeat, store]
+  );
+
+  const changeBitrate = useCallback(
+    async (bitrate: 128 | 256 | 320) => {
+      store.setPreferredBitrate(bitrate);
+      const state = usePlayerStore.getState();
+      const currentTrack = state.queue[state.currentIndex];
+      if (!currentTrack || !state.isPlaying) return;
+      const posMs = Math.floor((_audio.current?.currentTime ?? 0) * 1000);
+      _activeTrackId = currentTrack.id;
+      await loadTrack(currentTrack.id, posMs);
+    },
+    [loadTrack, store]
   );
 
   const currentTrack = store.queue[store.currentIndex];
@@ -194,5 +216,5 @@ export function usePlayer() {
     [store]
   );
 
-  return { play, togglePlay, seek, setVolume, loadTrack };
+  return { play, togglePlay, seek, setVolume, loadTrack, changeBitrate };
 }

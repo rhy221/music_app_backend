@@ -15,7 +15,7 @@ type JobRepository interface {
 	UpdateMetadata(ctx context.Context, id string, durationMs int, format string) error
 	UpdateWaveform(ctx context.Context, id, waveformURL string) error
 	UpdateThumbnail(ctx context.Context, id, thumbnailURL string) error
-	SetPublished(ctx context.Context, id, trackID string) error
+	SetPublished(ctx context.Context, id, trackID string) (bool, error)
 }
 
 type TaskRepository interface {

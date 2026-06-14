@@ -16,7 +16,7 @@ import (
 
 type streamService interface {
 	GetAudio(ctx context.Context, trackID string, preferredBitrate int, rangeHeader string) (*usecase.AudioResult, error)
-	GetHLSPlaylist(ctx context.Context, trackID string) (string, error)
+	GetHLSPlaylist(ctx context.Context, trackID string, bitrate int) (string, error)
 }
 
 // StreamHandler serves audio files and HLS playlists.
@@ -96,7 +96,14 @@ func (h *StreamHandler) handleHLS(w http.ResponseWriter, r *http.Request, trackI
 		return
 	}
 
-	playlist, err := h.svc.GetHLSPlaylist(r.Context(), trackID)
+	bitrate := 320
+	if v := r.URL.Query().Get("bitrate"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			bitrate = n
+		}
+	}
+
+	playlist, err := h.svc.GetHLSPlaylist(r.Context(), trackID, bitrate)
 	if err != nil {
 		if errors.Is(err, domain.ErrNotFound) {
 			jsonError(w, http.StatusNotFound, "track not found")

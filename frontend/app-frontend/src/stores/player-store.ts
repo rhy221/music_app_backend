@@ -13,6 +13,7 @@ interface PlayerState {
   shuffle: boolean;
   repeat: 'none' | 'one' | 'all';
   sessionId: string | null;
+  preferredBitrate: 128 | 256 | 320;
 
   setQueue: (tracks: TrackSummaryDto[], startIndex?: number) => void;
   addToQueue: (track: TrackSummaryDto) => void;
@@ -24,6 +25,7 @@ interface PlayerState {
   toggleShuffle: () => void;
   cycleRepeat: () => void;
   setSessionId: (id: string | null) => void;
+  setPreferredBitrate: (bitrate: 128 | 256 | 320) => void;
   next: () => void;
   prev: () => void;
 }
@@ -38,6 +40,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   shuffle: false,
   repeat: 'none',
   sessionId: null,
+  preferredBitrate: 320,
 
   setQueue: (tracks, startIndex = 0) =>
     set({ queue: tracks, currentIndex: startIndex, positionMs: 0 }),
@@ -51,6 +54,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   cycleRepeat: () =>
     set((s) => ({ repeat: s.repeat === 'none' ? 'all' : s.repeat === 'all' ? 'one' : 'none' })),
   setSessionId: (id) => set({ sessionId: id }),
+  setPreferredBitrate: (bitrate) => set({ preferredBitrate: bitrate }),
   next: () => {
     const { queue, currentIndex, shuffle, repeat } = get();
     if (!queue.length) return;

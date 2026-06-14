@@ -92,15 +92,15 @@ func main() {
 
 	getJobUC := usecase.NewGetJob(jobRepo, taskRepo)
 	listJobsUC := usecase.NewListJobs(jobRepo)
-	retryJobUC := usecase.NewRetryJob(jobRepo, taskRepo)
-	cancelJobUC := usecase.NewCancelJob(jobRepo, fileStorage)
+	retryJobUC := usecase.NewRetryJob(jobRepo, taskRepo, transcoderPool)
+	cancelJobUC := usecase.NewCancelJob(jobRepo, fileStorage, transcoderPool)
 
 	// ── Outbox relay ──────────────────────────────────────────────────────────
 	relay := worker.NewOutboxRelay(outboxRepo, amqpConn, log)
 	go relay.Run(ctx)
 
 	// ── Catalog consumer ──────────────────────────────────────────────────────
-	catalogConsumer := worker.NewCatalogConsumer(amqpConn, jobRepo, log)
+	catalogConsumer := worker.NewCatalogConsumer(amqpConn, jobRepo, outboxRepo, log)
 	if err := catalogConsumer.Setup(); err != nil {
 		log.Fatal().Err(err).Msg("catalog consumer setup")
 	}

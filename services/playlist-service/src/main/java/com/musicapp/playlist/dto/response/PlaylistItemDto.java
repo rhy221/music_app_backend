@@ -12,5 +12,8 @@ public record PlaylistItemDto(
         String trackTitle,
         Integer trackDuration,
         String trackCoverUrl,
-        String artistName
+        String artistName,
+        UUID artistId,
+        UUID albumId,
+        String albumTitle
 ) {}

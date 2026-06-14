@@ -12,5 +12,6 @@ public record InternalTrackDto(
         UUID artistId,
         String artistName,
         UUID albumId,
+        String albumTitle,
         List<AudioAssetDto> assets
 ) {}

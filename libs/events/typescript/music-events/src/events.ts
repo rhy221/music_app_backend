@@ -68,6 +68,7 @@ export interface TrackPublishedEvent {
     artistName: string;
     albumId?: string;
     albumTitle?: string;
+    artistUserId?: string;
     assets: Array<{ bitrate: number; format: string; storageUrl: string }>;
   };
 }

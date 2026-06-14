@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { TrackRow } from '@/components/tracks/track-row';
 import { AddToPlaylistDialog } from '@/components/playlists/add-to-playlist-dialog';
 import { usePageGradient } from '@/components/common/page-gradient';
-import { getTrack } from '@/lib/api/tracks';
+import { getTrack, getPopularTracks } from '@/lib/api/tracks';
 import { getSimilarTracks } from '@/lib/api/recommendations';
 import { usePlayer } from '@/hooks/use-player';
 import { usePlayerStore } from '@/stores/player-store';
@@ -42,6 +42,17 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
     queryFn: () => getSimilarTracks(trackId, 10),
     enabled: !!track,
   });
+
+  const filteredSimilar = (similar?.items ?? []).filter((item) => item.trackId !== trackId);
+  const hasSimilar = filteredSimilar.length > 0;
+
+  const { data: popular } = useQuery({
+    queryKey: ['tracks', 'popular'],
+    queryFn: () => getPopularTracks({ limit: 10, period: 'week' }),
+    enabled: !!similar && !hasSimilar,
+  });
+
+  const filteredPopular = (popular ?? []).filter((t) => t.id !== trackId);
 
   const coverSrc = track ? storageUrl(track.coverUrl) : null;
 
@@ -150,6 +161,29 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
                 background: `linear-gradient(to bottom, rgba(31,31,31,0.3) 0%, rgba(31,31,31,0.4) 20%, rgba(31,31,31,0.65) 60%, rgba(31,31,31,1) 100%)`,
               }}>
 
+        {/* From the album */}
+      {track.album && (
+        <div>
+          <h2 className="mb-3 text-lg font-semibold">From the album</h2>
+          <a
+            href={`/album/${track.album.id}`}
+            className="flex items-center gap-4 rounded-lg p-3 hover:bg-accent transition-colors"
+          >
+            {track.album.coverUrl ? (
+              <img src={storageUrl(track.album.coverUrl) ?? undefined} alt={track.album.title} className="h-14 w-14 shrink-0 rounded object-cover" />
+            ) : (
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded bg-muted">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="truncate font-semibold">{track.album.title}</p>
+              <p className="text-sm text-muted-foreground">Album</p>
+            </div>
+          </a>
+        </div>
+      )}
+
         {/* Audio quality */}
       {track.assets.length > 0 && (
         <div>
@@ -164,27 +198,34 @@ export default function TrackPage({ params }: { params: Promise<{ trackId: strin
         </div>
       )}
 
-      {/* Similar tracks */}
-      {similar && similar.items.length > 0 && (
+      {/* Similar tracks — fallback to popular if none */}
+      {(hasSimilar || filteredPopular.length > 0) && (
         <div>
-          <h2 className="mb-4 text-lg font-semibold">Similar tracks</h2>
+          <h2 className="mb-4 text-lg font-semibold">
+            {hasSimilar ? 'Similar tracks' : 'Popular this week'}
+          </h2>
           <div className="space-y-1">
-            {similar.items.map((item, i) => {
-              const t: TrackSummaryDto = {
-                id: item.trackId,
-                title: item.title,
-                durationMs: 0,
-                genre: item.genre,
-                coverUrl: item.coverUrl,
-                playCount: item.playCount,
-                status: 'PUBLISHED',
-                releaseDate: null,
-                artist: { id: '', name: '', avatarUrl: null },
-              };
-              return (
-                <TrackRow key={item.trackId} track={t} index={i} onAddToPlaylist={setAddTarget} />
-              );
-            })}
+            {hasSimilar
+              ? filteredSimilar.map((item, i) => {
+                  const t: TrackSummaryDto = {
+                    id: item.trackId,
+                    title: item.title,
+                    durationMs: 0,
+                    genre: item.genre,
+                    coverUrl: item.coverUrl,
+                    playCount: item.playCount,
+                    status: 'PUBLISHED',
+                    releaseDate: null,
+                    artist: { id: '', name: '', avatarUrl: null },
+                  };
+                  return (
+                    <TrackRow key={item.trackId} track={t} index={i} onAddToPlaylist={setAddTarget} />
+                  );
+                })
+              : filteredPopular.map((t, i) => (
+                  <TrackRow key={t.id} track={t} index={i} queue={filteredPopular} queueIndex={i} onAddToPlaylist={setAddTarget} />
+                ))
+            }
           </div>
         </div>
       )}

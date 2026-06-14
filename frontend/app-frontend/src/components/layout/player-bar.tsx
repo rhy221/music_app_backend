@@ -16,6 +16,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { usePlayerStore } from '@/stores/player-store';
 import { usePlayer } from '@/hooks/use-player';
 import { cn } from '@/lib/utils';
@@ -29,7 +35,7 @@ function formatMs(ms: number) {
 
 export function PlayerBar() {
   const store = usePlayerStore();
-  const { togglePlay, seek, setVolume } = usePlayer();
+  const { togglePlay, seek, setVolume, changeBitrate } = usePlayer();
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [scrubMs, setScrubMs] = useState(0);
   const seekBarRef = useRef<HTMLDivElement>(null);
@@ -194,8 +200,28 @@ export function PlayerBar() {
         </div>
       </div>
 
-      {/* Volume */}
+      {/* Volume + Quality */}
       <div className="flex w-[200px] items-center justify-end gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-sm" className="w-10 text-xs tabular-nums font-medium text-muted-foreground hover:text-foreground">
+              {store.preferredBitrate}k
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" side="top" className="min-w-22.5">
+            {([128, 256, 320] as const).map((b) => (
+              <DropdownMenuItem
+                key={b}
+                onClick={() => changeBitrate(b)}
+                className={cn('justify-between gap-3', store.preferredBitrate === b && 'text-primary font-medium')}
+              >
+                <span>{b} kbps</span>
+                {store.preferredBitrate === b && <span className="text-primary">✓</span>}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <Button
           variant="ghost"
           size="icon-sm"

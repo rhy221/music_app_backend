@@ -33,15 +33,31 @@ export class CatalogEventConsumer implements OnModuleInit {
   }
 
   private async handleTrackPublished(e: TrackPublishedEvent): Promise<void> {
-    const { artistId, artistName, trackId, title } = e.data;
+    const { artistId, artistName, trackId, title, artistUserId } = e.data;
 
-    const artist = await this.catalogClient.getArtist(artistId);
-    if (!artist?.userId) {
+    // Notify the uploader that their track is live
+    if (artistUserId) {
+      try {
+        await this.notifService.create({
+          userId: artistUserId,
+          type: NotificationType.TRACK_PUBLISHED,
+          title: 'Track Published',
+          body: `Your track "${title}" has been published successfully!`,
+          data: { trackId, trackTitle: title },
+        });
+      } catch (err) {
+        this.logger.warn(`TRACK_PUBLISHED notification failed for user ${artistUserId}: ${err.message}`);
+      }
+    }
+
+    // Fan out NEW_RELEASE to all followers
+    const resolvedUserId = artistUserId ?? (await this.catalogClient.getArtist(artistId))?.userId;
+    if (!resolvedUserId) {
       this.logger.warn(`Cannot resolve userId for artist ${artistId}, skipping NEW_RELEASE fan-out`);
       return;
     }
 
-    const followers = await this.userClient.getFollowers(artist.userId);
+    const followers = await this.userClient.getFollowers(resolvedUserId);
     if (followers.length === 0) return;
 
     this.logger.debug(`Fanning out NEW_RELEASE to ${followers.length} followers of ${artistName}`);

@@ -15,7 +15,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { usePlayerStore } from '@/stores/player-store';
 import { getRecommendations, getSimilarTracks } from '@/lib/api/recommendations';
 import { getArtist } from '@/lib/api/artists';
-import { getTrack } from '@/lib/api/tracks';
+import { getTrack, getPopularTracks } from '@/lib/api/tracks';
 import { getUser, followUser, unfollowUser } from '@/lib/api/users';
 import { useAuthStore } from '@/stores/auth-store';
 import { storageUrl } from '@/lib/constants';
@@ -119,6 +119,21 @@ export function NowPlayingPanel({ isCollapsed, onCollapse, onExpand }: NowPlayin
     queryFn: () => getRecommendations({ limit: 10 }),
     enabled: !currentTrack,
   });
+
+  const filteredSimilar = !hasQueue
+    ? (similarData?.items ?? []).filter((item) => item.trackId !== currentTrack?.id)
+    : [];
+  const hasSimilar = filteredSimilar.length > 0;
+
+  const { data: popularData } = useQuery({
+    queryKey: ['tracks', 'popular'],
+    queryFn: () => getPopularTracks({ limit: 10, period: 'week' }),
+    enabled: !!currentTrack && !hasQueue && !!similarData && !hasSimilar,
+  });
+
+  const filteredPopular = !hasQueue
+    ? (popularData ?? []).filter((t) => t.id !== currentTrack?.id)
+    : [];
 
   return (
     <div className="h-full overflow-auto rounded-md bg-secondary">
@@ -349,9 +364,9 @@ export function NowPlayingPanel({ isCollapsed, onCollapse, onExpand }: NowPlayin
                 </div>
               ) : hasQueue && !nextInQueue ? (
                 <p className="px-2 text-xs text-muted-foreground">End of queue</p>
-              ) : !hasQueue && similarData?.items.length ? (
+              ) : hasSimilar ? (
                 <div className="-mx-2">
-                  {similarData.items.map((item) => (
+                  {filteredSimilar.map((item) => (
                     <Link
                       key={item.trackId}
                       href={`/track/${item.trackId}`}
@@ -376,6 +391,15 @@ export function NowPlayingPanel({ isCollapsed, onCollapse, onExpand }: NowPlayin
                         )}
                       </div>
                     </Link>
+                  ))}
+                </div>
+              ) : filteredPopular.length > 0 ? (
+                <div className="-mx-2">
+                  <p className="mb-1 px-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Popular this week
+                  </p>
+                  {filteredPopular.map((t) => (
+                    <TrackRow key={t.id} track={t} />
                   ))}
                 </div>
               ) : (

@@ -52,6 +52,7 @@ public class TrackService {
     private final OutboxService outboxService;
     private final ArtistService artistService;
 
+    @Transactional(readOnly = true)
     public PaginatedResponse<TrackSummaryDto> listTracks(
             String genre, UUID artistId, UUID userId, UUID albumId, String sort, Pageable pageable) {
 
@@ -82,6 +83,7 @@ public class TrackService {
                 trackRepository.findAll(spec, sortedPageable), trackMapper::toSummary);
     }
 
+    @Transactional(readOnly = true)
     public TrackDetailDto getTrackById(UUID trackId) {
         Track track = trackRepository.findWithAssetsById(trackId)
                 .orElseThrow(() -> new EntityNotFoundException("Track not found: " + trackId));
@@ -154,6 +156,29 @@ public class TrackService {
         );
     }
 
+    @Transactional
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "tracks:popular",      allEntries = true),
+        @CacheEvict(cacheNames = "tracks:new-releases", allEntries = true)
+    })
+    public void archiveTrackById(UUID trackId) {
+        trackRepository.findById(trackId).ifPresent(track -> {
+            if (track.getStatus() == TrackStatus.ARCHIVED) return;
+            track.setStatus(TrackStatus.ARCHIVED);
+            trackRepository.save(track);
+            outboxService.write(
+                    TrackDeletedEvent.EVENT_TYPE,
+                    EventConstants.Exchanges.CATALOG,
+                    EventConstants.RoutingKeys.TRACK_DELETED,
+                    new TrackDeletedEvent(
+                            EventHeader.create(TrackDeletedEvent.EVENT_TYPE, "catalog-service"),
+                            new TrackDeletedEvent.Data(track.getId().toString())
+                    )
+            );
+        });
+    }
+
+    @Transactional(readOnly = true)
     public List<TrackSummaryDto> getPopularTracks(int limit, String genre, String period) {
         Pageable pageable = PageRequest.of(0, Math.min(limit, 50));
 
@@ -180,6 +205,7 @@ public class TrackService {
         return tracks.stream().map(trackMapper::toSummary).toList();
     }
 
+    @Transactional(readOnly = true)
     public List<TrackSummaryDto> getNewReleases(int limit) {
         Pageable pageable = PageRequest.of(0, Math.min(limit, 50));
         return trackRepository.findByStatusOrderByCreatedAtDesc(TrackStatus.PUBLISHED, pageable)
@@ -250,6 +276,7 @@ public class TrackService {
                                 artist.getName(),
                                 album != null ? album.getId().toString() : null,
                                 album != null ? album.getTitle() : null,
+                                artist.getUserId() != null ? artist.getUserId().toString() : null,
                                 eventAssets
                         )
                 )
@@ -258,12 +285,14 @@ public class TrackService {
         return trackMapper.toDetail(track);
     }
 
+    @Transactional(readOnly = true)
     public InternalTrackDto getInternalTrack(UUID trackId) {
         Track track = trackRepository.findWithAssetsById(trackId)
                 .orElseThrow(() -> new EntityNotFoundException("Track not found: " + trackId));
         return trackMapper.toInternal(track);
     }
 
+    @Transactional(readOnly = true)
     public Map<UUID, InternalTrackDto> getInternalTracksBatch(List<UUID> ids) {
         if (ids.size() > 200) {
             throw new IllegalArgumentException("Batch size must not exceed 200");

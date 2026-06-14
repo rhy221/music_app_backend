@@ -61,6 +61,7 @@ catalog:
     user-role-updated: catalog.user.role.updated
     user-registered: catalog.user.registered
     user-profile-updated: catalog.user.profile.updated
+    track-deleted: catalog.track.deleted
 
 management:
   endpoints:

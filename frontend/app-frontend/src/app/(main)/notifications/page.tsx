@@ -48,7 +48,10 @@ export default function NotificationsPage() {
 
   const markReadMutation = useMutation({
     mutationFn: markAsRead,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      setUnreadCount((n) => Math.max(0, n - 1));
+    },
   });
 
   const markAllMutation = useMutation({
@@ -66,7 +69,7 @@ export default function NotificationsPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Notifications</h1>
         {data && data.unreadCount > 0 && (
@@ -77,7 +80,7 @@ export default function NotificationsPage() {
         )}
       </div>
 
-      <Tabs defaultValue="feed">
+      <Tabs defaultValue="feed" className="flex-col">
         <TabsList>
           <TabsTrigger value="feed">Feed</TabsTrigger>
           <TabsTrigger value="preferences">Preferences</TabsTrigger>

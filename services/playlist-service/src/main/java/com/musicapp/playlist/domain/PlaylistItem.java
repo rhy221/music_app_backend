@@ -50,4 +50,13 @@ public class PlaylistItem extends BaseEntity {
 
     @Column(name = "artist_name", length = 100)
     private String artistName;
+
+    @Column(name = "artist_id")
+    private UUID artistId;
+
+    @Column(name = "album_id")
+    private UUID albumId;
+
+    @Column(name = "album_title", length = 255)
+    private String albumTitle;
 }

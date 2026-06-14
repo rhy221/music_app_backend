@@ -20,8 +20,9 @@ public record TrackPublishedEvent(
             @JsonProperty("artistId")    String artistId,
             @JsonProperty("artistName")  String artistName,
             @JsonProperty("albumId")     String albumId,
-            @JsonProperty("albumTitle")  String albumTitle,
-            @JsonProperty("assets")      List<AudioAsset> assets
+            @JsonProperty("albumTitle")    String albumTitle,
+            @JsonProperty("artistUserId") String artistUserId,
+            @JsonProperty("assets")       List<AudioAsset> assets
     ) {}
 
     public record AudioAsset(

@@ -25,6 +25,11 @@ public class ArtistController {
         return artistService.listArtists(PageRequest.of(page, Math.min(size, 100)));
     }
 
+    @GetMapping("/me")
+    public ArtistDetailDto getMyArtist() {
+        return artistService.getMyArtist();
+    }
+
     @GetMapping("/{artistId}")
     public ArtistDetailDto getArtistById(@PathVariable UUID artistId) {
         return artistService.getArtistById(artistId);

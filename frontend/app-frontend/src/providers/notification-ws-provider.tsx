@@ -5,11 +5,12 @@ import { io, Socket } from 'socket.io-client';
 import Cookies from 'js-cookie';
 import { COOKIE_ACCESS_TOKEN, NOTIFICATION_URL } from '@/lib/constants';
 import { useAuthStore } from '@/stores/auth-store';
+import { getUnreadCount } from '@/lib/api/notifications';
 import type { NotificationDto } from '@/lib/api/types';
 
 interface NotificationWsContextValue {
   unreadCount: number;
-  setUnreadCount: (n: number) => void;
+  setUnreadCount: (n: number | ((prev: number) => number)) => void;
   latestNotification: NotificationDto | null;
 }
 
@@ -28,6 +29,13 @@ export function NotificationWsProvider({ children }: { children: React.ReactNode
   const [unreadCount, setUnreadCount] = useState(0);
   const [latestNotification, setLatestNotification] = useState<NotificationDto | null>(null);
   const socketRef = useRef<Socket | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    getUnreadCount()
+      .then((res) => setUnreadCount(res.count))
+      .catch(() => {});
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated) return;

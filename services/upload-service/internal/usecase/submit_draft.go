@@ -46,9 +46,12 @@ func (uc *SubmitDraftUseCase) Execute(ctx context.Context, draftID, uploaderID s
 	}
 
 	var albumID *string
+	var albumTitle *string
 	if draft.ReleaseType == domain.ReleaseTypeAlbum {
 		id := uuid.New().String()
 		albumID = &id
+		t := draft.Title
+		albumTitle = &t
 	}
 
 	draftIDCopy := draftID
@@ -132,6 +135,7 @@ func (uc *SubmitDraftUseCase) Execute(ctx context.Context, draftID, uploaderID s
 			Title:        t.Title,
 			Genre:        draft.Genre,
 			AlbumID:      albumID,
+			AlbumTitle:   albumTitle,
 			StorageKey:   storageKey,
 			ThumbnailURL: draft.ThumbnailURL,
 		})

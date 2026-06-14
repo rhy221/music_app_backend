@@ -69,6 +69,9 @@ public class PlaylistItemService {
         item.setTrackDuration(track.durationMs());
         item.setTrackCoverUrl(track.coverUrl());
         item.setArtistName(track.artistName());
+        item.setArtistId(track.artistId());
+        item.setAlbumId(track.albumId());
+        item.setAlbumTitle(track.albumTitle());
         itemRepository.save(item);
 
         // Update aggregate counters + cover
@@ -103,7 +106,8 @@ public class PlaylistItemService {
 
         return new PlaylistItemDto(item.getId(), item.getTrackId(), item.getPosition(),
                 item.getAddedBy(), item.getAddedAt(), item.getTrackTitle(),
-                item.getTrackDuration(), item.getTrackCoverUrl(), item.getArtistName());
+                item.getTrackDuration(), item.getTrackCoverUrl(), item.getArtistName(),
+                item.getArtistId(), item.getAlbumId(), item.getAlbumTitle());
     }
 
     @Transactional

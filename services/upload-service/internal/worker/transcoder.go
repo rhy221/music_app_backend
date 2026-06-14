@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,6 +32,7 @@ type TranscoderPool struct {
 	transactor port.Transactor
 	log        zerolog.Logger
 	workers    int
+	activeJobs sync.Map // jobID → context.CancelFunc
 }
 
 func NewTranscoderPool(
@@ -51,6 +53,13 @@ func NewTranscoderPool(
 		transactor: transactor,
 		log:        log.With().Str("component", "transcoder").Logger(),
 		workers:    workers,
+	}
+}
+
+// CancelJob implements port.Dispatcher — signals the running FFmpeg process to stop.
+func (p *TranscoderPool) CancelJob(jobID string) {
+	if v, ok := p.activeJobs.Load(jobID); ok {
+		v.(context.CancelFunc)()
 	}
 }
 
@@ -81,6 +90,14 @@ func (p *TranscoderPool) run(ctx context.Context) {
 
 func (p *TranscoderPool) process(ctx context.Context, work port.TranscodeWork) {
 	log := p.log.With().Str("jobId", work.JobID).Logger()
+
+	// Per-job context — cancelled by CancelJob() to kill the FFmpeg process.
+	jobCtx, cancelJob := context.WithCancel(ctx)
+	p.activeJobs.Store(work.JobID, cancelJob)
+	defer func() {
+		p.activeJobs.Delete(work.JobID)
+		cancelJob()
+	}()
 
 	if err := p.jobRepo.UpdateStatus(ctx, work.JobID, domain.JobStatusTranscoding, nil); err != nil {
 		log.Error().Err(err).Msg("update status to TRANSCODING")
@@ -126,7 +143,7 @@ func (p *TranscoderPool) process(ctx context.Context, work port.TranscodeWork) {
 		tmpOut.Close()
 		defer os.Remove(tmpOut.Name())
 
-		cmd := exec.CommandContext(ctx,
+		cmd := exec.CommandContext(jobCtx,
 			"ffmpeg", "-y", "-i", localIn,
 			"-vn", "-acodec", "libmp3lame",
 			"-b:a", fmt.Sprintf("%dk", br),
@@ -153,6 +170,12 @@ func (p *TranscoderPool) process(ctx context.Context, work port.TranscodeWork) {
 		})
 	}
 
+	// If the job was cancelled while FFmpeg was running, stop here — do not publish event.
+	if jobCtx.Err() != nil {
+		log.Info().Msg("job cancelled during transcode, skipping event publish")
+		return
+	}
+
 	if len(assets) == 0 {
 		p.failJob(ctx, work, "all transcode bitrates failed")
 		return
@@ -163,7 +186,7 @@ func (p *TranscoderPool) process(ctx context.Context, work port.TranscodeWork) {
 	if err == nil {
 		waveformTmp.Close()
 		defer os.Remove(waveformTmp.Name())
-		waveCmd := exec.CommandContext(ctx,
+		waveCmd := exec.CommandContext(jobCtx,
 			"ffmpeg", "-y", "-i", localIn,
 			"-filter_complex", "showwavespic=s=640x120:colors=0x1DB954",
 			"-frames:v", "1", waveformTmp.Name(),
@@ -184,6 +207,7 @@ func (p *TranscoderPool) process(ctx context.Context, work port.TranscodeWork) {
 			Title:        work.Title,
 			Genre:        work.Genre,
 			AlbumID:      work.AlbumID,
+			AlbumTitle:   work.AlbumTitle,
 			DurationMs:   durationMs,
 			ThumbnailURL: work.ThumbnailURL,
 			WaveformURL:  waveformURL,

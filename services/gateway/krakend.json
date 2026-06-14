@@ -61,6 +61,7 @@
     {
       "endpoint": "/api/v1/auth/register",
       "method": "POST",
+      "output_encoding": "no-op",
       "input_headers": [
         "Content-Type"
       ],
@@ -80,13 +81,14 @@
           "host": [
             "http://host.docker.internal:8081"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
       ]
     },
     {
       "endpoint": "/api/v1/auth/login",
       "method": "POST",
+      "output_encoding": "no-op",
       "input_headers": [
         "Content-Type"
       ],
@@ -106,7 +108,7 @@
           "host": [
             "http://host.docker.internal:8081"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
       ]
     },
@@ -140,6 +142,7 @@
     {
       "endpoint": "/api/v1/auth/oauth2/google",
       "method": "POST",
+      "output_encoding": "no-op",
       "input_headers": [
         "Content-Type"
       ],
@@ -159,13 +162,14 @@
           "host": [
             "http://host.docker.internal:8081"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
       ]
     },
     {
       "endpoint": "/api/v1/auth/logout",
       "method": "POST",
+      "output_encoding": "no-op",
       "input_headers": [
         "Content-Type",
         "Authorization"
@@ -186,7 +190,7 @@
           "host": [
             "http://host.docker.internal:8081"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
       ]
     },
@@ -230,9 +234,10 @@
           "host": [
             "http://host.docker.internal:8081"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/users/me",
@@ -274,9 +279,10 @@
           "host": [
             "http://host.docker.internal:8081"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/users/me/avatar",
@@ -318,9 +324,10 @@
           "host": [
             "http://host.docker.internal:8081"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/users/me/password",
@@ -362,9 +369,10 @@
           "host": [
             "http://host.docker.internal:8081"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/users/{userId}",
@@ -388,9 +396,10 @@
           "host": [
             "http://host.docker.internal:8081"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/users/{userId}/followers",
@@ -417,9 +426,10 @@
           "host": [
             "http://host.docker.internal:8081"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/users/{userId}/following",
@@ -446,9 +456,10 @@
           "host": [
             "http://host.docker.internal:8081"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/users/{userId}/follow",
@@ -490,9 +501,10 @@
           "host": [
             "http://host.docker.internal:8081"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/users/{userId}/follow",
@@ -535,7 +547,8 @@
           ],
           "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/admin/users",
@@ -586,9 +599,10 @@
           "host": [
             "http://host.docker.internal:8081"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/admin/users/{userId}/role",
@@ -634,9 +648,10 @@
           "host": [
             "http://host.docker.internal:8081"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/tracks/popular",
@@ -730,9 +745,10 @@
           "host": [
             "http://host.docker.internal:8082"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/tracks/{trackId}",
@@ -756,9 +772,10 @@
           "host": [
             "http://host.docker.internal:8082"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/tracks/{trackId}",
@@ -800,9 +817,10 @@
           "host": [
             "http://host.docker.internal:8082"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/tracks/{trackId}",
@@ -845,7 +863,8 @@
           ],
           "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/albums",
@@ -873,9 +892,10 @@
           "host": [
             "http://host.docker.internal:8082"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/albums",
@@ -917,9 +937,10 @@
           "host": [
             "http://host.docker.internal:8082"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/albums/{albumId}",
@@ -943,9 +964,10 @@
           "host": [
             "http://host.docker.internal:8082"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/albums/{albumId}",
@@ -987,9 +1009,10 @@
           "host": [
             "http://host.docker.internal:8082"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/artists",
@@ -1016,9 +1039,37 @@
           "host": [
             "http://host.docker.internal:8082"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
+    },
+    {
+      "endpoint": "/api/v1/artists/me",
+      "method": "GET",
+      "input_headers": [
+        "Authorization",
+        "Accept"
+      ],
+      "extra_config": {
+        "qos/ratelimit/router": {
+          "client_max_rate": 100,
+          "client_capacity": 100,
+          "every": "1m",
+          "strategy": "ip"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/api/v1/artists/me",
+          "method": "GET",
+          "host": [
+            "http://host.docker.internal:8082"
+          ],
+          "encoding": "no-op"
+        }
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/artists/{artistId}",
@@ -1042,9 +1093,10 @@
           "host": [
             "http://host.docker.internal:8082"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/artists/{artistId}",
@@ -1086,9 +1138,10 @@
           "host": [
             "http://host.docker.internal:8082"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/playlists",
@@ -1133,9 +1186,10 @@
           "host": [
             "http://host.docker.internal:8083"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/playlists",
@@ -1177,9 +1231,10 @@
           "host": [
             "http://host.docker.internal:8083"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/playlists/{playlistId}",
@@ -1266,9 +1321,10 @@
           "host": [
             "http://host.docker.internal:8083"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/playlists/{playlistId}",
@@ -1311,7 +1367,8 @@
           ],
           "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/playlists/{playlistId}/items",
@@ -1353,9 +1410,10 @@
           "host": [
             "http://host.docker.internal:8083"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/playlists/{playlistId}/items/reorder",
@@ -1397,9 +1455,10 @@
           "host": [
             "http://host.docker.internal:8083"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/playlists/{playlistId}/items/{itemId}",
@@ -1442,7 +1501,8 @@
           ],
           "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/playlists/{playlistId}/collaborators",
@@ -1529,9 +1589,10 @@
           "host": [
             "http://host.docker.internal:8083"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/playlists/{playlistId}/collaborators/{userId}",
@@ -1574,54 +1635,140 @@
           ],
           "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/playlists/my-track-ids",
       "method": "GET",
       "output_encoding": "no-op",
-      "input_headers": ["Authorization"],
+      "input_headers": [
+        "Authorization"
+      ],
       "input_query_strings": [],
       "extra_config": {
-        "qos/ratelimit/router": { "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip" },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100,
+          "client_capacity": 100,
+          "every": "1m",
+          "strategy": "ip"
+        },
         "auth/validator": {
-          "alg": "HS256", "jwk_url": "http://localhost:8088/", "disable_jwk_security": true,
-          "cache": true, "cache_duration": 300,
-          "propagate_claims": [["sub","X-User-Id"],["role","X-User-Role"]]
+          "alg": "HS256",
+          "jwk_url": "http://localhost:8088/",
+          "disable_jwk_security": true,
+          "cache": true,
+          "cache_duration": 300,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ],
+            [
+              "role",
+              "X-User-Role"
+            ]
+          ]
         }
       },
-      "backend": [{ "url_pattern": "/api/v1/playlists/my-track-ids", "method": "GET", "host": ["http://host.docker.internal:8083"], "encoding": "no-op" }]
+      "backend": [
+        {
+          "url_pattern": "/api/v1/playlists/my-track-ids",
+          "method": "GET",
+          "host": [
+            "http://host.docker.internal:8083"
+          ],
+          "encoding": "no-op"
+        }
+      ]
     },
     {
       "endpoint": "/api/v1/playlists/containing-track/{trackId}",
       "method": "GET",
       "output_encoding": "no-op",
-      "input_headers": ["Authorization"],
+      "input_headers": [
+        "Authorization"
+      ],
       "input_query_strings": [],
       "extra_config": {
-        "qos/ratelimit/router": { "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip" },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100,
+          "client_capacity": 100,
+          "every": "1m",
+          "strategy": "ip"
+        },
         "auth/validator": {
-          "alg": "HS256", "jwk_url": "http://localhost:8088/", "disable_jwk_security": true,
-          "cache": true, "cache_duration": 300,
-          "propagate_claims": [["sub","X-User-Id"],["role","X-User-Role"]]
+          "alg": "HS256",
+          "jwk_url": "http://localhost:8088/",
+          "disable_jwk_security": true,
+          "cache": true,
+          "cache_duration": 300,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ],
+            [
+              "role",
+              "X-User-Role"
+            ]
+          ]
         }
       },
-      "backend": [{ "url_pattern": "/api/v1/playlists/containing-track/{trackId}", "method": "GET", "host": ["http://host.docker.internal:8083"], "encoding": "no-op" }]
+      "backend": [
+        {
+          "url_pattern": "/api/v1/playlists/containing-track/{trackId}",
+          "method": "GET",
+          "host": [
+            "http://host.docker.internal:8083"
+          ],
+          "encoding": "no-op"
+        }
+      ]
     },
     {
       "endpoint": "/api/v1/playlists/{playlistId}/items/by-track/{trackId}",
       "method": "DELETE",
-      "input_headers": ["Authorization"],
+      "input_headers": [
+        "Authorization"
+      ],
       "input_query_strings": [],
       "extra_config": {
-        "qos/ratelimit/router": { "client_max_rate": 100, "client_capacity": 100, "every": "1m", "strategy": "ip" },
+        "qos/ratelimit/router": {
+          "client_max_rate": 100,
+          "client_capacity": 100,
+          "every": "1m",
+          "strategy": "ip"
+        },
         "auth/validator": {
-          "alg": "HS256", "jwk_url": "http://localhost:8088/", "disable_jwk_security": true,
-          "cache": true, "cache_duration": 300,
-          "propagate_claims": [["sub","X-User-Id"],["role","X-User-Role"]]
+          "alg": "HS256",
+          "jwk_url": "http://localhost:8088/",
+          "disable_jwk_security": true,
+          "cache": true,
+          "cache_duration": 300,
+          "propagate_claims": [
+            [
+              "sub",
+              "X-User-Id"
+            ],
+            [
+              "role",
+              "X-User-Role"
+            ]
+          ]
         }
       },
-      "backend": [{ "url_pattern": "/api/v1/playlists/{playlistId}/items/by-track/{trackId}", "method": "DELETE", "host": ["http://host.docker.internal:8083"], "encoding": "no-op" }]
+      "backend": [
+        {
+          "url_pattern": "/api/v1/playlists/{playlistId}/items/by-track/{trackId}",
+          "method": "DELETE",
+          "host": [
+            "http://host.docker.internal:8083"
+          ],
+          "encoding": "no-op"
+        }
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/users/{userId}/playlists",
@@ -1665,9 +1812,10 @@
           "host": [
             "http://host.docker.internal:8083"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/stream/{trackId}",
@@ -1804,9 +1952,10 @@
           "host": [
             "http://host.docker.internal:8084"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/play-sessions/{sessionId}/heartbeat",
@@ -1848,9 +1997,10 @@
           "host": [
             "http://host.docker.internal:8084"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/play-sessions/{sessionId}/end",
@@ -1892,9 +2042,10 @@
           "host": [
             "http://host.docker.internal:8084"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/history",
@@ -1939,9 +2090,10 @@
           "host": [
             "http://host.docker.internal:8084"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/history/recently-played",
@@ -1985,9 +2137,10 @@
           "host": [
             "http://host.docker.internal:8084"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/history/stats",
@@ -2031,9 +2184,10 @@
           "host": [
             "http://host.docker.internal:8084"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/upload/drafts",
@@ -2608,9 +2762,10 @@
           "host": [
             "http://host.docker.internal:8085"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/search/tracks",
@@ -2641,9 +2796,10 @@
           "host": [
             "http://host.docker.internal:8085"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/search/artists",
@@ -2671,9 +2827,10 @@
           "host": [
             "http://host.docker.internal:8085"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/search/autocomplete",
@@ -2700,9 +2857,10 @@
           "host": [
             "http://host.docker.internal:8085"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/notifications",
@@ -2749,9 +2907,10 @@
           "host": [
             "http://host.docker.internal:8087"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/notifications/unread-count",
@@ -2793,9 +2952,10 @@
           "host": [
             "http://host.docker.internal:8087"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/notifications/read-all",
@@ -2837,9 +2997,10 @@
           "host": [
             "http://host.docker.internal:8087"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/notifications/preferences",
@@ -2881,9 +3042,10 @@
           "host": [
             "http://host.docker.internal:8087"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/notifications/preferences",
@@ -2925,9 +3087,10 @@
           "host": [
             "http://host.docker.internal:8087"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/notifications/{notificationId}/read",
@@ -2969,9 +3132,10 @@
           "host": [
             "http://host.docker.internal:8087"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/ws",
@@ -3046,9 +3210,10 @@
           "host": [
             "http://host.docker.internal:8000"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/recommendations/discover-weekly",
@@ -3090,9 +3255,10 @@
           "host": [
             "http://host.docker.internal:8000"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/recommendations/similar/{trackId}",
@@ -3135,9 +3301,10 @@
           "host": [
             "http://host.docker.internal:8000"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/recommendations/radio/{trackId}",
@@ -3179,9 +3346,10 @@
           "host": [
             "http://host.docker.internal:8000"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/recommendations/feedback",
@@ -3223,9 +3391,10 @@
           "host": [
             "http://host.docker.internal:8000"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/taste-profile",
@@ -3267,9 +3436,10 @@
           "host": [
             "http://host.docker.internal:8000"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     },
     {
       "endpoint": "/api/v1/taste-profile/refresh",
@@ -3311,9 +3481,10 @@
           "host": [
             "http://host.docker.internal:8000"
           ],
-          "encoding": "json"
+          "encoding": "no-op"
         }
-      ]
+      ],
+      "output_encoding": "no-op"
     }
   ]
 }

@@ -140,7 +140,7 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
     playCount: 0,
     status: 'PUBLISHED' as const,
     releaseDate: null,
-    artist: { id: '', name: item.artistName, avatarUrl: null },
+    artist: { id: item.artistId ?? '', name: item.artistName, avatarUrl: null },
   }));
 
   const isContextActive = tracksAsSummary.some((t) => t.id === currentTrackId);
@@ -229,6 +229,19 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
           )}
         </div>
        
+          {/* Track list header */}
+      <div className="flex items-center gap-3 border-b border-border/40 px-2 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        {playlist.canEdit && <span className="w-4 shrink-0" />}
+        <span className="w-8 shrink-0 text-center">#</span>
+        <span className="w-10 shrink-0" />
+        <span className="min-w-0 flex-1">Title</span>
+        <span className="hidden w-36 shrink-0 sm:block">Album</span>
+        <span className="flex items-center">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </span>
+        {playlist.canEdit && <span className="w-8 shrink-0" />}
+      </div>
+
           {/* Tracks */}
       <div className="space-y-1">
         {playlist.items.map((item, i) => {
@@ -253,7 +266,7 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
             >
               {playlist.canEdit && (
                 <div
-                  className="cursor-grab opacity-0 group-hover:opacity-60"
+                  className="w-4 cursor-grab opacity-0 group-hover:opacity-60"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <GripVertical className="h-4 w-4 text-muted-foreground" />
@@ -279,8 +292,37 @@ export default function PlaylistDetailPage({ params }: { params: Promise<{ playl
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{item.trackTitle}</p>
-                <p className="truncate text-xs text-muted-foreground">{item.artistName}</p>
+                <a
+                  href={`/track/${item.trackId}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className={cn('block truncate text-sm font-medium hover:underline', isItemActive && 'text-primary')}
+                >
+                  {item.trackTitle}
+                </a>
+                {item.artistId ? (
+                  <a
+                    href={`/artist/${item.artistId}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="block truncate text-xs text-muted-foreground hover:underline"
+                  >
+                    {item.artistName}
+                  </a>
+                ) : (
+                  <p className="truncate text-xs text-muted-foreground">{item.artistName}</p>
+                )}
+              </div>
+              <div className="hidden w-36 min-w-0 shrink-0 sm:block">
+                {item.albumId ? (
+                  <a
+                    href={`/album/${item.albumId}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="block truncate text-xs text-muted-foreground hover:underline"
+                  >
+                    {item.albumTitle}
+                  </a>
+                ) : (
+                  <span className="block truncate text-xs text-muted-foreground">{item.trackTitle}</span>
+                )}
               </div>
               <span className="text-xs tabular-nums text-muted-foreground">
                 {formatMs(item.trackDuration)}

@@ -151,7 +151,7 @@ export default function HomePage() {
           {isAuthenticated && recommendations?.items && recommendations.items.length > 0 && (
             <section>
               <SectionHeader title="Recommended for you" />
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              <div className="grid grid-cols-2 gap-2 @[480px]:grid-cols-3 @[640px]:grid-cols-4 @[820px]:grid-cols-5">
                 {recommendations.items.slice(0, 12).map((item) => (
                   <div
                     key={item.trackId}

@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Library, Plus, ListMusic, Search, X, Music2,
+  Library, Plus, ListMusic, Search, X, Music2, Disc3,
   PanelLeftClose, PanelLeftOpen, Upload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -46,6 +46,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { getMyPlaylists, createPlaylist } from '@/lib/api/playlists';
 import { getTracks } from '@/lib/api/tracks';
+import { getMyArtist } from '@/lib/api/artists';
 import { useAuthStore } from '@/stores/auth-store';
 import { useDebounce } from '@/hooks/use-debounce';
 import { storageUrl } from '@/lib/constants';
@@ -94,6 +95,13 @@ export function LibraryPanel({ isCollapsed, onCollapse, onExpand }: LibraryPanel
     enabled: !!user?.id,
   });
 
+  const { data: myArtist } = useQuery({
+    queryKey: ['my-artist'],
+    queryFn: () => getMyArtist(),
+    enabled: !!user,
+    retry: false,
+  });
+
   const createMutation = useMutation({
     mutationFn: (values: CreateFormValues) => createPlaylist(values),
     onSuccess: (pl) => {
@@ -108,16 +116,22 @@ export function LibraryPanel({ isCollapsed, onCollapse, onExpand }: LibraryPanel
 
   const playlists = playlistsData?.content ?? [];
   const myTracks = myTracksData?.content ?? [];
+  const myAlbums = myArtist?.albums ?? [];
 
-  const filteredPlaylists = debouncedSearch.trim()
-    ? playlists.filter((p) => p.name.toLowerCase().includes(debouncedSearch.toLowerCase()))
+  const q = debouncedSearch.toLowerCase();
+  const isSearching = q.length > 0;
+
+  const filteredPlaylists = isSearching
+    ? playlists.filter((p) => p.name.toLowerCase().includes(q))
     : playlists;
 
-  const filteredTracks = debouncedSearch.trim()
-    ? myTracks.filter((t) => t.title.toLowerCase().includes(debouncedSearch.toLowerCase()))
+  const filteredTracks = isSearching
+    ? myTracks.filter((t) => t.title.toLowerCase().includes(q))
     : myTracks;
 
-  const isSearching = debouncedSearch.trim().length > 0;
+  const filteredAlbums = isSearching
+    ? myAlbums.filter((a) => a.title.toLowerCase().includes(q))
+    : myAlbums;
 
   return (
     <>
@@ -195,6 +209,28 @@ export function LibraryPanel({ isCollapsed, onCollapse, onExpand }: LibraryPanel
                       </Link>
                     </TooltipTrigger>
                     <TooltipContent side="right">{pl.name}</TooltipContent>
+                  </Tooltip>
+                ))}
+                {myAlbums.map((album) => (
+                  <Tooltip key={album.id}>
+                    <TooltipTrigger asChild>
+                      <Link
+                        href={`/album/${album.id}`}
+                        className={cn(
+                          'relative h-8 w-8 shrink-0 overflow-hidden rounded-md block transition-colors',
+                          pathname === `/album/${album.id}` ? 'ring-2 ring-sidebar-ring' : 'hover:opacity-90'
+                        )}
+                      >
+                        {album.coverUrl ? (
+                          <Image src={storageUrl(album.coverUrl) ?? ''} alt={album.title} fill className="object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-sidebar-accent">
+                            <Disc3 className="h-4 w-4 text-sidebar-accent-foreground" />
+                          </div>
+                        )}
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">{album.title}</TooltipContent>
                   </Tooltip>
                 ))}
                 {myTracks.map((t) => (
@@ -287,7 +323,7 @@ export function LibraryPanel({ isCollapsed, onCollapse, onExpand }: LibraryPanel
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search playlists & tracks"
+                  placeholder="Search library..."
                   className="h-8 pl-8 pr-7 text-xs rounded-full border-0 bg-sidebar-accent focus-visible:ring-1 focus-visible:ring-sidebar-ring"
                 />
                 {searchQuery && (
@@ -331,9 +367,11 @@ export function LibraryPanel({ isCollapsed, onCollapse, onExpand }: LibraryPanel
                         </Button>
                       </div>
                     )}
-                    <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/60">
-                      My Playlists
-                    </p>
+                    {(!isSearching || filteredPlaylists.length > 0) && (
+                      <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/60">
+                        My Playlists
+                      </p>
+                    )}
                     {filteredPlaylists.map((pl) => (
                       <Link
                         key={pl.id}
@@ -356,6 +394,42 @@ export function LibraryPanel({ isCollapsed, onCollapse, onExpand }: LibraryPanel
                           <p className="truncate text-sm font-medium leading-tight text-sidebar-foreground">{pl.name}</p>
                           <p className="text-xs text-sidebar-foreground/60">
                             Playlist · {pl.trackCount} {pl.trackCount === 1 ? 'song' : 'songs'}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
+                  </>
+                )}
+
+                {/* ── My Albums ── */}
+                {filteredAlbums.length > 0 && (
+                  <>
+                    <Separator className="my-2 bg-sidebar-border" />
+                    <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/60">
+                      My Albums
+                    </p>
+                    {filteredAlbums.map((album) => (
+                      <Link
+                        key={album.id}
+                        href={`/album/${album.id}`}
+                        className={cn(
+                          'flex items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-sidebar-accent',
+                          pathname === `/album/${album.id}` && 'bg-sidebar-accent'
+                        )}
+                      >
+                        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded">
+                          {album.coverUrl ? (
+                            <Image src={storageUrl(album.coverUrl) ?? ''} alt={album.title} fill className="object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center bg-sidebar-accent">
+                              <Disc3 className="h-4 w-4 text-sidebar-accent-foreground" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium leading-tight text-sidebar-foreground">{album.title}</p>
+                          <p className="text-xs text-sidebar-foreground/60">
+                            Album · {album.releaseDate ? new Date(album.releaseDate).getFullYear() : 'Unknown year'}
                           </p>
                         </div>
                       </Link>
@@ -400,7 +474,7 @@ export function LibraryPanel({ isCollapsed, onCollapse, onExpand }: LibraryPanel
                   </>
                 )}
 
-                {isSearching && filteredPlaylists.length === 0 && filteredTracks.length === 0 && (
+                {isSearching && filteredPlaylists.length === 0 && filteredTracks.length === 0 && filteredAlbums.length === 0 && (
                   <p className="px-2 py-3 text-xs text-muted-foreground">No results</p>
                 )}
               </div>

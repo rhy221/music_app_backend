@@ -4,15 +4,13 @@ echo  Clearing all application data (schemas preserved)
 echo ======================================================
 echo.
 
-set TRUNCATE_SQL=DO $$ DECLARE r RECORD; BEGIN FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP EXECUTE 'TRUNCATE TABLE public.' ^|^| quote_ident(r.tablename) ^|^| ' RESTART IDENTITY CASCADE'; END LOOP; END $$;
-
 :: ── PostgreSQL ─────────────────────────────────────────────────────────────
-echo [1/7] PostgreSQL -- truncating all tables...
-docker exec music-postgres psql -U music_admin -d user_db     -c "%TRUNCATE_SQL%" -q
-docker exec music-postgres psql -U music_admin -d catalog_db  -c "%TRUNCATE_SQL%" -q
-docker exec music-postgres psql -U music_admin -d playlist_db -c "%TRUNCATE_SQL%" -q
-docker exec music-postgres psql -U music_admin -d streaming_db -c "%TRUNCATE_SQL%" -q
-docker exec music-postgres psql -U music_admin -d upload_db   -c "%TRUNCATE_SQL%" -q
+echo [1/7] PostgreSQL -- truncating all tables (all schemas)...
+docker exec -i music-postgres psql -U music_admin -d user_db      < docker\postgres\truncate-all.sql
+docker exec -i music-postgres psql -U music_admin -d catalog_db   < docker\postgres\truncate-all.sql
+docker exec -i music-postgres psql -U music_admin -d playlist_db  < docker\postgres\truncate-all.sql
+docker exec -i music-postgres psql -U music_admin -d streaming_db < docker\postgres\truncate-all.sql
+docker exec -i music-postgres psql -U music_admin -d upload_db    < docker\postgres\truncate-all.sql
 echo Done.
 
 :: ── Neo4j ──────────────────────────────────────────────────────────────────

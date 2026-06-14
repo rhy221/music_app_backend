@@ -38,6 +38,7 @@ public class AlbumService {
     private final AlbumMapper albumMapper;
     private final TrackMapper trackMapper;
 
+    @Transactional(readOnly = true)
     public PaginatedResponse<AlbumSummaryDto> listAlbums(UUID artistId, Pageable pageable) {
         Page<Album> page = (artistId != null)
                 ? albumRepository.findByArtistId(artistId, pageable)
@@ -63,6 +64,7 @@ public class AlbumService {
         return albumMapper.toSummary(albumRepository.save(album));
     }
 
+    @Transactional(readOnly = true)
     public AlbumDetailDto getAlbumById(UUID albumId) {
         Album album = albumRepository.findById(albumId)
                 .orElseThrow(() -> new EntityNotFoundException("Album not found: " + albumId));
@@ -108,6 +110,18 @@ public class AlbumService {
         if (req.releaseDate() != null) album.setReleaseDate(req.releaseDate());
 
         return albumMapper.toSummary(albumRepository.save(album));
+    }
+
+    @Transactional
+    public void ensureAlbumExists(UUID albumId, String albumTitle, String coverUrl, UUID artistUserId) {
+        Artist artist = artistRepository.findByUserId(artistUserId)
+                .orElseThrow(() -> new EntityNotFoundException("Artist not found for user: " + artistUserId));
+        albumRepository.insertIfAbsent(
+                albumId,
+                artist.getId(),
+                albumTitle != null ? albumTitle : "Untitled Album",
+                coverUrl
+        );
     }
 
     private void verifyOwnership(Album album) {

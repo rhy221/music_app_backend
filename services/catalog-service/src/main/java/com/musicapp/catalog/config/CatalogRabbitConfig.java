@@ -24,6 +24,9 @@ public class CatalogRabbitConfig {
     @Value("${catalog.queues.user-profile-updated}")
     private String userProfileUpdatedQueue;
 
+    @Value("${catalog.queues.track-deleted}")
+    private String trackDeletedQueue;
+
     // Dead-letter exchange for failed messages
     @Bean
     public DirectExchange deadLetterExchange() {
@@ -133,5 +136,23 @@ public class CatalogRabbitConfig {
                 .bind(userProfileUpdatedQueueBean())
                 .to(userExchangeRef())
                 .with(EventConstants.RoutingKeys.USER_PROFILE_UPDATED);
+    }
+
+    // ---- Track Deleted (saga compensation from Upload service) ----
+
+    @Bean
+    public Queue trackDeletedQueueBean() {
+        return QueueBuilder.durable(trackDeletedQueue)
+                .withArgument("x-dead-letter-exchange", "events.dead-letter")
+                .withArgument("x-dead-letter-routing-key", trackDeletedQueue + ".dlq")
+                .build();
+    }
+
+    @Bean
+    public Binding trackDeletedBinding() {
+        return BindingBuilder
+                .bind(trackDeletedQueueBean())
+                .to(uploadExchangeRef())
+                .with(EventConstants.RoutingKeys.TRACK_DELETED);
     }
 }

@@ -9,12 +9,13 @@ import (
 )
 
 type CancelJobUseCase struct {
-	jobs    port.JobRepository
-	storage port.FileStorage
+	jobs       port.JobRepository
+	storage    port.FileStorage
+	dispatcher port.Dispatcher
 }
 
-func NewCancelJob(jobs port.JobRepository, storage port.FileStorage) *CancelJobUseCase {
-	return &CancelJobUseCase{jobs: jobs, storage: storage}
+func NewCancelJob(jobs port.JobRepository, storage port.FileStorage, dispatcher port.Dispatcher) *CancelJobUseCase {
+	return &CancelJobUseCase{jobs: jobs, storage: storage, dispatcher: dispatcher}
 }
 
 func (uc *CancelJobUseCase) Execute(ctx context.Context, jobID, uploaderID string) (*domain.UploadJob, error) {
@@ -25,6 +26,8 @@ func (uc *CancelJobUseCase) Execute(ctx context.Context, jobID, uploaderID strin
 	if !job.CanCancel() {
 		return nil, fmt.Errorf("%w: job is already in a terminal state", domain.ErrConflict)
 	}
+	// Signal the transcoder goroutine to kill the running FFmpeg process.
+	uc.dispatcher.CancelJob(jobID)
 	uc.storage.DeleteJobFiles(ctx, jobID)
 	if err := uc.jobs.UpdateStatus(ctx, jobID, domain.JobStatusCancelled, nil); err != nil {
 		return nil, fmt.Errorf("update status: %w", err)

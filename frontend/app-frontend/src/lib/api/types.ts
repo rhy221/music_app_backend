@@ -128,6 +128,9 @@ export interface PlaylistItemDto {
   trackDuration: number;
   trackCoverUrl: string | null;
   artistName: string;
+  artistId: string | null;
+  albumId: string | null;
+  albumTitle: string | null;
 }
 
 export interface CollaboratorDto {

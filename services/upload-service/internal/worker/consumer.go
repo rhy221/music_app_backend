@@ -4,10 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/team/music-app/libs/go-common/rabbitmq"
 	musicevents "music-app/music-events/events"
+	"music-app/upload-service/internal/domain"
 	"music-app/upload-service/internal/port"
 )
 
@@ -20,13 +23,15 @@ const (
 type CatalogConsumer struct {
 	conn    *rabbitmq.Connection
 	jobRepo port.JobRepository
+	outbox  port.OutboxRepository
 	log     zerolog.Logger
 }
 
-func NewCatalogConsumer(conn *rabbitmq.Connection, jobRepo port.JobRepository, log zerolog.Logger) *CatalogConsumer {
+func NewCatalogConsumer(conn *rabbitmq.Connection, jobRepo port.JobRepository, outbox port.OutboxRepository, log zerolog.Logger) *CatalogConsumer {
 	return &CatalogConsumer{
 		conn:    conn,
 		jobRepo: jobRepo,
+		outbox:  outbox,
 		log:     log.With().Str("component", "catalog-consumer").Logger(),
 	}
 }
@@ -67,10 +72,42 @@ func (c *CatalogConsumer) handle(body []byte) error {
 	}
 	jobID := *evt.Data.UploadJobID
 	trackID := evt.Data.TrackID
-	if err := c.jobRepo.SetPublished(context.Background(), jobID, trackID); err != nil {
+
+	updated, err := c.jobRepo.SetPublished(context.Background(), jobID, trackID)
+	if err != nil {
 		c.log.Error().Err(err).Str("jobId", jobID).Msg("SetPublished failed")
 		return fmt.Errorf("set job published: %w", err)
 	}
+
+	if !updated {
+		// Job was CANCELLED before track was published — compensate by deleting the ghost track.
+		c.log.Info().Str("jobId", jobID).Str("trackId", trackID).Msg("job CANCELLED, scheduling ghost track deletion")
+		return c.scheduleTrackDeletion(trackID)
+	}
+
 	c.log.Info().Str("jobId", jobID).Str("trackId", trackID).Msg("job marked PUBLISHED")
 	return nil
+}
+
+func (c *CatalogConsumer) scheduleTrackDeletion(trackID string) error {
+	payload, err := json.Marshal(musicevents.TrackDeletedEvent{
+		Header: musicevents.EventHeader{
+			EventID:       uuid.New().String(),
+			EventType:     musicevents.EventTypeTrackDeleted,
+			Timestamp:     time.Now().UTC(),
+			SourceService: serviceName,
+		},
+		Data: musicevents.TrackDeletedData{TrackID: trackID},
+	})
+	if err != nil {
+		return fmt.Errorf("marshal TrackDeletedEvent: %w", err)
+	}
+	return c.outbox.Insert(context.Background(), &domain.OutboxEvent{
+		ID:         uuid.New().String(),
+		EventType:  musicevents.EventTypeTrackDeleted,
+		Exchange:   musicevents.Exchanges.Upload,
+		RoutingKey: musicevents.RoutingKeys.TrackDeleted,
+		Payload:    payload,
+		CreatedAt:  time.Now().UTC(),
+	})
 }

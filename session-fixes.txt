@@ -484,3 +484,256 @@ KẾT QUẢ: GET /api/v1/tracks trả 200 với đúng filters
      với attributeNodes artist, album, assets từ trước.
 
 KẾT QUẢ: GET /api/v1/tracks → không còn LazyInitializationException; artist name trả về đúng
+
+SESSION FIXES — 2026-06-14
+==========================
+
+31. Notification service 500 — KrakenD CE propagate_claims không inject X-User-Id
+   - Vấn đề: GET /api/v1/notifications và /api/v1/notifications/preferences trả 500
+     KrakenD log: "invalid status code" (backend trả 401)
+   - Root cause: KrakenD CE 2.7 propagate_claims (sub→X-User-Id) KHÔNG inject header vào backend
+     request — cùng root cause với fix #9 (upload), #12 (recommend), #19 (streaming).
+     AuthGuard trong libs/ts-common chỉ check X-User-Id header → không thấy → throw 401
+     → KrakenD nhận 401, log "invalid status code" → trả 500 cho frontend.
+   - Fix: Dual-mode auth trong libs/ts-common/src/auth/auth.guard.ts:
+     a. Thêm hàm decodeJwt(token, secret) dùng Node.js crypto (createHmac, timingSafeEqual):
+        - Split token thành 3 parts (header.payload.signature)
+        - Verify HMAC-SHA256 signature với timing-safe comparison
+        - Check exp claim
+        - Return { sub, role } hoặc null
+     b. AuthGuard.canActivate():
+        - Mode 1: X-User-Id header có → req.user = { userId, role } (trust từ gateway)
+        - Mode 2: Authorization: Bearer → decodeJwt() → req.user = { userId, role }
+        - Else: throw UnauthorizedException
+     c. Dùng JWT_SECRET hoặc JWT_SECRET_KEY env var (fallback: default dev secret)
+   - Lưu ý: Pattern này áp dụng cho TẤT CẢ NestJS services phía sau KrakenD CE.
+     libs/ts-common là shared lib → fix một lần, áp dụng cho notification + tất cả NestJS services.
+     Không import thư viện JWT ngoài — dùng Node.js built-in crypto để tránh dep.
+
+KẾT QUẢ: /api/v1/notifications → 200; /api/v1/notifications/preferences → 200
+
+32. Không có notification sau khi upload track
+   - Vấn đề: Upload track thành công, catalog publish xong, nhưng không có notification nào
+     cho uploader trong notification service.
+   - Root cause chuỗi:
+     a. TrackPublishedEvent.Data thiếu artistUserId — chỉ có artistId (catalog UUID), không có
+        userId của người upload. Notification service cần userId để tạo notification.
+     b. Notification service catalog-event.consumer.ts chỉ fan-out NEW_RELEASE cho followers,
+        không gửi notification cho chính uploader.
+     c. NotificationType enum thiếu TRACK_PUBLISHED value.
+   - Fix:
+     a. libs/events/typescript/music-events/src/events.ts: thêm artistUserId?: string vào
+        TrackPublishedEvent.data (field tùy chọn để backward-compatible)
+     b. catalog-service TrackService.publishTrack(): set artistUserId = artist.getUserId()
+        trong TrackPublishedEvent.Data khi build event
+     c. notification-service domain/notification-type.enum.ts: thêm TRACK_PUBLISHED = 'TRACK_PUBLISHED'
+     d. catalog-event.consumer.ts handleTrackPublished():
+        - Bước 1: Gửi TRACK_PUBLISHED notification cho artistUserId (uploader):
+          body = `Your track "${title}" is now live!`
+        - Bước 2: Fan-out NEW_RELEASE cho tất cả followers (logic cũ, không thay đổi)
+        - Dùng .catch() riêng cho uploader notification để follower fan-out không bị block
+   - Lưu ý: artistUserId là userId trong user_db, khác với artistId là UUID trong catalog_db.
+     Phải dùng artistUserId (userId) để lookup Socket.IO connection và gửi push notification.
+
+KẾT QUẢ: Sau khi upload và transcode xong → uploader nhận TRACK_PUBLISHED notification;
+         Followers của artist nhận NEW_RELEASE notification.
+
+33. Album upload xong nhưng không hiển thị ở route /album/[albumId]
+   - Vấn đề: Upload album → transcode xong → track published → nhưng GET /api/v1/albums/{id}
+     trả 404. albumId được tạo bởi upload-service nhưng không có record trong catalog DB.
+   - Root cause chuỗi:
+     a. upload-service tạo albumId (UUID mới) khi releaseType == ALBUM, lưu vào draft,
+        gửi trong TranscodeCompletedEvent → catalog-service nhận albumId trong event
+     b. catalog-service TranscodeEventConsumer gọi publishTrack() với albumId → TrackService
+        tìm album bằng FK → không thấy record → FK violation hoặc track published mà không
+        có albumId → /album/{id} 404 vì album chưa được tạo trong catalog_db
+     c. TranscodeCompletedEvent thiếu albumTitle → không thể tạo Album nếu muốn
+   - Fix:
+     a. Thêm AlbumTitle *string vào TranscodeCompletedData trong tất cả 4 language libs:
+        - libs/events/go/music-events/events/events.go
+        - libs/events/java/music-events/.../TranscodeCompletedEvent.java
+        - libs/events/typescript/music-events/src/events.ts
+        - libs/events/python/music-events/music_events/models.py
+     b. upload-service internal/port/dispatcher.go: thêm AlbumTitle *string vào TranscodeWork
+     c. upload-service internal/usecase/submit_draft.go: set AlbumTitle = &draft.Title
+        khi releaseType == ALBUM (cùng lúc tạo albumId)
+     d. upload-service internal/worker/transcoder.go: map work.AlbumTitle vào event payload
+     e. libs/java-common BaseEntity: thêm setId(UUID) setter (mặc định chỉ có getter)
+     f. catalog-service AlbumService.ensureAlbumExists(albumId, albumTitle, coverUrl, artistUserId):
+        - Check existsById → skip nếu đã tồn tại (idempotent)
+        - Tìm Artist bằng artistUserId
+        - album.setId(albumId) → Spring Data JPA gọi em.merge() thay vì em.persist()
+          → INSERT với UUID đã chỉ định nếu không tìm thấy
+        - albumRepository.save(album)
+     g. catalog-service TranscodeEventConsumer: gọi albumService.ensureAlbumExists()
+        TRƯỚC publishTrack() khi event.data().albumId() != null
+   - Lưu ý: @GeneratedValue(strategy = UUID) + setId() trước save() → Spring Data JPA
+     dùng em.merge() (INSERT nếu không có, UPDATE nếu có) thay vì em.persist().
+     Đây là trick để INSERT với UUID tùy chỉnh khi entity dùng @GeneratedValue.
+
+KẾT QUẢ: Upload album → catalog tự động tạo Album record với đúng UUID → /album/[albumId] → 200
+
+34. infra/reset-db.ps1 — tạo script xóa data và fix nhiều lỗi PowerShell
+   - Vấn đề: Cần script để reset data trong các database (dev/debug workflow).
+     Script được tạo nhưng có nhiều lỗi PS 5.1 / non-interactive mode.
+   - Root cause và Fix (nhiều lỗi liên tiếp):
+     a. MinIO section: $shScript = "... && ..." → PS 5.1 parse error "token '&&' is not a
+        valid statement separator" khi && nằm trong double-quoted string ở một số contexts.
+        Fix: Bỏ biến trung gian, dùng single-quoted string inline trực tiếp với docker run,
+        đổi && thành ; (shell -c không cần &&; nếu alias set fail thì rm cũng fail anyway).
+     b. Set-StrictMode -Version Latest: conflict với PowerShell tool harness kiểm tra
+        $LASTEXITCODE ở cuối mỗi command → "VariableIsUndefined" cho $LASTEXITCODE.
+        Fix: Bỏ Set-StrictMode, giữ $ErrorActionPreference = "Stop".
+     c. $answer = Read-Host trong non-interactive mode: Read-Host throw exception thay vì
+        return null. Với $ErrorActionPreference = "Stop", exception terminating → script crash.
+        Fix: Thêm $answer = "" guard + try/catch quanh Read-Host để exit gracefully.
+     d. Em dash (—) và ký tự Unicode trong Write-Host strings: dù bytes đúng UTF-8,
+        hiển thị bị garbled trong tool terminal (encoding mismatch display-only).
+        Fix: Bỏ em dash trong catch message (không bỏ trong file, chỉ đổi string bị lỗi parse).
+   - Script hỗ trợ: all | postgres | user_db | catalog_db | playlist_db | streaming_db |
+     upload_db | mongodb | neo4j | redis | elasticsearch | minio
+   - Dùng: .\reset-db.ps1 -Target <target> -Force
+   - Lưu ý: Script phải chạy từ PS 7 (pwsh.exe), không qua powershell.exe -File vì
+     Set-StrictMode conflict với harness. Chạy trực tiếp: .\reset-db.ps1 -Target all -Force.
+
+KẾT QUẢ: Tất cả databases cleared thành công khi cần reset môi trường dev.
+
+35. User service — UserProfileUpdatedEvent thiếu avatarUrl + /api/v1/users/me trả relative URL
+   - Vấn đề:
+     a. GET /api/v1/users/me trả avatarUrl dạng relative path (e.g. "users/abc/avatar.jpg")
+        thay vì absolute URL (e.g. "http://localhost:9000/images/users/abc/avatar.jpg").
+     b. Khi user upload avatar, catalog service không nhận được thông báo → artist.avatarUrl
+        trong catalog DB mãi là null, không bao giờ sync được.
+   - Root cause chuỗi:
+     a. UserService.buildProfile() và getUserById() construct DTO trực tiếp với user.getAvatarUrl()
+        (raw value từ DB) thay vì wrap qua StorageUrlResolver.resolveAvatarUrl() → relative path
+        rò ra ngoài API response.
+     b. UserProfileUpdatedEvent.Data record chỉ có 2 field (userId, displayName), thiếu avatarUrl.
+        Khi event được publish (updateCurrentUser), catalog nhận được event nhưng không biết
+        avatarUrl mới là gì → không thể sync.
+     c. UserService.uploadAvatar() lưu DB và gọi MinIO xong nhưng không publish
+        UserProfileUpdatedEvent → catalog hoàn toàn không được thông báo khi user đổi avatar.
+   - Fix:
+     a. libs/events/java/music-events/.../UserProfileUpdatedEvent.java:
+        Thêm avatarUrl vào Data record:
+        record Data(String userId, String displayName, String avatarUrl)
+     b. UserService.buildProfile() và getUserById():
+        Đổi user.getAvatarUrl() → storageUrlResolver.resolveAvatarUrl(user.getAvatarUrl())
+        trong cả 2 nơi construct DTO.
+     c. UserService.updateCurrentUser():
+        Thêm storageUrlResolver.resolveAvatarUrl(user.getAvatarUrl()) làm arg thứ 3
+        khi build UserProfileUpdatedEvent.Data.
+     d. UserService.uploadAvatar():
+        Sau khi lưu objectPath vào DB, resolve absolute URL rồi publish event:
+          String absoluteUrl = storageUrlResolver.resolveAvatarUrl(objectPath);
+          outboxService.save(new UserProfileUpdatedEvent.Data(
+              userId, user.getDisplayName(), absoluteUrl));
+     e. Catalog UserProfileUpdatedEventConsumer:
+        Thêm avatarUrl sync:
+          if (event.data().avatarUrl() != null) {
+              artist.setAvatarUrl(event.data().avatarUrl());
+          }
+   - Lưu ý: StorageUrlResolver.resolveAvatarUrl() đã handle null-safe (trả null nếu input null).
+     Phải resolve TRƯỚC khi đưa vào event payload — event là cross-service boundary, nhận bên kia
+     không có access vào MinIO internal URL builder.
+
+KẾT QUẢ: /api/v1/users/me trả absolute avatarUrl; catalog artist.avatarUrl sync đúng khi user
+          đổi avatar hoặc update profile.
+
+36. Upload Saga — cancelUploadJob không kill FFmpeg process
+   - Vấn đề: POST /api/v1/upload/jobs/{jobId}/cancel cập nhật DB status → CANCELLED nhưng FFmpeg
+     process đang chạy vẫn tiếp tục transcode. Nếu FFmpeg hoàn thành sau khi cancel → publish
+     TranscodeCompletedEvent → catalog tạo track → ghost track tồn tại dù job đã bị cancel.
+   - Root cause:
+     a. CancelJobUseCase không có reference tới Dispatcher/TranscoderPool — không thể signal goroutine.
+     b. TranscoderPool dùng server-level ctx cho exec.CommandContext → FFmpeg chỉ chết khi server
+        shutdown, không phải khi job bị cancel.
+   - Fix:
+     a. port/dispatcher.go: Thêm CancelJob(jobID string) vào Dispatcher interface.
+     b. worker/transcoder.go:
+        - Thêm activeJobs sync.Map field vào TranscoderPool (jobID → context.CancelFunc).
+        - process(): tạo per-job context: jobCtx, cancelJob := context.WithCancel(ctx)
+          Store cancelJob vào activeJobs; defer Delete + cancelJob().
+        - exec.CommandContext(ctx, ...) → exec.CommandContext(jobCtx, ...) cho cả FFmpeg transcode
+          và FFmpeg waveform commands.
+        - Thêm CancelJob() method: load cancelFunc từ activeJobs map, gọi nó.
+     c. usecase/cancel_job.go:
+        - Thêm dispatcher port.Dispatcher field vào CancelJobUseCase.
+        - NewCancelJob: thêm dispatcher param.
+        - Execute(): gọi uc.dispatcher.CancelJob(jobID) trước storage.DeleteJobFiles().
+     d. main.go: NewCancelJob(jobRepo, fileStorage, transcoderPool) — truyền transcoderPool.
+   - Lưu ý: sync.Map là thread-safe, phù hợp vì nhiều goroutines có thể Store/Load/Delete đồng thời.
+     exec.CommandContext cancel → FFmpeg nhận SIGKILL (hoặc terminate tương đương trên Windows).
+
+KẾT QUẢ: Cancel job signal đến goroutine trong microseconds; FFmpeg process bị kill ngay lập tức.
+
+37. Upload Saga — retryUploadJob không re-trigger transcoding
+   - Vấn đề: POST /api/v1/upload/jobs/{jobId}/retry cập nhật DB status → TRANSCODING, reset task
+     statuses, nhưng không submit work vào TranscoderPool → job stuck ở TRANSCODING mãi mãi.
+   - Root cause: RetryJobUseCase không có reference tới Dispatcher — chỉ update DB mà không
+     re-enqueue work cho worker goroutines.
+   - Fix:
+     a. usecase/retry_job.go:
+        - Thêm dispatcher port.Dispatcher field vào RetryJobUseCase.
+        - NewRetryJob: thêm dispatcher param.
+        - Execute(): kiểm tra job.StorageURL != nil (không thể retry nếu file gốc đã bị xóa).
+          Sau UpdateStatus() → gọi dispatcher.Submit(port.TranscodeWork{...}) với đầy đủ fields
+          từ job: JobID, UploaderID, Title, Genre, AlbumID, StorageKey = *job.StorageURL, ThumbnailURL.
+     b. main.go: NewRetryJob(jobRepo, taskRepo, transcoderPool) — truyền transcoderPool.
+   - Lưu ý: job.AlbumTitle không cần thiết cho retry vì ensureAlbumExists() đã được gọi
+     lần đầu khi transcode hoàn thành. Album đã tồn tại → publishTrack() dùng FK sẵn có.
+
+KẾT QUẢ: Retry job re-enqueue vào worker pool; FFmpeg chạy lại từ đầu với file gốc đã lưu.
+
+38. Upload Saga — ghost track: SetPublished ghi đè CANCELLED status
+   - Vấn đề: Race condition — job bị cancel trong khi FFmpeg đang chạy:
+     (1) Cancel request → DB status = CANCELLED
+     (2) FFmpeg hoàn thành (chưa bị kill kịp) → TranscodeCompletedEvent published
+     (3) Catalog nhận event → tạo Track record → publish TrackPublishedEvent
+     (4) Upload nhận TrackPublishedEvent → SetPublished() → DB status = PUBLISHED
+     Kết quả: job CANCELLED bị overwrite thành PUBLISHED, ghost track tồn tại trong catalog.
+   - Root cause: 2 lỗ hổng độc lập:
+     a. SetPublished SQL không check status hiện tại → overwrite bất kỳ status nào.
+     b. transcoder.go không check xem job đã bị cancel trước khi publish event.
+   - Fix (defense-in-depth — fix cả 2 lớp):
+     a. adapter/postgres/job_repo.go SetPublished():
+        WHERE id=$2  →  WHERE id=$2 AND status <> 'CANCELLED'
+        (nếu status là CANCELLED → UPDATE ảnh hưởng 0 row → không overwrite)
+     b. worker/transcoder.go process(), sau vòng lặp bitrate:
+        if jobCtx.Err() != nil {
+            log.Info().Msg("job cancelled during transcode, skipping event publish")
+            return
+        }
+        (nếu job bị cancel trong khi một bitrate nào đó đang chạy → không publish event)
+   - Lưu ý: Fix (b) là lớp phòng thủ đầu tiên — với per-job context từ fix #36, FFmpeg thường
+     bị kill trước khi hoàn thành. Fix (a) là lớp phòng thủ thứ hai cho trường hợp FFmpeg đã
+     hoàn thành trước khi CancelJob() được gọi (race condition timing). Cần cả 2.
+
+KẾT QUẢ: Cancelled job giữ nguyên CANCELLED status; không có ghost track trong catalog.
+
+39. Catalog service — ObjectOptimisticLockingFailureException khi ensureAlbumExists() chạy song song
+   - Vấn đề: Upload album với nhiều track → catalog nhận nhiều TranscodeCompletedEvent gần như
+     đồng thời → ERROR: "Row was already updated or deleted by another transaction for entity
+     [Album with id '1ed62e53-...']" → track không được publish.
+   - Root cause: ensureAlbumExists() dùng check-then-act pattern không atomic:
+     a. existsById(albumId) → false (cả 2 transaction đều thấy false vì chưa ai commit)
+     b. Cả 2 tạo Album entity in-memory với cùng albumId, gọi setId(albumId) → save()
+     c. Spring Data JPA 4.x: isNew() check → ID đã set → false → gọi em.merge() thay vì persist()
+     d. Tx1: merge() → SELECT → không thấy → INSERT → commit thành công
+     e. Tx2: merge() → SELECT → thấy row (Tx1 đã commit) → Hibernate 7.2 phát hiện conflict
+        giữa entity in-memory và DB row (AuditingEntityListener set updatedAt/createdAt khác nhau)
+        → StaleObjectStateException → ObjectOptimisticLockingFailureException
+   - Fix: Thay toàn bộ existsById() + new Album() + setId() + save() bằng native UPSERT:
+     a. AlbumRepository: thêm insertIfAbsent() với @Modifying + @Query nativeQuery:
+          INSERT INTO catalog_schema.albums (id, artist_id, title, cover_url, created_at, updated_at)
+          VALUES (:id, :artistId, :title, :coverUrl, NOW(), NOW())
+          ON CONFLICT (id) DO NOTHING
+     b. AlbumService.ensureAlbumExists(): bỏ existsById() check + Album entity creation,
+        thay bằng albumRepository.insertIfAbsent(albumId, artist.getId(), title, coverUrl)
+   - Lưu ý: ON CONFLICT (id) DO NOTHING là atomic ở DB level — chỉ 1 trong N concurrent
+     transactions insert thành công, các transaction khác silently skip (0 rows affected, không lỗi).
+     Không cần check existsById() trước vì upsert đã handle idempotency.
+     Đây cũng fix luôn trick setId() + merge() vốn là workaround brittle (fix #33).
+
+KẾT QUẢ: Nhiều TranscodeCompletedEvent cho cùng album chạy đồng thời không còn conflict;
+          album chỉ được INSERT một lần, các lần sau DO NOTHING.
