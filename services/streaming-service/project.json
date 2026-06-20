@@ -34,6 +34,14 @@
         "command": "migrate -path internal/db/migrations -database \"$DATABASE_URL\" down 1",
         "cwd": "{projectRoot}"
       }
+    },
+    "docker-build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "docker build -t music-streaming-service:latest -f services/streaming-service/Dockerfile ."
+        ]
+      }
     }
   },
   "tags": []

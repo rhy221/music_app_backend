@@ -25,6 +25,14 @@
         "task": "test",
         "projectPath": ":services:library-service"
       }
+    },
+    "docker-build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "docker build -t music-library-service:latest -f services/library-service/Dockerfile ."
+        ]
+      }
     }
   }
 }
