@@ -190,12 +190,114 @@ services:
     ports:
       - "8080:8080"   # API Gateway
       - "9091:9091"   # Prometheus metrics
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://localhost:12201"
+        tag: "gateway"
     healthcheck:
       test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:8080/__health"]
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 10s
+    restart: unless-stopped
+    depends_on:
+      logstash:
+        condition: service_healthy
+
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # MONITORING STACK
+  # ═══════════════════════════════════════════════════════════════════════════════
+
+  # ─── Prometheus — Metrics Scraping ───────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v3.4.1
+    container_name: music-prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:9090/-/healthy || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ─── Grafana — Dashboards & Visualization ────────────────────────────────────
+  grafana:
+    image: grafana/grafana:11.6.0
+    container_name: music-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: music_pass
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/provisioning/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ─── Logstash — Log Aggregation ──────────────────────────────────────────────
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.17.0
+    container_name: music-logstash
+    volumes:
+      - ./monitoring/logstash/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./monitoring/logstash/pipeline:/usr/share/logstash/pipeline:ro
+    ports:
+      - "5044:5044"      # TCP/UDP log input
+      - "5044:5044/udp"
+      - "12201:12201/udp" # GELF input (Docker logs)
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9600 || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  # ─── Kibana — Log Visualization ──────────────────────────────────────────────
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.17.0
+    container_name: music-kibana
+    environment:
+      ELASTICSEARCH_HOSTS: '["http://music-elasticsearch:9200"]'
+      XPACK_SECURITY_ENABLED: "false"
+    ports:
+      - "5601:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:5601/api/status || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     restart: unless-stopped
 
 
@@ -209,6 +311,8 @@ volumes:
   redis_data:
   minio_data:
   rabbitmq_data:
+  prometheus_data:
+  grafana_data:
 
 # ─── Network ──────────────────────────────────────────────────────────────────
 networks:

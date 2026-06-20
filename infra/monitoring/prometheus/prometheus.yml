@@ -1,0 +1,58 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # ─── API Gateway (KrakenD) ────────────────────────────────────────────────────
+  - job_name: gateway
+    static_configs:
+      - targets: ["music-gateway:9091"]
+
+  # ─── Spring Boot services (/actuator/prometheus) ──────────────────────────────
+  - job_name: user-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["host.docker.internal:8081"]
+
+  - job_name: catalog-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["host.docker.internal:8082"]
+
+  - job_name: playlist-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["host.docker.internal:8083"]
+
+  - job_name: library-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["host.docker.internal:8088"]
+
+  # ─── Go services (/metrics) ──────────────────────────────────────────────────
+  - job_name: streaming-service
+    static_configs:
+      - targets: ["host.docker.internal:8084"]
+
+  - job_name: upload-service
+    static_configs:
+      - targets: ["host.docker.internal:8086"]
+
+  # ─── NestJS services (/metrics) ──────────────────────────────────────────────
+  - job_name: search-service
+    static_configs:
+      - targets: ["host.docker.internal:8085"]
+
+  - job_name: notification-service
+    static_configs:
+      - targets: ["host.docker.internal:8087"]
+
+  # ─── Python service (/metrics) ───────────────────────────────────────────────
+  - job_name: recommend-service
+    static_configs:
+      - targets: ["host.docker.internal:8000"]
+
+  # ─── Infrastructure ──────────────────────────────────────────────────────────
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

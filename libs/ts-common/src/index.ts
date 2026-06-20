@@ -17,6 +17,7 @@ export { CurrentUser, Roles, Public, RolesGuard } from './auth/auth.decorator';
 // Filters & Interceptors
 export { AllExceptionsFilter } from './exceptions/exception.filter';
 export { LoggingInterceptor } from './logging/logging.interceptor';
+export { LogstashTransport } from './logging/logstash.transport';
 export { MetricsInterceptor } from './metrics/metrics.interceptor';
 
 // Decorators

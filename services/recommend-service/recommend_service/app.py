@@ -8,23 +8,25 @@ import aio_pika
 import redis.asyncio as aioredis
 from fastapi import FastAPI
 from neo4j import AsyncGraphDatabase
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from .config import Settings
 from .container import Container
 from .application.recommendation_service import RecommendationService
 from .infrastructure.neo4j_repository import Neo4jGraphRepository
 from .infrastructure.redis_service import RedisService
+from .infrastructure.observability import setup_logging
 from .infrastructure.messaging.consumers import CatalogConsumer, StreamingConsumer, UserConsumer
 from .presentation.routers.recommendations import router as recommendations_router
 from .presentation.routers.taste_profile import router as taste_profile_router
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     cfg = Settings()
+    setup_logging("recommend-service", cfg.logstash_host)
 
     neo4j_driver = AsyncGraphDatabase.driver(
         cfg.neo4j_uri,
@@ -72,6 +74,11 @@ app = FastAPI(
     description="Graph-based music recommendation service",
     lifespan=lifespan,
 )
+
+Instrumentator(
+    should_group_status_codes=False,
+    excluded_handlers=["/metrics", "/health"],
+).instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
 
 app.include_router(recommendations_router)
 app.include_router(taste_profile_router)

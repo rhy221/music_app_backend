@@ -2,6 +2,9 @@
 package observability
 
 import (
+	"fmt"
+	"io"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -12,12 +15,26 @@ import (
 
 // NewLogger creates a zerolog.Logger with JSON output, timestamp, and a service field.
 // Log level is read from LOG_LEVEL env var (defaults to info).
+// If LOGSTASH_HOST is set (e.g. "localhost:5044"), logs are also shipped via TCP.
 func NewLogger(serviceName string) zerolog.Logger {
 	level, err := zerolog.ParseLevel(os.Getenv("LOG_LEVEL"))
 	if err != nil {
 		level = zerolog.InfoLevel
 	}
-	return zerolog.New(os.Stdout).
+
+	var writers []io.Writer
+	writers = append(writers, os.Stdout)
+
+	if host := os.Getenv("LOGSTASH_HOST"); host != "" {
+		conn, err := net.DialTimeout("tcp", host, 5*time.Second)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "WARN: cannot connect to Logstash at %s: %v (logs will only go to stdout)\n", host, err)
+		} else {
+			writers = append(writers, conn)
+		}
+	}
+
+	return zerolog.New(io.MultiWriter(writers...)).
 		Level(level).
 		With().
 		Timestamp().

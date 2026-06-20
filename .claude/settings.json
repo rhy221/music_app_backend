@@ -1,7 +1,5 @@
 {
-  "skipDangerousModePermissionPrompt": true,
   "permissions": {
-    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash(cd \"/c/Projects/music_app_backend/frontend/app-frontend\" && cat node_modules/shadcn/tailwind.css 2>/dev/null | head -30 || echo \"NOT FOUND\")",
       "Read(//c/c/Projects/music_app_backend/frontend/app-frontend/node_modules/shadcn/**)",
@@ -19,8 +17,15 @@
       "PowerShell(docker exec music-neo4j cypher-shell -u neo4j -p music_pass \"RETURN 1\" 2>&1; Write-Host \"cypher exit: $LASTEXITCODE\")",
       "Bash(pnpm --filter app-frontend add zod)",
       "Bash(Read \"C:\\\\Users\\\\PC\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Projects-music-app-backend\\\\5c9e78fb-551a-4353-b705-0547060f6b83\\\\tasks\\\\btx3g94c9.output\")",
-      "Bash(pnpm --filter app-frontend exec next build)"
-    ]
+      "Bash(pnpm --filter app-frontend exec next build)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Projects\\\\music_app_backend\\\\services\\\\recommend-service\" -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(Sort-Object FullName)",
+      "Bash(xargs cat)",
+      "Bash(grep -E \"\\\\.\\(java\\)$\")",
+      "Bash(grep -E \"\\\\.py$\")"
+    ],
+    "defaultMode": "bypassPermissions"
   },
   "enabledPlugins": {
     "nx@nx-claude-plugins": true
@@ -32,5 +37,6 @@
         "repo": "nrwl/nx-ai-agents-config"
       }
     }
-  }
+  },
+  "skipDangerousModePermissionPrompt": true
 }

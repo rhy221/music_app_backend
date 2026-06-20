@@ -1,0 +1,21 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+
+  - name: Elasticsearch-Logs
+    type: elasticsearch
+    access: proxy
+    url: http://music-elasticsearch:9200
+    editable: true
+    jsonData:
+      index: "logstash-*"
+      timeField: "@timestamp"
+      esVersion: "8.17.0"
+      logMessageField: message
+      logLevelField: level

@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     cold_start_threshold: int = 10
     rec_cache_ttl: int = 1800
     discover_cache_ttl: int = 604800
+    logstash_host: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -39,6 +39,8 @@ readme = 'README.md'
   redis = { version = "^5.0", extras = ["asyncio"] }
   aio-pika = "^9.0"
   pydantic-settings = "^2.0"
+  prometheus-fastapi-instrumentator = "^7.0"
+  python-json-logger = "^3.3"
   music-events = { path = "../../libs/events/python/music-events", develop = true }
 
   [tool.poetry.group.dev.dependencies]
