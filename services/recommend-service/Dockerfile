@@ -14,6 +14,7 @@ ENV PATH=$POETRY_HOME/bin:$PATH
 
 RUN poetry config virtualenvs.create false
 
+COPY libs/ /app/libs/
 COPY services/recommend-service/pyproject.toml services/recommend-service/poetry.lock ./
 
 RUN poetry install --no-interaction --no-ansi --no-root --only main
@@ -31,5 +32,4 @@ COPY . .
 
 EXPOSE 8000
 
-# Lệnh khởi chạy Uvicorn server chuẩn chỉ
 CMD ["uvicorn", "recommend_service.app:app", "--host", "0.0.0.0", "--port", "8000"]

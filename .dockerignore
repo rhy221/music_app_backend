@@ -3,7 +3,6 @@ node_modules/
 .venv/
 .gradle/
 build/
-dist/
 
 # Bỏ qua lịch sử và cấu hình local
 .git/
