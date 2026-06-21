@@ -1,7 +1,7 @@
 FROM golang:1.22-alpine AS builder
 WORKDIR /app
 ENV GOPROXY=https://goproxy.io,direct
-COPY go.mod go.sum ./
+COPY services/upload-service/go.mod services/upload-service/go.sum ./
 RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o main .

@@ -1,0 +1,13 @@
+# Bỏ qua các thư mục thư viện cực nặng để tránh nghẽn Docker Context
+node_modules/
+.venv/
+.gradle/
+build/
+dist/
+
+# Bỏ qua lịch sử và cấu hình local
+.git/
+.nx/
+.idea/
+.vscode/
+*.log

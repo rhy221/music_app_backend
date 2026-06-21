@@ -7,8 +7,11 @@ RUN pnpm exec nx build search-service --prod
 
 FROM node:20-alpine
 WORKDIR /app
-COPY --from=builder /app/dist/apps/search-service ./dist
+
 COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm && pnpm install --prod --frozen-lockfile
-EXPOSE 8085
+RUN npm install -g pnpm && pnpm install --prod --no-frozen-lockfile
+
+COPY dist/services/search-service ./dist
+
+EXPOSE 8082
 CMD ["node", "dist/main.js"]
