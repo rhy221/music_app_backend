@@ -11,6 +11,7 @@
         "{workspaceRoot}/libs/api-specs/catalog-service.openapi.yaml"
       ],
       "options": {
+        "projectPath": ":catalog-api-client",
         "task": "openApiGenerate"
       },
       "cache": true
@@ -19,12 +20,14 @@
       "executor": "@jnxplus/nx-gradle:run-task",
       "outputs": ["{projectRoot}/build"],
       "options": {
+        "projectPath": ":catalog-api-client",
         "task": "jar"
       }
     },
     "test": {
       "executor": "@jnxplus/nx-gradle:run-task",
       "options": {
+        "projectPath": ":catalog-api-client",
         "task": "test"
       }
     }

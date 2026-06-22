@@ -11,7 +11,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN npm install -g pnpm && pnpm install --prod --no-frozen-lockfile
 
-COPY dist/services/notification-service ./dist
+COPY services/notification-service/dist ./dist
 
 EXPOSE 8087
 CMD ["node", "dist/main.js"]

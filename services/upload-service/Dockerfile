@@ -1,14 +1,24 @@
-FROM golang:1.22-alpine AS builder
+FROM golang:1.23-alpine AS builder
+
 WORKDIR /app
 ENV GOPROXY=https://goproxy.io,direct
-COPY services/upload-service/go.mod services/upload-service/go.sum ./
-RUN go mod download
+
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o main .
+
+WORKDIR /app/services/upload-service
+
+RUN go mod download
+
+RUN CGO_ENABLED=0 GOOS=linux go build -o /main .
 
 FROM alpine:3.19
+
 WORKDIR /app
+
 RUN apk update && apk add --no-cache ffmpeg
-COPY --from=builder /app/main .
+
+COPY --from=builder /main .
+
 EXPOSE 8086
+
 CMD ["./main"]

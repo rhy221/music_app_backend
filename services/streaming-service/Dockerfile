@@ -1,13 +1,22 @@
-FROM golang:1.22-alpine AS builder
+FROM golang:1.23-alpine AS builder
+
 WORKDIR /app
 ENV GOPROXY=https://goproxy.io,direct
-COPY services/streaming-service/go.mod services/streaming-service/go.sum ./
-RUN go mod download
+
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o main .
+
+WORKDIR /app/services/streaming-service
+
+RUN go mod download
+
+RUN CGO_ENABLED=0 GOOS=linux go build -o /main .
 
 FROM alpine:3.19
+
 WORKDIR /app
-COPY --from=builder /app/main .
-EXPOSE 8084
+
+COPY --from=builder /main .
+
+EXPOSE 8085
+
 CMD ["./main"]

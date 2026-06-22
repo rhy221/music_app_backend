@@ -11,22 +11,25 @@
         "{workspaceRoot}/libs/api-specs/user-service.openapi.yaml"
       ],
       "options": {
+        "projectPath": ":user-api-client",
         "task": "openApiGenerate"
       },
-      "cache": true
+      "cache": true      
     },
     "build": {
       "executor": "@jnxplus/nx-gradle:run-task",
       "outputs": ["{projectRoot}/build"],
       "options": {
-        "task": "jar"
+        "projectPath": ":user-api-client",
+        "task": "jar"        
       }
     },
     "test": {
       "executor": "@jnxplus/nx-gradle:run-task",
       "options": {
+        "projectPath": ":user-api-client",
         "task": "test"
-      }
+      }      
     }
   },
   "tags": []

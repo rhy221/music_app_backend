@@ -12,23 +12,27 @@ ENV POETRY_HOME=/opt/poetry
 RUN curl -sSL https://install.python-poetry.org | python3 -
 ENV PATH=$POETRY_HOME/bin:$PATH
 
-RUN poetry config virtualenvs.create false
+RUN poetry config virtualenvs.in-project true
+
 
 COPY libs/ /app/libs/
-COPY services/recommend-service/pyproject.toml services/recommend-service/poetry.lock ./
+COPY services/recommend-service/ /app/services/recommend-service/
 
+WORKDIR /app/services/recommend-service
 RUN poetry install --no-interaction --no-ansi --no-root --only main
 
+
 FROM python:3.11-slim
-WORKDIR /app
+WORKDIR /app/services/recommend-service
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /app/services/recommend-service/.venv /app/services/recommend-service/.venv
+COPY --from=builder /app/libs /app/libs
+COPY --from=builder /app/services/recommend-service /app/services/recommend-service
 
-COPY . .
+ENV PATH="/app/services/recommend-service/.venv/bin:$PATH"
 
 EXPOSE 8000
 
