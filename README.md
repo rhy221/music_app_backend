@@ -215,6 +215,123 @@ pnpm nx run-many -t lint
 
 ---
 
+## 7. Deploy lên Minikube (Kubernetes)
+
+Ngoài cách chạy trực tiếp bằng Docker Compose, project có thể deploy lên Kubernetes local (Minikube) với Helm chart.
+
+### Prerequisites
+
+| Tool | Cài đặt |
+|---|---|
+| Docker Desktop | `winget install Docker.DockerDesktop` |
+| Minikube | `winget install Kubernetes.minikube` |
+| kubectl | `winget install Kubernetes.kubectl` |
+| Helm | `winget install Helm.Helm` |
+
+> Đóng và mở lại terminal sau khi cài để PATH được cập nhật.
+
+### Bước 1 — Setup Minikube
+
+Chạy **cmd as Administrator** (cần quyền admin để thêm `music-app.local` vào hosts file):
+
+```cmd
+k8s\scripts\setup-minikube.bat
+```
+
+Script sẽ: khởi động Minikube (4 CPUs, 7GB RAM), bật addons (ingress, metrics-server, dashboard), thêm `music-app.local` vào hosts.
+
+### Bước 2 — Build & Load images
+
+```cmd
+:: Build Docker images từ source
+k8s\scripts\build-images.bat
+
+:: Load app images vào Minikube
+k8s\scripts\load-images.bat
+
+:: Pull infra images trực tiếp trong Minikube daemon
+k8s\scripts\pull-infra-images.bat
+```
+
+### Bước 3 — Deploy
+
+```cmd
+helm upgrade --install music-app k8s\music-app -n music-app --create-namespace --timeout 10m
+```
+
+### Bước 4 — Truy cập services
+
+```cmd
+:: Mở tất cả port-forwards (giữ terminal mở)
+k8s\scripts\port-forward.bat
+```
+
+| Service | URL | Credentials |
+|---|---|---|
+| Gateway API | http://localhost:8080 | — |
+| Grafana | http://localhost:3001 | `admin` / `music_pass` |
+| Jaeger UI | http://localhost:16686 | — |
+| Prometheus | http://localhost:9090 | — |
+| RabbitMQ Management | http://localhost:15672 | `music_admin` / `music_pass` |
+| MinIO Console | http://localhost:9001 | `music_admin` / `music_pass` |
+| Neo4j Browser | http://localhost:7474 | `neo4j` / `music_pass` |
+
+### Frontend với K8s backend
+
+Trong `frontend/app-frontend/.env.local`:
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:8080
+NEXT_PUBLIC_NOTIFICATION_URL=http://localhost:8087
+NEXT_PUBLIC_MINIO_URL=/storage
+```
+
+Chạy frontend bình thường: `pnpm nx run app-frontend:dev`.
+
+### Lệnh hữu ích
+
+```cmd
+:: Xem trạng thái pods
+kubectl get pods -n music-app
+
+:: Xem logs một service
+kubectl logs -n music-app -l app.kubernetes.io/name=user-service --tail=50
+
+:: Restart một service
+kubectl rollout restart deployment user-service -n music-app
+
+:: Upgrade sau khi sửa Helm chart
+helm upgrade music-app k8s\music-app -n music-app --timeout 10m
+
+:: Mở Kubernetes Dashboard
+minikube dashboard
+
+:: Dừng Minikube
+minikube stop
+```
+
+### Cấu trúc K8s
+
+```
+k8s/
+├── scripts/
+│   ├── setup-minikube.bat       # Setup Minikube + addons
+│   ├── build-images.bat         # Build Docker images
+│   ├── load-images.bat          # Load app images vào Minikube
+│   ├── pull-infra-images.bat    # Pull infra images trong Minikube
+│   └── port-forward.bat         # Port-forward tất cả services
+│
+└── music-app/                   # Helm Chart
+    ├── Chart.yaml
+    ├── values.yaml              # Config tập trung (images, resources, secrets)
+    └── templates/
+        ├── infra/               # PostgreSQL, Redis, RabbitMQ, MongoDB, Neo4j, ES, MinIO
+        ├── services/            # 10 app services + HPA
+        └── monitoring/          # Prometheus, Grafana, Jaeger
+```
+
+---
+
 ## Tài liệu thêm
 
 | File | Nội dung |

@@ -50,6 +50,8 @@ spec:
               sed -i 's|host.docker.internal:8087|notification-service:8087|g' /config/krakend.json
               sed -i 's|host.docker.internal:8088|library-service:8088|g' /config/krakend.json
               sed -i 's|host.docker.internal:8000|recommend-service:8000|g' /config/krakend.json
+              sed -i 's|"prometheus": \[|"otlp": [{"name": "jaeger","host": "jaeger","port": 4317,"use_tls": false}],"prometheus": [|' /config/krakend.json
+              sed -i 's|"trace_sample_rate": 0.05|"trace_sample_rate": 1.0|' /config/krakend.json
           volumeMounts:
             - name: krakend-config
               mountPath: /config
