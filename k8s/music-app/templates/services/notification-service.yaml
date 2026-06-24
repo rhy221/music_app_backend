@@ -10,7 +10,9 @@ metadata:
     app.kubernetes.io/name: notification-service
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
+  {{- if not (and .Values.services.notificationService.autoscaling .Values.services.notificationService.autoscaling.enabled) }}
   replicas: {{ .Values.services.notificationService.replicas }}
+  {{- end }}
   selector:
     matchLabels:
       app.kubernetes.io/name: notification-service

@@ -1,0 +1,21 @@
+:: 1. Cài tools (chỉ cần 1 lần)
+winget install Docker.DockerDesktop
+winget install Kubernetes.minikube
+winget install Kubernetes.kubectl
+winget install Helm.Helm
+
+:: 2. Setup minikube + addons + hosts file (chạy as Administrator)
+k8s\scripts\setup-minikube.bat
+
+:: 3. Build Docker images (từ source code)
+k8s\scripts\build-images.bat
+
+:: 4. Load images vào minikube
+k8s\scripts\load-images.bat
+k8s\scripts\load-infra-images.bat
+
+:: 5. Deploy
+helm upgrade --install music-app k8s\music-app -n music-app --create-namespace --timeout 10m
+
+:: 6. Mở tunnel (giữ terminal mở, cần cho Ingress)
+minikube tunnel

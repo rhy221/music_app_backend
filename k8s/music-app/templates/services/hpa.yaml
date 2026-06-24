@@ -1,0 +1,51 @@
+{{- $root := . -}}
+{{- $namespace := .Values.global.namespace -}}
+{{- $secretName := include "music-app.fullname" . -}}
+
+{{- $services := dict
+  "gateway" .Values.services.gateway
+  "user-service" .Values.services.userService
+  "catalog-service" .Values.services.catalogService
+  "playlist-service" .Values.services.playlistService
+  "streaming-service" .Values.services.streamingService
+  "search-service" .Values.services.searchService
+  "upload-service" .Values.services.uploadService
+  "notification-service" .Values.services.notificationService
+  "library-service" .Values.services.libraryService
+  "recommend-service" .Values.services.recommendService
+-}}
+
+{{- range $name, $svc := $services }}
+{{- if and $svc.enabled (and $svc.autoscaling $svc.autoscaling.enabled) }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $name }}
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "music-app.labels" $root | nindent 4 }}
+    app.kubernetes.io/name: {{ $name }}
+    app.kubernetes.io/instance: {{ $root.Release.Name }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ $name }}
+  minReplicas: {{ $svc.autoscaling.minReplicas }}
+  maxReplicas: {{ $svc.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $svc.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ $svc.autoscaling.targetMemoryUtilizationPercentage }}
+{{- end }}
+{{- end }}

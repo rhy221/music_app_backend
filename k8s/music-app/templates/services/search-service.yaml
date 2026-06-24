@@ -10,7 +10,9 @@ metadata:
     app.kubernetes.io/name: search-service
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
+  {{- if not (and .Values.services.searchService.autoscaling .Values.services.searchService.autoscaling.enabled) }}
   replicas: {{ .Values.services.searchService.replicas }}
+  {{- end }}
   selector:
     matchLabels:
       app.kubernetes.io/name: search-service

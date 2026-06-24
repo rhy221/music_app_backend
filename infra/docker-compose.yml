@@ -396,7 +396,7 @@ services:
       MINIO_SECRET_KEY: music_pass
       MINIO_USE_SSL: "false"
       JWT_SECRET: "${JWT_SECRET:-change-me-in-production-min-32-chars}"
-      # LOGSTASH_HOST: "music-logstash:5044"  # disabled: TCP writer blocks zerolog
+      LOGSTASH_HOST: "music-logstash:5044"
     ports:
       - "8086:8086"
     depends_on:

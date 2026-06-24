@@ -27,6 +27,7 @@ spec:
           image: {{ .Values.minio.image.repository }}:{{ .Values.minio.image.tag }}
           imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           command:
+            - minio
             - server
             - /data
             - --console-address

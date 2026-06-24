@@ -10,7 +10,9 @@ metadata:
     app.kubernetes.io/name: user-service
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
+  {{- if not (and .Values.services.userService.autoscaling .Values.services.userService.autoscaling.enabled) }}
   replicas: {{ .Values.services.userService.replicas }}
+  {{- end }}
   selector:
     matchLabels:
       app.kubernetes.io/name: user-service
@@ -96,11 +98,18 @@ spec:
               value: {{ .Values.cors.origins | quote }}
             - name: GOOGLE_TOKEN_INFO_URL
               value: {{ .Values.secrets.google.tokenInfoUrl | quote }}
-          livenessProbe:
+          startupProbe:
             httpGet:
               path: /actuator/health
               port: 8081
             initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8081
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
@@ -108,7 +117,6 @@ spec:
             httpGet:
               path: /actuator/health
               port: 8081
-            initialDelaySeconds: 15
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3

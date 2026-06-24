@@ -2,9 +2,7 @@
 package observability
 
 import (
-	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"os"
 	"time"
@@ -26,12 +24,7 @@ func NewLogger(serviceName string) zerolog.Logger {
 	writers = append(writers, os.Stdout)
 
 	if host := os.Getenv("LOGSTASH_HOST"); host != "" {
-		conn, err := net.DialTimeout("tcp", host, 5*time.Second)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "WARN: cannot connect to Logstash at %s: %v (logs will only go to stdout)\n", host, err)
-		} else {
-			writers = append(writers, conn)
-		}
+		writers = append(writers, newLogstashWriter(host, 1024))
 	}
 
 	return zerolog.New(io.MultiWriter(writers...)).

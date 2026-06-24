@@ -9,6 +9,7 @@ export const COOKIE_REFRESH_TOKEN = 'refresh_token';
 export const NOTIFICATION_URL = process.env.NEXT_PUBLIC_NOTIFICATION_URL ?? 'http://localhost:8087';
 
 export const MINIO_URL = process.env.NEXT_PUBLIC_MINIO_URL ?? '/storage';
+// export const MINIO_URL = process.env.NEXT_PUBLIC_MINIO_URL ?? 'http://localhost:9000';
 
 /** Convert a MinIO object key (e.g. "artworks/xxx/cover.png") to a public HTTP URL. */
 export function storageUrl(key: string | null | undefined): string | null {

@@ -36,8 +36,11 @@ spec:
           env:
             - name: NEO4J_AUTH
               value: "{{ .Values.secrets.neo4j.user }}/{{ .Values.secrets.neo4j.password }}"
-            - name: NEO4J_PLUGINS
-              value: '["graph-data-science"]'
+            # GDS plugin disabled for minikube (200MB download slows startup)
+            # - name: NEO4J_PLUGINS
+            #   value: '["graph-data-science"]'
+            - name: NEO4J_server_config_strict__validation_enabled
+              value: "false"
             - name: NEO4J_server_memory_heap_initial__size
               value: {{ .Values.neo4j.memory.heapInitial | quote }}
             - name: NEO4J_server_memory_heap_max__size
@@ -49,22 +52,28 @@ spec:
               mountPath: /data
             - name: neo4j-logs
               mountPath: /logs
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 7474
-            initialDelaySeconds: 60
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
-          readinessProbe:
+          startupProbe:
             httpGet:
               path: /
               port: 7474
             initialDelaySeconds: 30
             periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
+            timeoutSeconds: 10
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 7474
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 7474
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 5
           resources:
             {{- toYaml .Values.neo4j.resources | nindent 12 }}
   volumeClaimTemplates:

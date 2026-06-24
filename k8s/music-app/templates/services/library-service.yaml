@@ -10,7 +10,9 @@ metadata:
     app.kubernetes.io/name: library-service
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
+  {{- if not (and .Values.services.libraryService.autoscaling .Values.services.libraryService.autoscaling.enabled) }}
   replicas: {{ .Values.services.libraryService.replicas }}
+  {{- end }}
   selector:
     matchLabels:
       app.kubernetes.io/name: library-service
@@ -94,11 +96,18 @@ spec:
                   key: minio-secret-key
             - name: CORS_ORIGINS
               value: {{ .Values.cors.origins | quote }}
-          livenessProbe:
+          startupProbe:
             httpGet:
               path: /actuator/health
               port: 8088
             initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8088
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
@@ -106,7 +115,6 @@ spec:
             httpGet:
               path: /actuator/health
               port: 8088
-            initialDelaySeconds: 15
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3

@@ -10,7 +10,9 @@ metadata:
     app.kubernetes.io/name: streaming-service
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
+  {{- if not (and .Values.services.streamingService.autoscaling .Values.services.streamingService.autoscaling.enabled) }}
   replicas: {{ .Values.services.streamingService.replicas }}
+  {{- end }}
   selector:
     matchLabels:
       app.kubernetes.io/name: streaming-service

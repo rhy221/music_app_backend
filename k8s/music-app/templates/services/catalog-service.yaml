@@ -10,7 +10,9 @@ metadata:
     app.kubernetes.io/name: catalog-service
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
+  {{- if not (and .Values.services.catalogService.autoscaling .Values.services.catalogService.autoscaling.enabled) }}
   replicas: {{ .Values.services.catalogService.replicas }}
+  {{- end }}
   selector:
     matchLabels:
       app.kubernetes.io/name: catalog-service
@@ -94,11 +96,18 @@ spec:
                   key: minio-secret-key
             - name: CORS_ORIGINS
               value: {{ .Values.cors.origins | quote }}
-          livenessProbe:
+          startupProbe:
             httpGet:
               path: /actuator/health
               port: 8082
             initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8082
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3
@@ -106,7 +115,6 @@ spec:
             httpGet:
               path: /actuator/health
               port: 8082
-            initialDelaySeconds: 15
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 3

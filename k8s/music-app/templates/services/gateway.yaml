@@ -10,7 +10,9 @@ metadata:
     app.kubernetes.io/name: gateway
     app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
+  {{- if not (and .Values.services.gateway.autoscaling .Values.services.gateway.autoscaling.enabled) }}
   replicas: {{ .Values.services.gateway.replicas }}
+  {{- end }}
   selector:
     matchLabels:
       app.kubernetes.io/name: gateway
@@ -30,6 +32,15 @@ spec:
           args:
             - |
               cp /etc/krakend/krakend.json /config/krakend.json
+              sed -i 's|music-user-service|user-service|g' /config/krakend.json
+              sed -i 's|music-catalog-service|catalog-service|g' /config/krakend.json
+              sed -i 's|music-playlist-service|playlist-service|g' /config/krakend.json
+              sed -i 's|music-streaming-service|streaming-service|g' /config/krakend.json
+              sed -i 's|music-search-service|search-service|g' /config/krakend.json
+              sed -i 's|music-upload-service|upload-service|g' /config/krakend.json
+              sed -i 's|music-notification-service|notification-service|g' /config/krakend.json
+              sed -i 's|music-library-service|library-service|g' /config/krakend.json
+              sed -i 's|music-recommend-service|recommend-service|g' /config/krakend.json
               sed -i 's|host.docker.internal:8081|user-service:8081|g' /config/krakend.json
               sed -i 's|host.docker.internal:8082|catalog-service:8082|g' /config/krakend.json
               sed -i 's|host.docker.internal:8083|playlist-service:8083|g' /config/krakend.json
@@ -38,7 +49,7 @@ spec:
               sed -i 's|host.docker.internal:8086|upload-service:8086|g' /config/krakend.json
               sed -i 's|host.docker.internal:8087|notification-service:8087|g' /config/krakend.json
               sed -i 's|host.docker.internal:8088|library-service:8088|g' /config/krakend.json
-        sed -i 's|host.docker.internal:8000|recommend-service:8000|g' /config/krakend.json
+              sed -i 's|host.docker.internal:8000|recommend-service:8000|g' /config/krakend.json
           volumeMounts:
             - name: krakend-config
               mountPath: /config
