@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine AS build
+FROM golang:1.24-alpine AS build
 
 WORKDIR /workspace
 
@@ -11,7 +11,8 @@ COPY libs/api-clients/go/streaming-api-client/go.mod libs/api-clients/go/streami
 COPY services/streaming-service/go.mod services/streaming-service/go.sum services/streaming-service/
 COPY services/upload-service/go.mod services/upload-service/go.sum services/upload-service/
 
-RUN cd services/streaming-service && go mod download
+RUN --mount=type=cache,id=gomod,target=/go/pkg/mod \
+    cd services/streaming-service && go mod download
 
 COPY libs/go-common/ libs/go-common/
 COPY libs/events/go/music-events/ libs/events/go/music-events/

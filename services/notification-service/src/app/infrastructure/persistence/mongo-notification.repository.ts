@@ -13,6 +13,7 @@ const TTL_DAYS: Record<NotificationType, number> = {
   [NotificationType.TRACK_ADDED_TO_PLAYLIST]: 90,
   [NotificationType.PLAYLIST_SHARED]: 180,
   [NotificationType.NEW_RELEASE]: 365,
+  [NotificationType.TRACK_PUBLISHED]: 365,
 };
 
 function computeExpiry(type: NotificationType): Date {

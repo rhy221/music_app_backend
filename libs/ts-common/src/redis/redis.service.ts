@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import Redis from 'ioredis';
-import { REDIS_MODULE_OPTIONS, RedisModuleOptions } from './redis.constants';
+import { REDIS_MODULE_OPTIONS } from './redis.constants';
+import type { RedisModuleOptions } from './redis.constants';
 
 /**
  * Wraps ioredis with typed helpers for common cache operations.

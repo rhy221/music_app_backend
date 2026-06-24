@@ -10,6 +10,7 @@ import (
 	"time"
 
 	miniogo "github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 const (
@@ -18,11 +19,23 @@ const (
 )
 
 type FileStorage struct {
-	client *miniogo.Client
+	client        *miniogo.Client
+	presignClient *miniogo.Client
 }
 
-func NewFileStorage(client *miniogo.Client) *FileStorage {
-	return &FileStorage{client: client}
+func NewFileStorage(client *miniogo.Client, accessKey, secretKey string, useSSL bool) *FileStorage {
+	fs := &FileStorage{client: client, presignClient: client}
+	if pub := os.Getenv("MINIO_PUBLIC_ENDPOINT"); pub != "" {
+		pc, _ := miniogo.New(pub, &miniogo.Options{
+			Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
+			Secure: useSSL,
+			Region: "us-east-1",
+		})
+		if pc != nil {
+			fs.presignClient = pc
+		}
+	}
+	return fs
 }
 
 func (s *FileStorage) BucketExists(ctx context.Context, bucket string) (bool, error) {
@@ -144,7 +157,7 @@ func (s *FileStorage) AudioObjectKey(trackID, filename string) string {
 
 // PresignedAudioPutURL generates a presigned PUT URL for the client to upload audio directly.
 func (s *FileStorage) PresignedAudioPutURL(ctx context.Context, objectKey string, ttl time.Duration) (string, error) {
-	u, err := s.client.PresignedPutObject(ctx, bucketAudio, objectKey, ttl)
+	u, err := s.presignClient.PresignedPutObject(ctx, bucketAudio, objectKey, ttl)
 	if err != nil {
 		return "", fmt.Errorf("presign audio put: %w", err)
 	}

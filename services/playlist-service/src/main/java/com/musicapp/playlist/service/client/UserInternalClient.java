@@ -1,5 +1,8 @@
 package com.musicapp.playlist.service.client;
 
+import com.musicapp.common.web.ServiceUnavailableException;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -19,6 +22,8 @@ public class UserInternalClient {
         this.restClient = restClient;
     }
 
+    @CircuitBreaker(name = "userService", fallbackMethod = "getUserFallback")
+    @Retry(name = "userService")
     public InternalUserDto getUser(UUID userId) {
         log.debug("Fetching user info from User service, userId={}", userId);
         return restClient.get()
@@ -28,5 +33,11 @@ public class UserInternalClient {
                     throw new EntityNotFoundException("User not found: " + userId);
                 })
                 .body(InternalUserDto.class);
+    }
+
+    @SuppressWarnings("unused")
+    private InternalUserDto getUserFallback(UUID userId, Exception ex) {
+        log.error("User service unavailable, userId={}: {}", userId, ex.getMessage());
+        throw new ServiceUnavailableException("User service is temporarily unavailable", ex);
     }
 }

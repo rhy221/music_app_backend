@@ -1,0 +1,134 @@
+{{- if .Values.services.streamingService.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: streaming-service
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "music-app.labels" . | nindent 4 }}
+    app.kubernetes.io/name: streaming-service
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.services.streamingService.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: streaming-service
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        {{- include "music-app.labels" . | nindent 8 }}
+        app.kubernetes.io/name: streaming-service
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: streaming-service
+          image: "{{ .Values.services.streamingService.image.repository }}:{{ .Values.services.streamingService.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: 8084
+              name: http
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "8084"
+            - name: SERVICE_NAME
+              value: "streaming-service"
+            - name: LOG_LEVEL
+              value: "debug"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: postgres-user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: postgres-password
+            - name: DATABASE_URL
+              value: "postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/{{ .Values.services.streamingService.dbName }}?sslmode=disable"
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: rabbitmq-user
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: rabbitmq-password
+            - name: RABBITMQ_VHOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: rabbitmq-vhost
+            - name: RABBIT_URL
+              value: "amqp://$(RABBITMQ_USER):$(RABBITMQ_PASSWORD)@rabbitmq:5672/$(RABBITMQ_VHOST)"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: redis-password
+            - name: REDIS_URL
+              value: "redis://:$(REDIS_PASSWORD)@redis:6379"
+            - name: MINIO_ENDPOINT
+              value: "minio:9000"
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: minio-access-key
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: minio-secret-key
+            - name: MINIO_USE_SSL
+              value: "false"
+            - name: CATALOG_SERVICE_URL
+              value: "http://catalog-service:8082"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: jwt-secret
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8084
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8084
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.services.streamingService.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: streaming-service
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "music-app.labels" . | nindent 4 }}
+    app.kubernetes.io/name: streaming-service
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: streaming-service
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - port: 8084
+      targetPort: 8084
+      protocol: TCP
+      name: http
+{{- end }}

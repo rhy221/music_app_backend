@@ -1,0 +1,397 @@
+global:
+  namespace: music-app
+  imagePullPolicy: IfNotPresent
+
+secrets:
+  jwtSecret: "change-me-in-production-min-32-chars"
+  postgres:
+    user: music_admin
+    password: music_pass
+  redis:
+    password: music_pass
+  rabbitmq:
+    user: music_admin
+    password: music_pass
+    vhost: music
+  minio:
+    accessKey: music_admin
+    secretKey: music_pass
+  neo4j:
+    user: neo4j
+    password: music_pass
+  mongodb:
+    user: music_admin
+    password: music_pass
+    database: notifications
+  grafana:
+    adminUser: admin
+    adminPassword: music_pass
+  smtp:
+    host: smtp.mailtrap.io
+    port: "587"
+    user: ""
+    pass: ""
+    from: "no-reply@musicapp.com"
+  google:
+    tokenInfoUrl: "https://oauth2.googleapis.com/tokeninfo"
+
+postgres:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "16-alpine"
+  storage: 5Gi
+  databases:
+    - user_db
+    - catalog_db
+    - playlist_db
+    - streaming_db
+    - upload_db
+    - library_db
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+mongodb:
+  enabled: true
+  image:
+    repository: mongo
+    tag: "7"
+  storage: 5Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+neo4j:
+  enabled: true
+  image:
+    repository: neo4j
+    tag: "5-community"
+  storage:
+    data: 5Gi
+    logs: 1Gi
+  memory:
+    heapInitial: 512m
+    heapMax: 1G
+    pagecache: 512m
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+
+elasticsearch:
+  enabled: true
+  image:
+    repository: elasticsearch
+    tag: "8.17.0"
+  storage: 10Gi
+  javaOpts: "-Xms512m -Xmx512m"
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+
+redis:
+  enabled: true
+  image:
+    repository: redis
+    tag: "7-alpine"
+  storage: 2Gi
+  maxMemory: 256mb
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 384Mi
+
+minio:
+  enabled: true
+  image:
+    repository: minio/minio
+    tag: latest
+  mcImage:
+    repository: minio/mc
+    tag: latest
+  storage: 10Gi
+  buckets:
+    - images
+    - audio
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+rabbitmq:
+  enabled: true
+  image:
+    repository: rabbitmq
+    tag: "3.13-management-alpine"
+  storage: 5Gi
+  exchanges:
+    - events.upload
+    - events.catalog
+    - events.streaming
+    - events.user
+    - events.playlist
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+services:
+  gateway:
+    enabled: true
+    image:
+      repository: music-app/gateway
+      tag: latest
+    replicas: 1
+    port: 8080
+    metricsPort: 9091
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+
+  userService:
+    enabled: true
+    image:
+      repository: music-app/user-service
+      tag: latest
+    replicas: 1
+    port: 8081
+    dbName: user_db
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  catalogService:
+    enabled: true
+    image:
+      repository: music-app/catalog-service
+      tag: latest
+    replicas: 1
+    port: 8082
+    dbName: catalog_db
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  playlistService:
+    enabled: true
+    image:
+      repository: music-app/playlist-service
+      tag: latest
+    replicas: 1
+    port: 8083
+    dbName: playlist_db
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  streamingService:
+    enabled: true
+    image:
+      repository: music-app/streaming-service
+      tag: latest
+    replicas: 1
+    port: 8084
+    dbName: streaming_db
+    resources:
+      requests:
+        cpu: 250m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+
+  searchService:
+    enabled: true
+    image:
+      repository: music-app/search-service
+      tag: latest
+    replicas: 1
+    port: 8085
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  uploadService:
+    enabled: true
+    image:
+      repository: music-app/upload-service
+      tag: latest
+    replicas: 1
+    port: 8086
+    dbName: upload_db
+    resources:
+      requests:
+        cpu: 250m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+
+  notificationService:
+    enabled: true
+    image:
+      repository: music-app/notification-service
+      tag: latest
+    replicas: 1
+    port: 8087
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  libraryService:
+    enabled: true
+    image:
+      repository: music-app/library-service
+      tag: latest
+    replicas: 1
+    port: 8088
+    dbName: library_db
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  recommendService:
+    enabled: true
+    image:
+      repository: music-app/recommend-service
+      tag: latest
+    replicas: 1
+    port: 8000
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+monitoring:
+  prometheus:
+    enabled: true
+    image:
+      repository: prom/prometheus
+      tag: v3.4.1
+    storage: 5Gi
+    retentionDays: 15
+    resources:
+      requests:
+        cpu: 250m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  grafana:
+    enabled: true
+    image:
+      repository: grafana/grafana
+      tag: "11.6.0"
+    storage: 2Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+
+  logstash:
+    enabled: true
+    image:
+      repository: docker.elastic.co/logstash/logstash
+      tag: "8.17.0"
+    javaOpts: "-Xmx256m -Xms256m"
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 768Mi
+
+  kibana:
+    enabled: true
+    image:
+      repository: docker.elastic.co/kibana/kibana
+      tag: "8.17.0"
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+
+  jaeger:
+    enabled: true
+    image:
+      repository: jaegertracing/all-in-one
+      tag: "1.62"
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+ingress:
+  enabled: true
+  className: nginx
+  host: music-app.local
+
+cors:
+  origins: "http://localhost:3000"

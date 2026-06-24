@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Client } from '@elastic/elasticsearch';
 import { TrackDocument } from '../../domain/track.document';
 import { ELASTICSEARCH_CLIENT } from './elasticsearch.tokens';
@@ -20,21 +20,19 @@ export interface EsPagedResult<T> {
   maxScore: number | null;
 }
 
-function buildSort(sort?: string): Array<Record<string, unknown>> {
+function buildSort(sort?: string) {
   switch (sort) {
     case 'newest':
-      return [{ createdAt: { order: 'desc' } }, { _score: { order: 'desc' } }];
+      return [{ createdAt: { order: 'desc' as const } }, { _score: { order: 'desc' as const } }];
     case 'popular':
-      return [{ playCount: { order: 'desc' } }, { _score: { order: 'desc' } }];
+      return [{ playCount: { order: 'desc' as const } }, { _score: { order: 'desc' as const } }];
     default:
-      return [{ _score: { order: 'desc' } }];
+      return [{ _score: { order: 'desc' as const } }];
   }
 }
 
 @Injectable()
 export class TrackEsRepository {
-  private readonly logger = new Logger(TrackEsRepository.name);
-
   constructor(@Inject(ELASTICSEARCH_CLIENT) private readonly client: Client) {}
 
   async upsert(doc: TrackDocument): Promise<void> {
@@ -78,7 +76,7 @@ export class TrackEsRepository {
               fields: ['title^3', 'title.keyword^2', 'artist.name^2', 'album.title'],
               fuzziness: 'AUTO',
               prefix_length: 2,
-              operator: 'or',
+              operator: 'or' as const,
             },
           },
         ]
@@ -94,7 +92,7 @@ export class TrackEsRepository {
           filter: filters,
         },
       },
-      sort: buildSort(sort),
+      sort: buildSort(sort) as any,
     });
 
     const hits = result.hits.hits;
@@ -118,7 +116,7 @@ export class TrackEsRepository {
             fuzzy: { fuzziness: 1 },
           },
         },
-      } as Record<string, unknown>,
+      } as any,
     });
 
     const options = (result.suggest?.['track_suggest'] as Array<{ options: Array<{ text: string; _id: string; _source: TrackDocument }> }> | undefined)?.[0]?.options ?? [];

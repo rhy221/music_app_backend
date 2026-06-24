@@ -87,6 +87,14 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(401, ex.getMessage(), req.getRequestURI()));
     }
 
+    @ExceptionHandler(ServiceUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleServiceUnavailable(
+            ServiceUnavailableException ex, HttpServletRequest req) {
+        log.warn("Downstream service unavailable: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ErrorResponse.of(503, ex.getMessage(), req.getRequestURI()));
+    }
+
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ErrorResponse> handleResponseStatus(ResponseStatusException ex, HttpServletRequest req) {
         int status = ex.getStatusCode().value();

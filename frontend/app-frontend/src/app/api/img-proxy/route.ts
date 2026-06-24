@@ -5,7 +5,9 @@ export async function GET(req: NextRequest) {
   if (!url) return new NextResponse(null, { status: 400 });
 
   try {
-    const upstream = await fetch(url, { cache: 'force-cache' });
+    const MINIO = process.env.MINIO_INTERNAL_URL ?? 'http://127.0.0.1:9000';
+    const resolvedUrl = url.startsWith('/storage/') ? `${MINIO}${url.slice('/storage'.length)}` : url;
+    const upstream = await fetch(resolvedUrl, { cache: 'force-cache' });
     if (!upstream.ok) return new NextResponse(null, { status: 404 });
 
     const buffer = await upstream.arrayBuffer();

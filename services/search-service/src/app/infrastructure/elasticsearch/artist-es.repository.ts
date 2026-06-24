@@ -85,7 +85,7 @@ export class ArtistEsRepository {
             fuzzy: { fuzziness: 1 },
           },
         },
-      } as Record<string, unknown>,
+      } as any,
     });
 
     const options = (result.suggest?.['artist_suggest'] as Array<{ options: Array<{ text: string; _id: string; _source: ArtistDocument }> }> | undefined)?.[0]?.options ?? [];

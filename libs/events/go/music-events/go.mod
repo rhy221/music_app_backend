@@ -1,3 +1,3 @@
 module music-app/music-events
 
-go 1.22
+go 1.24

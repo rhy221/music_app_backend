@@ -1,0 +1,139 @@
+{{- if .Values.monitoring.jaeger.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jaeger
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "music-app.labels" . | nindent 4 }}
+    app.kubernetes.io/name: jaeger
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: jaeger
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        {{- include "music-app.labels" . | nindent 8 }}
+        app.kubernetes.io/name: jaeger
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: jaeger
+          image: "{{ .Values.monitoring.jaeger.image.repository }}:{{ .Values.monitoring.jaeger.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: 5775
+              name: agent-zipkin
+              protocol: UDP
+            - containerPort: 6831
+              name: agent-compact
+              protocol: UDP
+            - containerPort: 6832
+              name: agent-binary
+              protocol: UDP
+            - containerPort: 5778
+              name: agent-config
+              protocol: TCP
+            - containerPort: 16686
+              name: query-ui
+              protocol: TCP
+            - containerPort: 14250
+              name: collector-grpc
+              protocol: TCP
+            - containerPort: 14268
+              name: collector-http
+              protocol: TCP
+            - containerPort: 14269
+              name: admin
+              protocol: TCP
+            - containerPort: 4317
+              name: otlp-grpc
+              protocol: TCP
+            - containerPort: 4318
+              name: otlp-http
+              protocol: TCP
+          env:
+            - name: COLLECTOR_OTLP_ENABLED
+              value: "true"
+            - name: SPAN_STORAGE_TYPE
+              value: memory
+            - name: QUERY_BASE_PATH
+              value: /jaeger
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 14269
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 14269
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.monitoring.jaeger.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "music-app.labels" . | nindent 4 }}
+    app.kubernetes.io/name: jaeger
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: jaeger
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - port: 5775
+      targetPort: 5775
+      protocol: UDP
+      name: agent-zipkin
+    - port: 6831
+      targetPort: 6831
+      protocol: UDP
+      name: agent-compact
+    - port: 6832
+      targetPort: 6832
+      protocol: UDP
+      name: agent-binary
+    - port: 5778
+      targetPort: 5778
+      protocol: TCP
+      name: agent-config
+    - port: 16686
+      targetPort: 16686
+      protocol: TCP
+      name: query-ui
+    - port: 14250
+      targetPort: 14250
+      protocol: TCP
+      name: collector-grpc
+    - port: 14268
+      targetPort: 14268
+      protocol: TCP
+      name: collector-http
+    - port: 14269
+      targetPort: 14269
+      protocol: TCP
+      name: admin
+    - port: 4317
+      targetPort: 4317
+      protocol: TCP
+      name: otlp-grpc
+    - port: 4318
+      targetPort: 4318
+      protocol: TCP
+      name: otlp-http
+{{- end }}

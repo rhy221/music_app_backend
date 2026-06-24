@@ -1,7 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
+import { IPolicy } from 'cockatiel';
+import { createResiliencePolicy } from './resilience';
 
 export interface PublicUserProfile {
   id: string;
@@ -15,9 +17,10 @@ interface PaginatedUsers {
 }
 
 @Injectable()
-export class UserHttpClient {
+export class UserHttpClient implements OnModuleInit {
   private readonly logger = new Logger(UserHttpClient.name);
   private readonly baseUrl: string;
+  private policy!: IPolicy;
 
   constructor(
     private readonly http: HttpService,
@@ -26,15 +29,22 @@ export class UserHttpClient {
     this.baseUrl = this.config.get<string>('userServiceUrl')!;
   }
 
+  onModuleInit() {
+    const { policy } = createResiliencePolicy('UserService');
+    this.policy = policy;
+  }
+
   async getFollowers(userId: string): Promise<PublicUserProfile[]> {
     const all: PublicUserProfile[] = [];
     let page = 0;
     try {
       while (true) {
-        const { data } = await firstValueFrom(
-          this.http.get<PaginatedUsers>(
-            `${this.baseUrl}/api/v1/users/${userId}/followers`,
-            { params: { page, size: 100 } },
+        const { data } = await this.policy.execute(async () =>
+          firstValueFrom(
+            this.http.get<PaginatedUsers>(
+              `${this.baseUrl}/api/v1/users/${userId}/followers`,
+              { params: { page, size: 100 } },
+            ),
           ),
         );
         all.push(...data.content);
@@ -42,7 +52,9 @@ export class UserHttpClient {
         page++;
       }
     } catch (err) {
-      this.logger.warn(`Failed to fetch followers for user ${userId}: ${String(err)}`);
+      this.logger.warn(
+        `Failed to fetch followers for user ${userId}: ${String(err)}`,
+      );
     }
     return all;
   }

@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { ConsumeMessage } from 'amqplib';
+import type { ConsumeMessage } from 'amqplib';
 import { RabbitMQService } from '@org/ts-common';
 import {
   MusicEvent,

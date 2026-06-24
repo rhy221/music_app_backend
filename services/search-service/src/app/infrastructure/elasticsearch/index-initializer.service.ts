@@ -38,7 +38,7 @@ export class IndexInitializerService implements OnApplicationBootstrap {
         analysis: {
           analyzer: {
             vietnamese: {
-              type: 'custom',
+              type: 'custom' as const,
               tokenizer: 'icu_tokenizer',
               filter: ['icu_folding', 'lowercase'],
             },
@@ -50,7 +50,7 @@ export class IndexInitializerService implements OnApplicationBootstrap {
       analysis: {
         analyzer: {
           vietnamese: {
-            type: 'custom',
+            type: 'custom' as const,
             tokenizer: 'standard',
             filter: ['lowercase'],
           },

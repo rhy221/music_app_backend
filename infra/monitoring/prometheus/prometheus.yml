@@ -12,45 +12,45 @@ scrape_configs:
   - job_name: user-service
     metrics_path: /actuator/prometheus
     static_configs:
-      - targets: ["host.docker.internal:8081"]
+      - targets: ["music-user-service:8081"]
 
   - job_name: catalog-service
     metrics_path: /actuator/prometheus
     static_configs:
-      - targets: ["host.docker.internal:8082"]
+      - targets: ["music-catalog-service:8082"]
 
   - job_name: playlist-service
     metrics_path: /actuator/prometheus
     static_configs:
-      - targets: ["host.docker.internal:8083"]
+      - targets: ["music-playlist-service:8083"]
 
   - job_name: library-service
     metrics_path: /actuator/prometheus
     static_configs:
-      - targets: ["host.docker.internal:8088"]
+      - targets: ["music-library-service:8088"]
 
   # ─── Go services (/metrics) ──────────────────────────────────────────────────
   - job_name: streaming-service
     static_configs:
-      - targets: ["host.docker.internal:8084"]
+      - targets: ["music-streaming-service:8084"]
 
   - job_name: upload-service
     static_configs:
-      - targets: ["host.docker.internal:8086"]
+      - targets: ["music-upload-service:8086"]
 
   # ─── NestJS services (/metrics) ──────────────────────────────────────────────
   - job_name: search-service
     static_configs:
-      - targets: ["host.docker.internal:8085"]
+      - targets: ["music-search-service:8085"]
 
   - job_name: notification-service
     static_configs:
-      - targets: ["host.docker.internal:8087"]
+      - targets: ["music-notification-service:8087"]
 
   # ─── Python service (/metrics) ───────────────────────────────────────────────
   - job_name: recommend-service
     static_configs:
-      - targets: ["host.docker.internal:8000"]
+      - targets: ["music-recommend-service:8000"]
 
   # ─── Infrastructure ──────────────────────────────────────────────────────────
   - job_name: prometheus

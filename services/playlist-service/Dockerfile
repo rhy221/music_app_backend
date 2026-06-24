@@ -13,7 +13,9 @@ COPY libs/api-clients/java/ libs/api-clients/java/
 
 COPY services/playlist-service/ services/playlist-service/
 
-RUN ./gradlew :services:playlist-service:bootJar -x test --no-daemon
+RUN --mount=type=cache,id=gradle,target=/root/.gradle \
+    mkdir -p services/user-service services/catalog-service services/library-service && \
+    ./gradlew :services:playlist-service:bootJar -x test --no-daemon
 
 FROM eclipse-temurin:26-jre
 

@@ -23,8 +23,8 @@ import { RabbitMQService } from './rabbitmq.service';
 @Module({})
 export class RabbitMQModule implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RabbitMQModule.name);
-  private connection: amqp.ChannelModel;
-  private channel: amqp.Channel;
+  private connection!: amqp.ChannelModel;
+  private channel!: amqp.Channel;
 
   constructor(
     private readonly options: RabbitMQModuleOptions,

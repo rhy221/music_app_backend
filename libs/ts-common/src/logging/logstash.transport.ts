@@ -1,10 +1,9 @@
-import { Injectable, OnModuleDestroy, Logger } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import * as net from 'node:net';
 
 @Injectable()
 export class LogstashTransport implements OnModuleDestroy {
   private socket: net.Socket | null = null;
-  private readonly logger = new Logger('LogstashTransport');
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {

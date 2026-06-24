@@ -39,8 +39,8 @@ services:
       test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:7474 || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 5
-      start_period: 60s
+      retries: 10
+      start_period: 300s
     restart: unless-stopped
 
   # ─── MongoDB 7 — Notification DB ─────────────────────────────────────────────
@@ -179,6 +179,10 @@ services:
     entrypoint: ["sh", "/init.sh"]
     restart: on-failure
 
+  # ═══════════════════════════════════════════════════════════════════════════════
+  # APPLICATION SERVICES
+  # ═══════════════════════════════════════════════════════════════════════════════
+
   # ─── API Gateway (KrakenD) ───────────────────────────────────────────────────
   gateway:
     build:
@@ -193,7 +197,7 @@ services:
     logging:
       driver: gelf
       options:
-        gelf-address: "udp://localhost:12201"
+        gelf-address: "udp://host.docker.internal:12201"
         tag: "gateway"
     healthcheck:
       test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:8080/__health"]
@@ -203,8 +207,287 @@ services:
       start_period: 10s
     restart: unless-stopped
     depends_on:
+      rabbitmq-init:
+        condition: service_completed_successfully
       logstash:
         condition: service_healthy
+
+  # ─── User Service (Spring Boot) ──────────────────────────────────────────────
+  user-service:
+    build:
+      context: ..
+      dockerfile: services/user-service/Dockerfile
+    container_name: music-user-service
+    environment:
+      DB_HOST: music-postgres
+      DB_NAME: user_db
+      REDIS_HOST: music-redis
+      REDIS_PASSWORD: music_pass
+      RABBITMQ_HOST: music-rabbitmq
+      RABBITMQ_USER: music_admin
+      RABBITMQ_PASSWORD: music_pass
+      RABBITMQ_VHOST: music
+      MINIO_ENDPOINT: http://music-minio:9000
+      MINIO_ACCESS_KEY: music_admin
+      MINIO_SECRET_KEY: music_pass
+      JWT_SECRET: "${JWT_SECRET:-change-me-in-production-min-32-chars}"
+      SPRING_PROFILES_ACTIVE: logstash
+      LOGSTASH_HOST: music-logstash
+      LOGSTASH_PORT: 5044
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+      logstash:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── Catalog Service (Spring Boot) ───────────────────────────────────────────
+  catalog-service:
+    build:
+      context: ..
+      dockerfile: services/catalog-service/Dockerfile
+    container_name: music-catalog-service
+    environment:
+      DB_HOST: music-postgres
+      DB_NAME: catalog_db
+      REDIS_HOST: music-redis
+      REDIS_PASSWORD: music_pass
+      RABBITMQ_HOST: music-rabbitmq
+      RABBITMQ_USER: music_admin
+      RABBITMQ_PASSWORD: music_pass
+      RABBITMQ_VHOST: music
+      JWT_SECRET: "${JWT_SECRET:-change-me-in-production-min-32-chars}"
+      SPRING_PROFILES_ACTIVE: logstash
+      LOGSTASH_HOST: music-logstash
+      LOGSTASH_PORT: 5044
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
+      logstash:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── Playlist Service (Spring Boot) ──────────────────────────────────────────
+  playlist-service:
+    build:
+      context: ..
+      dockerfile: services/playlist-service/Dockerfile
+    container_name: music-playlist-service
+    environment:
+      DB_HOST: music-postgres
+      DB_NAME: playlist_db
+      REDIS_HOST: music-redis
+      REDIS_PASSWORD: music_pass
+      RABBITMQ_HOST: music-rabbitmq
+      RABBITMQ_USER: music_admin
+      RABBITMQ_PASSWORD: music_pass
+      RABBITMQ_VHOST: music
+      JWT_SECRET: "${JWT_SECRET:-change-me-in-production-min-32-chars}"
+      SPRING_PROFILES_ACTIVE: logstash
+      LOGSTASH_HOST: music-logstash
+      LOGSTASH_PORT: 5044
+    ports:
+      - "8083:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
+      logstash:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── Library Service (Spring Boot) ───────────────────────────────────────────
+  library-service:
+    build:
+      context: ..
+      dockerfile: services/library-service/Dockerfile
+    container_name: music-library-service
+    environment:
+      DB_HOST: music-postgres
+      DB_NAME: library_db
+      REDIS_HOST: music-redis
+      REDIS_PASSWORD: music_pass
+      RABBITMQ_HOST: music-rabbitmq
+      RABBITMQ_USER: music_admin
+      RABBITMQ_PASSWORD: music_pass
+      RABBITMQ_VHOST: music
+      JWT_SECRET: "${JWT_SECRET:-change-me-in-production-min-32-chars}"
+      SPRING_PROFILES_ACTIVE: logstash
+      LOGSTASH_HOST: music-logstash
+      LOGSTASH_PORT: 5044
+    ports:
+      - "8088:8088"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
+      logstash:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── Streaming Service (Go) ─────────────────────────────────────────────────
+  streaming-service:
+    build:
+      context: ..
+      dockerfile: services/streaming-service/Dockerfile
+    container_name: music-streaming-service
+    environment:
+      PORT: 8084
+      SERVICE_NAME: streaming-service
+      DATABASE_URL: postgres://music_admin:music_pass@music-postgres:5432/streaming_db?sslmode=disable
+      RABBIT_URL: amqp://music_admin:music_pass@music-rabbitmq:5672/music
+      REDIS_URL: redis://:music_pass@music-redis:6379
+      MINIO_ENDPOINT: music-minio:9000
+      MINIO_ACCESS_KEY: music_admin
+      MINIO_SECRET_KEY: music_pass
+      MINIO_USE_SSL: "false"
+      CATALOG_SERVICE_URL: http://music-catalog-service:8082
+      JWT_SECRET: "${JWT_SECRET:-change-me-in-production-min-32-chars}"
+      LOGSTASH_HOST: "music-logstash:5044"
+    ports:
+      - "8084:8084"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+      logstash:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── Upload Service (Go) ────────────────────────────────────────────────────
+  upload-service:
+    build:
+      context: ..
+      dockerfile: services/upload-service/Dockerfile
+    container_name: music-upload-service
+    environment:
+      PORT: 8086
+      SERVICE_NAME: upload-service
+      DATABASE_URL: postgres://music_admin:music_pass@music-postgres:5432/upload_db?sslmode=disable
+      RABBIT_URL: amqp://music_admin:music_pass@music-rabbitmq:5672/music
+      MINIO_ENDPOINT: music-minio:9000
+      MINIO_PUBLIC_ENDPOINT: 127.0.0.1:9000
+      MINIO_ACCESS_KEY: music_admin
+      MINIO_SECRET_KEY: music_pass
+      MINIO_USE_SSL: "false"
+      JWT_SECRET: "${JWT_SECRET:-change-me-in-production-min-32-chars}"
+      # LOGSTASH_HOST: "music-logstash:5044"  # disabled: TCP writer blocks zerolog
+    ports:
+      - "8086:8086"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+      logstash:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── Search Service (NestJS) ────────────────────────────────────────────────
+  search-service:
+    build:
+      context: ..
+      dockerfile: services/search-service/Dockerfile
+    container_name: music-search-service
+    environment:
+      PORT: 8085
+      ELASTICSEARCH_NODE: http://music-elasticsearch:9200
+      RABBITMQ_URL: amqp://music_admin:music_pass@music-rabbitmq:5672/music
+      JWT_SECRET: "${JWT_SECRET:-change-me-in-production-min-32-chars}"
+      LOGSTASH_HOST: "music-logstash:5044"
+    ports:
+      - "8085:8085"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
+      logstash:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── Notification Service (NestJS) ──────────────────────────────────────────
+  notification-service:
+    build:
+      context: ..
+      dockerfile: services/notification-service/Dockerfile
+    container_name: music-notification-service
+    environment:
+      PORT: 8087
+      MONGODB_URI: mongodb://music_admin:music_pass@music-mongodb:27017/notifications?authSource=admin
+      RABBITMQ_URL: amqp://music_admin:music_pass@music-rabbitmq:5672/music
+      REDIS_URL: redis://:music_pass@music-redis:6379
+      CATALOG_SERVICE_URL: http://music-catalog-service:8082
+      USER_SERVICE_URL: http://music-user-service:8081
+      JWT_SECRET: "${JWT_SECRET:-change-me-in-production-min-32-chars}"
+      LOGSTASH_HOST: "music-logstash:5044"
+    ports:
+      - "8087:8087"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
+      logstash:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── Recommend Service (FastAPI) ────────────────────────────────────────────
+  recommend-service:
+    build:
+      context: ..
+      dockerfile: services/recommend-service/Dockerfile
+    container_name: music-recommend-service
+    environment:
+      PORT: 8000
+      NEO4J_URI: bolt://music-neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: music_pass
+      REDIS_URL: redis://:music_pass@music-redis:6379/0
+      RABBITMQ_URL: amqp://music_admin:music_pass@music-rabbitmq:5672/music
+      JWT_SECRET: "${JWT_SECRET:-change-me-in-production-min-32-chars}"
+      LOGSTASH_HOST: "music-logstash:5044"
+    ports:
+      - "8000:8000"
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq-init:
+        condition: service_completed_successfully
+      logstash:
+        condition: service_healthy
+    restart: unless-stopped
 
   # ═══════════════════════════════════════════════════════════════════════════════
   # MONITORING STACK
@@ -223,8 +506,6 @@ services:
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO /dev/null http://localhost:9090/-/healthy || exit 1"]
       interval: 15s
@@ -280,25 +561,26 @@ services:
       start_period: 60s
     restart: unless-stopped
 
-  # ─── Kibana — Log Visualization ──────────────────────────────────────────────
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.17.0
-    container_name: music-kibana
-    environment:
-      ELASTICSEARCH_HOSTS: '["http://music-elasticsearch:9200"]'
-      XPACK_SECURITY_ENABLED: "false"
-    ports:
-      - "5601:5601"
-    depends_on:
-      elasticsearch:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:5601/api/status || exit 1"]
-      interval: 20s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-    restart: unless-stopped
+  # ─── Kibana — Log Visualization (optional, Grafana covers logs via Elasticsearch datasource)
+  # Uncomment if you need Kibana's Discover UI for advanced log exploration.
+  # kibana:
+  #   image: docker.elastic.co/kibana/kibana:8.17.0
+  #   container_name: music-kibana
+  #   environment:
+  #     ELASTICSEARCH_HOSTS: '["http://music-elasticsearch:9200"]'
+  #     XPACK_SECURITY_ENABLED: "false"
+  #   ports:
+  #     - "5601:5601"
+  #   depends_on:
+  #     elasticsearch:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -sf http://localhost:5601/api/status || exit 1"]
+  #     interval: 20s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 60s
+  #   restart: unless-stopped
 
 
 # ─── Volumes ──────────────────────────────────────────────────────────────────

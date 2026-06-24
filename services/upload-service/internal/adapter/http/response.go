@@ -3,7 +3,9 @@ package httpadapter
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"os"
 
 	"music-app/upload-service/internal/domain"
 )
@@ -27,6 +29,7 @@ func handleDomainError(w http.ResponseWriter, err error) {
 	case errors.Is(err, domain.ErrValidation):
 		jsonError(w, http.StatusBadRequest, err.Error())
 	default:
+		fmt.Fprintf(os.Stderr, "unhandled error: %v\n", err)
 		jsonError(w, http.StatusInternalServerError, "internal server error")
 	}
 }

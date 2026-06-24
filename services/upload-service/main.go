@@ -47,7 +47,7 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("minio init")
 	}
-	fileStorage := minioadapter.NewFileStorage(mc)
+	fileStorage := minioadapter.NewFileStorage(mc, cfg.MinioAccessKey, cfg.MinioSecretKey, cfg.MinioUseSSL)
 	if err := fileStorage.EnsureBuckets(context.Background()); err != nil {
 		log.Fatal().Err(err).Msg("ensure minio buckets")
 	}

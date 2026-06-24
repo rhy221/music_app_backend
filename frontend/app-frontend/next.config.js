@@ -20,9 +20,18 @@ const nextConfig = {
     unoptimized: true,
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost', port: '9000' },
+      { protocol: 'http', hostname: '127.0.0.1', port: '9000' },
       { protocol: 'http', hostname: 'localhost' },
       { protocol: 'https', hostname: '**' },
     ],
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/storage/:path*',
+        destination: 'http://127.0.0.1:9000/:path*',
+      },
+    ];
   },
 };
 

@@ -1,5 +1,8 @@
 package com.musicapp.playlist.service.client;
 
+import com.musicapp.common.web.ServiceUnavailableException;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -19,6 +22,8 @@ public class CatalogInternalClient {
         this.restClient = restClient;
     }
 
+    @CircuitBreaker(name = "catalogService", fallbackMethod = "getTrackFallback")
+    @Retry(name = "catalogService")
     public InternalTrackDto getTrack(UUID trackId) {
         log.debug("Fetching track metadata from Catalog service, trackId={}", trackId);
         return restClient.get()
@@ -28,5 +33,11 @@ public class CatalogInternalClient {
                     throw new EntityNotFoundException("Track not found: " + trackId);
                 })
                 .body(InternalTrackDto.class);
+    }
+
+    @SuppressWarnings("unused")
+    private InternalTrackDto getTrackFallback(UUID trackId, Exception ex) {
+        log.error("Catalog service unavailable, trackId={}: {}", trackId, ex.getMessage());
+        throw new ServiceUnavailableException("Catalog service is temporarily unavailable", ex);
     }
 }

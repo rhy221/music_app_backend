@@ -1,0 +1,109 @@
+{{- if .Values.neo4j.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: neo4j
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "music-app.labels" . | nindent 4 }}
+    app.kubernetes.io/name: neo4j
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  serviceName: neo4j
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: neo4j
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        {{- include "music-app.labels" . | nindent 8 }}
+        app.kubernetes.io/name: neo4j
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: neo4j
+          image: {{ .Values.neo4j.image.repository }}:{{ .Values.neo4j.image.tag }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: 7474
+              name: http
+              protocol: TCP
+            - containerPort: 7687
+              name: bolt
+              protocol: TCP
+          env:
+            - name: NEO4J_AUTH
+              value: "{{ .Values.secrets.neo4j.user }}/{{ .Values.secrets.neo4j.password }}"
+            - name: NEO4J_PLUGINS
+              value: '["graph-data-science"]'
+            - name: NEO4J_server_memory_heap_initial__size
+              value: {{ .Values.neo4j.memory.heapInitial | quote }}
+            - name: NEO4J_server_memory_heap_max__size
+              value: {{ .Values.neo4j.memory.heapMax | quote }}
+            - name: NEO4J_server_memory_pagecache_size
+              value: {{ .Values.neo4j.memory.pagecache | quote }}
+          volumeMounts:
+            - name: neo4j-data
+              mountPath: /data
+            - name: neo4j-logs
+              mountPath: /logs
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 7474
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 7474
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.neo4j.resources | nindent 12 }}
+  volumeClaimTemplates:
+    - metadata:
+        name: neo4j-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.neo4j.storage.data }}
+    - metadata:
+        name: neo4j-logs
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.neo4j.storage.logs }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: neo4j
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "music-app.labels" . | nindent 4 }}
+    app.kubernetes.io/name: neo4j
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: neo4j
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - port: 7474
+      targetPort: 7474
+      protocol: TCP
+      name: http
+    - port: 7687
+      targetPort: 7687
+      protocol: TCP
+      name: bolt
+{{- end }}

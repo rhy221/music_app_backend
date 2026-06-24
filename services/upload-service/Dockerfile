@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine AS build
+FROM golang:1.24-alpine AS build
 
 WORKDIR /workspace
 
@@ -11,7 +11,8 @@ COPY libs/api-clients/go/streaming-api-client/go.mod libs/api-clients/go/streami
 COPY services/upload-service/go.mod services/upload-service/go.sum services/upload-service/
 COPY services/streaming-service/go.mod services/streaming-service/go.sum services/streaming-service/
 
-RUN cd services/upload-service && go mod download
+RUN --mount=type=cache,id=gomod,target=/go/pkg/mod \
+    cd services/upload-service && go mod download
 
 COPY libs/go-common/ libs/go-common/
 COPY libs/events/go/music-events/ libs/events/go/music-events/
@@ -24,7 +25,7 @@ RUN cd services/upload-service && CGO_ENABLED=0 go build -ldflags="-s -w" -o /ap
 
 FROM alpine:3.21
 
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata ffmpeg
 
 WORKDIR /app
 

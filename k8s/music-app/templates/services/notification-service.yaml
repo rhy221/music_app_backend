@@ -1,0 +1,143 @@
+{{- if .Values.services.notificationService.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "music-app.labels" . | nindent 4 }}
+    app.kubernetes.io/name: notification-service
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.services.notificationService.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: notification-service
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        {{- include "music-app.labels" . | nindent 8 }}
+        app.kubernetes.io/name: notification-service
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: notification-service
+          image: "{{ .Values.services.notificationService.image.repository }}:{{ .Values.services.notificationService.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: 8087
+              name: http
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "8087"
+            - name: MONGODB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: mongodb-user
+            - name: MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: mongodb-password
+            - name: MONGODB_URI
+              value: "mongodb://$(MONGODB_USER):$(MONGODB_PASSWORD)@mongodb:27017/{{ .Values.secrets.mongodb.database }}?authSource=admin"
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: rabbitmq-user
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: rabbitmq-password
+            - name: RABBITMQ_VHOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: rabbitmq-vhost
+            - name: RABBITMQ_URL
+              value: "amqp://$(RABBITMQ_USER):$(RABBITMQ_PASSWORD)@rabbitmq:5672/$(RABBITMQ_VHOST)"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: redis-password
+            - name: REDIS_URL
+              value: "redis://:$(REDIS_PASSWORD)@redis:6379"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: jwt-secret
+            - name: CATALOG_SERVICE_URL
+              value: "http://catalog-service:8082"
+            - name: USER_SERVICE_URL
+              value: "http://user-service:8081"
+            - name: SMTP_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: smtp-host
+            - name: SMTP_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: smtp-port
+            - name: SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: smtp-user
+            - name: SMTP_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: smtp-pass
+            - name: SMTP_FROM
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: smtp-from
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8087
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8087
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.services.notificationService.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "music-app.labels" . | nindent 4 }}
+    app.kubernetes.io/name: notification-service
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: notification-service
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - port: 8087
+      targetPort: 8087
+      protocol: TCP
+      name: http
+{{- end }}

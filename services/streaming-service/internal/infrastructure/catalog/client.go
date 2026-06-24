@@ -3,21 +3,23 @@ package catalog
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"time"
+
+	"github.com/sony/gobreaker/v2"
 
 	"music-app/streaming-service/internal/domain"
 )
 
-// assetInfo mirrors the asset structure in the Catalog service internal API response.
 type assetInfo struct {
 	Bitrate    int    `json:"bitrate"`
 	Format     string `json:"format"`
 	StorageURL string `json:"storageUrl"`
 }
 
-// internalTrackDTO is the response from GET /api/v1/internal/tracks/{trackId}.
 type internalTrackDTO struct {
 	ID         string      `json:"id"`
 	Title      string      `json:"title"`
@@ -29,21 +31,70 @@ type internalTrackDTO struct {
 	Assets     []assetInfo `json:"assets"`
 }
 
-// HTTPCatalogClient implements domain.CatalogClient by calling the Catalog internal API.
 type HTTPCatalogClient struct {
 	baseURL    string
 	httpClient *http.Client
+	cb         *gobreaker.CircuitBreaker[*domain.TrackCache]
 }
 
 func NewHTTPCatalogClient(baseURL string) *HTTPCatalogClient {
+	cbSettings := gobreaker.Settings{
+		Name:        "catalog-service",
+		MaxRequests: 3,
+		Interval:    10 * time.Second,
+		Timeout:     30 * time.Second,
+		ReadyToTrip: func(counts gobreaker.Counts) bool {
+			return counts.ConsecutiveFailures >= 5
+		},
+		IsSuccessful: func(err error) bool {
+			return err == nil || errors.Is(err, domain.ErrNotFound)
+		},
+	}
+
 	return &HTTPCatalogClient{
 		baseURL:    baseURL,
 		httpClient: &http.Client{Timeout: 5 * time.Second},
+		cb:         gobreaker.NewCircuitBreaker[*domain.TrackCache](cbSettings),
 	}
 }
 
-// GetTrack fetches track metadata from the Catalog service and maps it to the domain model.
 func (c *HTTPCatalogClient) GetTrack(ctx context.Context, trackID string) (*domain.TrackCache, error) {
+	result, err := c.cb.Execute(func() (*domain.TrackCache, error) {
+		return c.getTrackWithRetry(ctx, trackID)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("catalog request failed: %w", err)
+	}
+	return result, nil
+}
+
+func (c *HTTPCatalogClient) getTrackWithRetry(ctx context.Context, trackID string) (*domain.TrackCache, error) {
+	const maxAttempts = 3
+	var lastErr error
+
+	for attempt := range maxAttempts {
+		if attempt > 0 {
+			backoff := time.Duration(math.Pow(2, float64(attempt-1))) * 500 * time.Millisecond
+			select {
+			case <-time.After(backoff):
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		}
+
+		result, err := c.doGetTrack(ctx, trackID)
+		if err == nil {
+			return result, nil
+		}
+		if errors.Is(err, domain.ErrNotFound) {
+			return nil, err
+		}
+		lastErr = err
+	}
+	return nil, lastErr
+}
+
+func (c *HTTPCatalogClient) doGetTrack(ctx context.Context, trackID string) (*domain.TrackCache, error) {
 	url := fmt.Sprintf("%s/api/v1/internal/tracks/%s", c.baseURL, trackID)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {

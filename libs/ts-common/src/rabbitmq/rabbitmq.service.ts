@@ -8,8 +8,8 @@ import { v4 as uuidv4 } from 'uuid';
 @Injectable()
 export class RabbitMQService implements OnModuleDestroy {
   private readonly logger = new Logger(RabbitMQService.name);
-  private channel: Channel;
-  private connection: ChannelModel;
+  private channel!: Channel;
+  private connection!: ChannelModel;
   private maxRetries = 3;
 
   /** @internal Called by RabbitMQModule after the connection is established. */

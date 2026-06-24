@@ -13,6 +13,7 @@ import { ArtistCard } from '@/components/artists/artist-card';
 import { AddToPlaylistDialog } from '@/components/playlists/add-to-playlist-dialog';
 import { SectionHeader } from '@/components/common/section-header';
 import { CardGridSkeleton } from '@/components/common/loading-skeleton';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useAuthStore } from '@/stores/auth-store';
 import type { TrackSummaryDto } from '@/lib/api/types';
 import { usePageGradient } from '@/components/common/page-gradient';
@@ -123,11 +124,16 @@ export default function HomePage() {
             {loadingPopular ? (
               <CardGridSkeleton />
             ) : popular && popular.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2 @[480px]:grid-cols-3 @[640px]:grid-cols-4 @[820px]:grid-cols-5">
-                {popular.map((track, i) => (
-                  <TrackCard key={track.id} track={track} queue={popular} queueIndex={i} onAddToPlaylist={setAddTarget} />
-                ))}
-              </div>
+              <ScrollArea className="w-full whitespace-nowrap">
+                <div className="flex gap-2 pb-4">
+                  {popular.map((track, i) => (
+                    <div key={track.id} className="w-45 shrink-0">
+                      <TrackCard track={track} queue={popular} queueIndex={i} onAddToPlaylist={setAddTarget} />
+                    </div>
+                  ))}
+                </div>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
             ) : (
               <p className="text-sm text-muted-foreground py-4">No tracks yet. Be the first to upload!</p>
             )}
@@ -138,11 +144,16 @@ export default function HomePage() {
             {loadingNew ? (
               <CardGridSkeleton />
             ) : newReleases && newReleases.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2 @[480px]:grid-cols-3 @[640px]:grid-cols-4 @[820px]:grid-cols-5">
-                {newReleases.map((track, i) => (
-                  <TrackCard key={track.id} track={track} queue={newReleases} queueIndex={i} onAddToPlaylist={setAddTarget} />
-                ))}
-              </div>
+              <ScrollArea className="w-full whitespace-nowrap">
+                <div className="flex gap-2 pb-4">
+                  {newReleases.map((track, i) => (
+                    <div key={track.id} className="w-45 shrink-0">
+                      <TrackCard track={track} queue={newReleases} queueIndex={i} onAddToPlaylist={setAddTarget} />
+                    </div>
+                  ))}
+                </div>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
             ) : (
               <p className="text-sm text-muted-foreground py-4">No new releases yet.</p>
             )}
@@ -151,22 +162,25 @@ export default function HomePage() {
           {isAuthenticated && recommendations?.items && recommendations.items.length > 0 && (
             <section>
               <SectionHeader title="Recommended for you" />
-              <div className="grid grid-cols-2 gap-2 @[480px]:grid-cols-3 @[640px]:grid-cols-4 @[820px]:grid-cols-5">
-                {recommendations.items.slice(0, 12).map((item) => (
-                  <div
-                    key={item.trackId}
-                    className="group relative cursor-pointer rounded-lg p-3 hover:bg-accent transition-colors"
-                  >
-                    <div className="aspect-square w-full overflow-hidden rounded-md bg-muted">
-                      {item.coverUrl && (
-                        <img src={storageUrl(item.coverUrl) ?? undefined} alt={item.title} className="h-full w-full object-cover" />
-                      )}
+              <ScrollArea className="w-full whitespace-nowrap">
+                <div className="flex gap-2 pb-4">
+                  {recommendations.items.slice(0, 12).map((item) => (
+                    <div
+                      key={item.trackId}
+                      className="w-45 shrink-0 group relative cursor-pointer rounded-lg p-3 hover:bg-accent transition-colors"
+                    >
+                      <div className="aspect-square w-full overflow-hidden rounded-md bg-muted">
+                        {item.coverUrl && (
+                          <img src={storageUrl(item.coverUrl) ?? undefined} alt={item.title} className="h-full w-full object-cover" />
+                        )}
+                      </div>
+                      <p className="mt-2 truncate text-sm font-medium whitespace-normal">{item.title}</p>
+                      <p className="truncate text-xs text-muted-foreground whitespace-normal">{item.reason}</p>
                     </div>
-                    <p className="mt-2 truncate text-sm font-medium">{item.title}</p>
-                    <p className="truncate text-xs text-muted-foreground">{item.reason}</p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
             </section>
           )}
 
@@ -174,21 +188,24 @@ export default function HomePage() {
             <section>
               <SectionHeader title={discoverWeekly.title} />
               <p className="mb-4 text-sm text-muted-foreground">{discoverWeekly.description}</p>
-              <div className="grid grid-cols-2 gap-2 @[480px]:grid-cols-3 @[640px]:grid-cols-4 @[820px]:grid-cols-5">
-                {discoverWeekly.items.slice(0, 12).map((item) => (
-                  <div
-                    key={item.trackId}
-                    className="group relative cursor-pointer rounded-lg p-3 hover:bg-accent transition-colors"
-                  >
-                    <div className="aspect-square w-full overflow-hidden rounded-md bg-muted">
-                      {item.coverUrl && (
-                        <img src={storageUrl(item.coverUrl) ?? undefined} alt={item.title} className="h-full w-full object-cover" />
-                      )}
+              <ScrollArea className="w-full whitespace-nowrap">
+                <div className="flex gap-2 pb-4">
+                  {discoverWeekly.items.slice(0, 12).map((item) => (
+                    <div
+                      key={item.trackId}
+                      className="w-45 shrink-0 group relative cursor-pointer rounded-lg p-3 hover:bg-accent transition-colors"
+                    >
+                      <div className="aspect-square w-full overflow-hidden rounded-md bg-muted">
+                        {item.coverUrl && (
+                          <img src={storageUrl(item.coverUrl) ?? undefined} alt={item.title} className="h-full w-full object-cover" />
+                        )}
+                      </div>
+                      <p className="mt-2 truncate text-sm font-medium whitespace-normal">{item.title}</p>
                     </div>
-                    <p className="mt-2 truncate text-sm font-medium">{item.title}</p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
             </section>
           )}
         </div>
@@ -201,11 +218,16 @@ export default function HomePage() {
           {loadingTracks ? (
             <CardGridSkeleton />
           ) : allTracks && allTracks.content.length > 0 ? (
-            <div className="grid grid-cols-2 gap-2 @[480px]:grid-cols-3 @[640px]:grid-cols-4 @[820px]:grid-cols-5">
-              {allTracks.content.map((track, i) => (
-                <TrackCard key={track.id} track={track} queue={allTracks.content} queueIndex={i} onAddToPlaylist={setAddTarget} />
-              ))}
-            </div>
+            <ScrollArea className="w-full whitespace-nowrap">
+              <div className="flex gap-2 pb-4">
+                {allTracks.content.map((track, i) => (
+                  <div key={track.id} className="w-45 shrink-0">
+                    <TrackCard track={track} queue={allTracks.content} queueIndex={i} onAddToPlaylist={setAddTarget} />
+                  </div>
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
           ) : (
             <p className="text-sm text-muted-foreground py-4">No tracks found.</p>
           )}
@@ -219,11 +241,16 @@ export default function HomePage() {
           {loadingAlbums ? (
             <CardGridSkeleton />
           ) : albums && albums.content.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3 @[480px]:grid-cols-3 @[640px]:grid-cols-4 @[820px]:grid-cols-5">
-              {albums.content.map((album) => (
-                <AlbumCard key={album.id} album={album} />
-              ))}
-            </div>
+            <ScrollArea className="w-full whitespace-nowrap">
+              <div className="flex gap-2 pb-4">
+                {albums.content.map((album) => (
+                  <div key={album.id} className="w-45 shrink-0">
+                    <AlbumCard album={album} />
+                  </div>
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
           ) : (
             <p className="text-sm text-muted-foreground py-4">No albums found.</p>
           )}
@@ -237,11 +264,16 @@ export default function HomePage() {
           {loadingArtists ? (
             <CardGridSkeleton />
           ) : artists && artists.content.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3 @[480px]:grid-cols-3 @[640px]:grid-cols-4 @[820px]:grid-cols-5">
-              {artists.content.map((artist) => (
-                <ArtistCard key={artist.id} artist={artist} />
-              ))}
-            </div>
+            <ScrollArea className="w-full whitespace-nowrap">
+              <div className="flex gap-2 pb-4">
+                {artists.content.map((artist) => (
+                  <div key={artist.id} className="w-45 shrink-0">
+                    <ArtistCard artist={artist} />
+                  </div>
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
           ) : (
             <p className="text-sm text-muted-foreground py-4">No artists found.</p>
           )}

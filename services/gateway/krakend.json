@@ -10,7 +10,8 @@
   "extra_config": {
     "security/cors": {
       "allow_origins": [
-        "http://localhost:3000"
+        "http://localhost:3000",
+        "http://localhost:3001"
       ],
       "allow_methods": [
         "GET",
@@ -79,7 +80,7 @@
           "url_pattern": "/api/v1/auth/register",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8081"
+            "http://music-user-service:8081"
           ],
           "encoding": "no-op"
         }
@@ -106,7 +107,7 @@
           "url_pattern": "/api/v1/auth/login",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8081"
+            "http://music-user-service:8081"
           ],
           "encoding": "no-op"
         }
@@ -133,7 +134,7 @@
           "url_pattern": "/api/v1/auth/refresh",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8081"
+            "http://music-user-service:8081"
           ],
           "encoding": "no-op"
         }
@@ -160,7 +161,7 @@
           "url_pattern": "/api/v1/auth/oauth2/google",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8081"
+            "http://music-user-service:8081"
           ],
           "encoding": "no-op"
         }
@@ -188,7 +189,7 @@
           "url_pattern": "/api/v1/auth/logout",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8081"
+            "http://music-user-service:8081"
           ],
           "encoding": "no-op"
         }
@@ -232,7 +233,7 @@
           "url_pattern": "/api/v1/users/me",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8081"
+            "http://music-user-service:8081"
           ],
           "encoding": "no-op"
         }
@@ -277,7 +278,7 @@
           "url_pattern": "/api/v1/users/me",
           "method": "PATCH",
           "host": [
-            "http://host.docker.internal:8081"
+            "http://music-user-service:8081"
           ],
           "encoding": "no-op"
         }
@@ -322,7 +323,7 @@
           "url_pattern": "/api/v1/users/me/avatar",
           "method": "PUT",
           "host": [
-            "http://host.docker.internal:8081"
+            "http://music-user-service:8081"
           ],
           "encoding": "no-op"
         }
@@ -367,7 +368,7 @@
           "url_pattern": "/api/v1/users/me/password",
           "method": "PUT",
           "host": [
-            "http://host.docker.internal:8081"
+            "http://music-user-service:8081"
           ],
           "encoding": "no-op"
         }
@@ -394,7 +395,7 @@
           "url_pattern": "/api/v1/users/{userId}",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8081"
+            "http://music-user-service:8081"
           ],
           "encoding": "no-op"
         }
@@ -424,7 +425,7 @@
           "url_pattern": "/api/v1/users/{userId}/followers",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8081"
+            "http://music-user-service:8081"
           ],
           "encoding": "no-op"
         }
@@ -454,7 +455,7 @@
           "url_pattern": "/api/v1/users/{userId}/following",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8081"
+            "http://music-user-service:8081"
           ],
           "encoding": "no-op"
         }
@@ -499,7 +500,7 @@
           "url_pattern": "/api/v1/users/{userId}/follow",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8081"
+            "http://music-user-service:8081"
           ],
           "encoding": "no-op"
         }
@@ -543,7 +544,7 @@
           "url_pattern": "/api/v1/users/{userId}/follow",
           "method": "DELETE",
           "host": [
-            "http://host.docker.internal:8081"
+            "http://music-user-service:8081"
           ],
           "encoding": "no-op"
         }
@@ -597,7 +598,7 @@
           "url_pattern": "/api/v1/admin/users",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8081"
+            "http://music-user-service:8081"
           ],
           "encoding": "no-op"
         }
@@ -646,7 +647,7 @@
           "url_pattern": "/api/v1/admin/users/{userId}/role",
           "method": "PUT",
           "host": [
-            "http://host.docker.internal:8081"
+            "http://music-user-service:8081"
           ],
           "encoding": "no-op"
         }
@@ -678,7 +679,7 @@
           "url_pattern": "/api/v1/tracks/popular",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8082"
+            "http://music-catalog-service:8082"
           ],
           "encoding": "no-op"
         }
@@ -709,7 +710,7 @@
           "url_pattern": "/api/v1/tracks/new-releases",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8082"
+            "http://music-catalog-service:8082"
           ],
           "encoding": "no-op"
         }
@@ -743,7 +744,7 @@
           "url_pattern": "/api/v1/tracks",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8082"
+            "http://music-catalog-service:8082"
           ],
           "encoding": "no-op"
         }
@@ -770,7 +771,7 @@
           "url_pattern": "/api/v1/tracks/{trackId}",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8082"
+            "http://music-catalog-service:8082"
           ],
           "encoding": "no-op"
         }
@@ -815,7 +816,7 @@
           "url_pattern": "/api/v1/tracks/{trackId}",
           "method": "PUT",
           "host": [
-            "http://host.docker.internal:8082"
+            "http://music-catalog-service:8082"
           ],
           "encoding": "no-op"
         }
@@ -859,7 +860,7 @@
           "url_pattern": "/api/v1/tracks/{trackId}",
           "method": "DELETE",
           "host": [
-            "http://host.docker.internal:8082"
+            "http://music-catalog-service:8082"
           ],
           "encoding": "no-op"
         }
@@ -890,7 +891,7 @@
           "url_pattern": "/api/v1/albums",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8082"
+            "http://music-catalog-service:8082"
           ],
           "encoding": "no-op"
         }
@@ -935,7 +936,7 @@
           "url_pattern": "/api/v1/albums",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8082"
+            "http://music-catalog-service:8082"
           ],
           "encoding": "no-op"
         }
@@ -962,7 +963,7 @@
           "url_pattern": "/api/v1/albums/{albumId}",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8082"
+            "http://music-catalog-service:8082"
           ],
           "encoding": "no-op"
         }
@@ -1007,7 +1008,7 @@
           "url_pattern": "/api/v1/albums/{albumId}",
           "method": "PUT",
           "host": [
-            "http://host.docker.internal:8082"
+            "http://music-catalog-service:8082"
           ],
           "encoding": "no-op"
         }
@@ -1051,7 +1052,7 @@
           "url_pattern": "/api/v1/albums/{albumId}",
           "method": "DELETE",
           "host": [
-            "http://host.docker.internal:8082"
+            "http://music-catalog-service:8082"
           ],
           "encoding": "no-op"
         }
@@ -1081,7 +1082,7 @@
           "url_pattern": "/api/v1/artists",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8082"
+            "http://music-catalog-service:8082"
           ],
           "encoding": "no-op"
         }
@@ -1108,7 +1109,7 @@
           "url_pattern": "/api/v1/artists/me",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8082"
+            "http://music-catalog-service:8082"
           ],
           "encoding": "no-op"
         }
@@ -1135,7 +1136,7 @@
           "url_pattern": "/api/v1/artists/{artistId}",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8082"
+            "http://music-catalog-service:8082"
           ],
           "encoding": "no-op"
         }
@@ -1180,7 +1181,7 @@
           "url_pattern": "/api/v1/artists/{artistId}",
           "method": "PUT",
           "host": [
-            "http://host.docker.internal:8082"
+            "http://music-catalog-service:8082"
           ],
           "encoding": "no-op"
         }
@@ -1228,7 +1229,7 @@
           "url_pattern": "/api/v1/playlists",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8083"
+            "http://music-playlist-service:8083"
           ],
           "encoding": "no-op"
         }
@@ -1273,7 +1274,7 @@
           "url_pattern": "/api/v1/playlists",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8083"
+            "http://music-playlist-service:8083"
           ],
           "encoding": "no-op"
         }
@@ -1319,7 +1320,7 @@
           "url_pattern": "/api/v1/playlists/{playlistId}",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8083"
+            "http://music-playlist-service:8083"
           ],
           "encoding": "no-op"
         }
@@ -1363,7 +1364,7 @@
           "url_pattern": "/api/v1/playlists/{playlistId}",
           "method": "PATCH",
           "host": [
-            "http://host.docker.internal:8083"
+            "http://music-playlist-service:8083"
           ],
           "encoding": "no-op"
         }
@@ -1407,7 +1408,7 @@
           "url_pattern": "/api/v1/playlists/{playlistId}",
           "method": "DELETE",
           "host": [
-            "http://host.docker.internal:8083"
+            "http://music-playlist-service:8083"
           ],
           "encoding": "no-op"
         }
@@ -1452,7 +1453,7 @@
           "url_pattern": "/api/v1/playlists/{playlistId}/items",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8083"
+            "http://music-playlist-service:8083"
           ],
           "encoding": "no-op"
         }
@@ -1497,7 +1498,7 @@
           "url_pattern": "/api/v1/playlists/{playlistId}/items/reorder",
           "method": "PUT",
           "host": [
-            "http://host.docker.internal:8083"
+            "http://music-playlist-service:8083"
           ],
           "encoding": "no-op"
         }
@@ -1541,7 +1542,7 @@
           "url_pattern": "/api/v1/playlists/{playlistId}/items/{itemId}",
           "method": "DELETE",
           "host": [
-            "http://host.docker.internal:8083"
+            "http://music-playlist-service:8083"
           ],
           "encoding": "no-op"
         }
@@ -1587,7 +1588,7 @@
           "url_pattern": "/api/v1/playlists/{playlistId}/collaborators",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8083"
+            "http://music-playlist-service:8083"
           ],
           "encoding": "no-op"
         }
@@ -1631,7 +1632,7 @@
           "url_pattern": "/api/v1/playlists/{playlistId}/collaborators",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8083"
+            "http://music-playlist-service:8083"
           ],
           "encoding": "no-op"
         }
@@ -1675,7 +1676,7 @@
           "url_pattern": "/api/v1/playlists/{playlistId}/collaborators/{userId}",
           "method": "DELETE",
           "host": [
-            "http://host.docker.internal:8083"
+            "http://music-playlist-service:8083"
           ],
           "encoding": "no-op"
         }
@@ -1720,7 +1721,7 @@
           "url_pattern": "/api/v1/playlists/my-track-ids",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8083"
+            "http://music-playlist-service:8083"
           ],
           "encoding": "no-op"
         }
@@ -1764,7 +1765,7 @@
           "url_pattern": "/api/v1/playlists/containing-track/{trackId}",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8083"
+            "http://music-playlist-service:8083"
           ],
           "encoding": "no-op"
         }
@@ -1807,7 +1808,7 @@
           "url_pattern": "/api/v1/playlists/{playlistId}/items/by-track/{trackId}",
           "method": "DELETE",
           "host": [
-            "http://host.docker.internal:8083"
+            "http://music-playlist-service:8083"
           ],
           "encoding": "no-op"
         }
@@ -1854,7 +1855,7 @@
           "url_pattern": "/api/v1/users/{userId}/playlists",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8083"
+            "http://music-playlist-service:8083"
           ],
           "encoding": "no-op"
         }
@@ -1904,7 +1905,7 @@
           "url_pattern": "/api/v1/stream/{trackId}",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8084"
+            "http://music-streaming-service:8084"
           ],
           "encoding": "no-op"
         }
@@ -1950,7 +1951,7 @@
           "url_pattern": "/api/v1/stream/{trackId}/hls",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8084"
+            "http://music-streaming-service:8084"
           ],
           "encoding": "no-op"
         }
@@ -1994,7 +1995,7 @@
           "url_pattern": "/api/v1/play-sessions",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8084"
+            "http://music-streaming-service:8084"
           ],
           "encoding": "no-op"
         }
@@ -2039,7 +2040,7 @@
           "url_pattern": "/api/v1/play-sessions/{sessionId}/heartbeat",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8084"
+            "http://music-streaming-service:8084"
           ],
           "encoding": "no-op"
         }
@@ -2084,7 +2085,7 @@
           "url_pattern": "/api/v1/play-sessions/{sessionId}/end",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8084"
+            "http://music-streaming-service:8084"
           ],
           "encoding": "no-op"
         }
@@ -2132,7 +2133,7 @@
           "url_pattern": "/api/v1/history",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8084"
+            "http://music-streaming-service:8084"
           ],
           "encoding": "no-op"
         }
@@ -2179,7 +2180,7 @@
           "url_pattern": "/api/v1/history/recently-played",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8084"
+            "http://music-streaming-service:8084"
           ],
           "encoding": "no-op"
         }
@@ -2226,7 +2227,7 @@
           "url_pattern": "/api/v1/history/stats",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8084"
+            "http://music-streaming-service:8084"
           ],
           "encoding": "no-op"
         }
@@ -2273,7 +2274,7 @@
           "url_pattern": "/api/v1/upload/drafts",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8086"
+            "http://music-upload-service:8086"
           ],
           "encoding": "no-op",
           "timeout": "60s"
@@ -2318,7 +2319,7 @@
           "url_pattern": "/api/v1/upload/drafts/{draftId}",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8086"
+            "http://music-upload-service:8086"
           ],
           "encoding": "no-op"
         }
@@ -2362,7 +2363,7 @@
           "url_pattern": "/api/v1/upload/drafts/{draftId}/submit",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8086"
+            "http://music-upload-service:8086"
           ],
           "encoding": "no-op"
         }
@@ -2406,7 +2407,7 @@
           "url_pattern": "/api/v1/upload/drafts/{draftId}/cancel",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8086"
+            "http://music-upload-service:8086"
           ],
           "encoding": "no-op"
         }
@@ -2451,7 +2452,7 @@
           "url_pattern": "/api/v1/upload/drafts/{draftId}/tracks",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8086"
+            "http://music-upload-service:8086"
           ],
           "encoding": "no-op"
         }
@@ -2495,7 +2496,7 @@
           "url_pattern": "/api/v1/upload/drafts/{draftId}/tracks/{trackId}",
           "method": "DELETE",
           "host": [
-            "http://host.docker.internal:8086"
+            "http://music-upload-service:8086"
           ],
           "encoding": "no-op"
         }
@@ -2542,7 +2543,7 @@
           "url_pattern": "/api/v1/upload/drafts/{draftId}/tracks/{trackId}/audio-url",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8086"
+            "http://music-upload-service:8086"
           ],
           "encoding": "no-op"
         }
@@ -2587,7 +2588,7 @@
           "url_pattern": "/api/v1/upload/drafts/{draftId}/tracks/{trackId}/confirm",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8086"
+            "http://music-upload-service:8086"
           ],
           "encoding": "no-op"
         }
@@ -2636,7 +2637,7 @@
           "url_pattern": "/api/v1/upload/jobs",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8086"
+            "http://music-upload-service:8086"
           ],
           "encoding": "no-op"
         }
@@ -2681,7 +2682,7 @@
           "url_pattern": "/api/v1/upload/jobs/{jobId}",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8086"
+            "http://music-upload-service:8086"
           ],
           "encoding": "no-op"
         }
@@ -2726,7 +2727,7 @@
           "url_pattern": "/api/v1/upload/jobs/{jobId}/retry",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8086"
+            "http://music-upload-service:8086"
           ],
           "encoding": "no-op"
         }
@@ -2771,7 +2772,7 @@
           "url_pattern": "/api/v1/upload/jobs/{jobId}/cancel",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8086"
+            "http://music-upload-service:8086"
           ],
           "encoding": "no-op"
         }
@@ -2804,7 +2805,7 @@
           "url_pattern": "/api/v1/search",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8085"
+            "http://music-search-service:8085"
           ],
           "encoding": "no-op"
         }
@@ -2838,7 +2839,7 @@
           "url_pattern": "/api/v1/search/tracks",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8085"
+            "http://music-search-service:8085"
           ],
           "encoding": "no-op"
         }
@@ -2869,7 +2870,7 @@
           "url_pattern": "/api/v1/search/artists",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8085"
+            "http://music-search-service:8085"
           ],
           "encoding": "no-op"
         }
@@ -2899,7 +2900,7 @@
           "url_pattern": "/api/v1/search/autocomplete",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8085"
+            "http://music-search-service:8085"
           ],
           "encoding": "no-op"
         }
@@ -2949,7 +2950,7 @@
           "url_pattern": "/api/v1/notifications",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8087"
+            "http://music-notification-service:8087"
           ],
           "encoding": "no-op"
         }
@@ -2994,7 +2995,7 @@
           "url_pattern": "/api/v1/notifications/unread-count",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8087"
+            "http://music-notification-service:8087"
           ],
           "encoding": "no-op"
         }
@@ -3039,7 +3040,7 @@
           "url_pattern": "/api/v1/notifications/read-all",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8087"
+            "http://music-notification-service:8087"
           ],
           "encoding": "no-op"
         }
@@ -3084,7 +3085,7 @@
           "url_pattern": "/api/v1/notifications/preferences",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8087"
+            "http://music-notification-service:8087"
           ],
           "encoding": "no-op"
         }
@@ -3129,7 +3130,7 @@
           "url_pattern": "/api/v1/notifications/preferences",
           "method": "PUT",
           "host": [
-            "http://host.docker.internal:8087"
+            "http://music-notification-service:8087"
           ],
           "encoding": "no-op"
         }
@@ -3174,7 +3175,7 @@
           "url_pattern": "/api/v1/notifications/{notificationId}/read",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8087"
+            "http://music-notification-service:8087"
           ],
           "encoding": "no-op"
         }
@@ -3205,7 +3206,7 @@
         {
           "url_pattern": "/ws",
           "host": [
-            "http://host.docker.internal:8087"
+            "http://music-notification-service:8087"
           ],
           "encoding": "no-op"
         }
@@ -3252,7 +3253,7 @@
           "url_pattern": "/api/v1/recommendations",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8000"
+            "http://music-recommend-service:8000"
           ],
           "encoding": "no-op"
         }
@@ -3297,7 +3298,7 @@
           "url_pattern": "/api/v1/recommendations/discover-weekly",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8000"
+            "http://music-recommend-service:8000"
           ],
           "encoding": "no-op"
         }
@@ -3343,7 +3344,7 @@
           "url_pattern": "/api/v1/recommendations/similar/{trackId}",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8000"
+            "http://music-recommend-service:8000"
           ],
           "encoding": "no-op"
         }
@@ -3388,7 +3389,7 @@
           "url_pattern": "/api/v1/recommendations/radio/{trackId}",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8000"
+            "http://music-recommend-service:8000"
           ],
           "encoding": "no-op"
         }
@@ -3433,7 +3434,7 @@
           "url_pattern": "/api/v1/recommendations/feedback",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8000"
+            "http://music-recommend-service:8000"
           ],
           "encoding": "no-op"
         }
@@ -3478,7 +3479,7 @@
           "url_pattern": "/api/v1/taste-profile",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8000"
+            "http://music-recommend-service:8000"
           ],
           "encoding": "no-op"
         }
@@ -3523,7 +3524,7 @@
           "url_pattern": "/api/v1/taste-profile/refresh",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8000"
+            "http://music-recommend-service:8000"
           ],
           "encoding": "no-op"
         }
@@ -3568,7 +3569,7 @@
           "url_pattern": "/api/v1/library/albums",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8088"
+            "http://music-library-service:8088"
           ],
           "encoding": "no-op"
         }
@@ -3612,7 +3613,7 @@
           "url_pattern": "/api/v1/library/albums/{albumId}",
           "method": "DELETE",
           "host": [
-            "http://host.docker.internal:8088"
+            "http://music-library-service:8088"
           ],
           "encoding": "no-op"
         }
@@ -3660,7 +3661,7 @@
           "url_pattern": "/api/v1/library/albums",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8088"
+            "http://music-library-service:8088"
           ],
           "encoding": "no-op"
         }
@@ -3704,7 +3705,7 @@
           "url_pattern": "/api/v1/library/albums/{albumId}/saved",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8088"
+            "http://music-library-service:8088"
           ],
           "encoding": "no-op"
         }
@@ -3749,7 +3750,7 @@
           "url_pattern": "/api/v1/library/playlists",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8088"
+            "http://music-library-service:8088"
           ],
           "encoding": "no-op"
         }
@@ -3793,7 +3794,7 @@
           "url_pattern": "/api/v1/library/playlists/{playlistId}",
           "method": "DELETE",
           "host": [
-            "http://host.docker.internal:8088"
+            "http://music-library-service:8088"
           ],
           "encoding": "no-op"
         }
@@ -3841,7 +3842,7 @@
           "url_pattern": "/api/v1/library/playlists",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8088"
+            "http://music-library-service:8088"
           ],
           "encoding": "no-op"
         }
@@ -3885,7 +3886,7 @@
           "url_pattern": "/api/v1/library/playlists/{playlistId}/followed",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8088"
+            "http://music-library-service:8088"
           ],
           "encoding": "no-op"
         }
@@ -3930,7 +3931,7 @@
           "url_pattern": "/api/v1/library/tracks",
           "method": "POST",
           "host": [
-            "http://host.docker.internal:8088"
+            "http://music-library-service:8088"
           ],
           "encoding": "no-op"
         }
@@ -3974,7 +3975,7 @@
           "url_pattern": "/api/v1/library/tracks/{trackId}",
           "method": "DELETE",
           "host": [
-            "http://host.docker.internal:8088"
+            "http://music-library-service:8088"
           ],
           "encoding": "no-op"
         }
@@ -4022,7 +4023,7 @@
           "url_pattern": "/api/v1/library/tracks",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8088"
+            "http://music-library-service:8088"
           ],
           "encoding": "no-op"
         }
@@ -4066,7 +4067,7 @@
           "url_pattern": "/api/v1/library/tracks/{trackId}/saved",
           "method": "GET",
           "host": [
-            "http://host.docker.internal:8088"
+            "http://music-library-service:8088"
           ],
           "encoding": "no-op"
         }
@@ -4111,7 +4112,7 @@
           "url_pattern": "/api/v1/library/tracks/reorder",
           "method": "PUT",
           "host": [
-            "http://host.docker.internal:8088"
+            "http://music-library-service:8088"
           ],
           "encoding": "no-op"
         }

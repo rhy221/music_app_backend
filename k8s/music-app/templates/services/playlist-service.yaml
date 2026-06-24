@@ -1,0 +1,135 @@
+{{- if .Values.services.playlistService.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: playlist-service
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "music-app.labels" . | nindent 4 }}
+    app.kubernetes.io/name: playlist-service
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.services.playlistService.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: playlist-service
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        {{- include "music-app.labels" . | nindent 8 }}
+        app.kubernetes.io/name: playlist-service
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: playlist-service
+          image: "{{ .Values.services.playlistService.image.repository }}:{{ .Values.services.playlistService.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: 8083
+              name: http
+              protocol: TCP
+          env:
+            - name: DB_HOST
+              value: "postgres"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: {{ .Values.services.playlistService.dbName }}
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: postgres-user
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: postgres-password
+            - name: REDIS_HOST
+              value: "redis"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: redis-password
+            - name: RABBITMQ_HOST
+              value: "rabbitmq"
+            - name: RABBITMQ_PORT
+              value: "5672"
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: rabbitmq-user
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: rabbitmq-password
+            - name: RABBITMQ_VHOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: rabbitmq-vhost
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: jwt-secret
+            - name: MINIO_ENDPOINT
+              value: "http://minio:9000"
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: minio-access-key
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "music-app.fullname" . }}-secrets
+                  key: minio-secret-key
+            - name: CORS_ORIGINS
+              value: {{ .Values.cors.origins | quote }}
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8083
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8083
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.services.playlistService.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: playlist-service
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "music-app.labels" . | nindent 4 }}
+    app.kubernetes.io/name: playlist-service
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: playlist-service
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - port: 8083
+      targetPort: 8083
+      protocol: TCP
+      name: http
+{{- end }}

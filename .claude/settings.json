@@ -23,7 +23,18 @@
       "Bash(Sort-Object FullName)",
       "Bash(xargs cat)",
       "Bash(grep -E \"\\\\.\\(java\\)$\")",
-      "Bash(grep -E \"\\\\.py$\")"
+      "Bash(grep -E \"\\\\.py$\")",
+      "Bash(go get *)",
+      "Bash(docker compose *)",
+      "Bash(pnpm --version)",
+      "Bash(grep -v \"^\\\\\\\\./\")",
+      "Bash(curl -s -I -X OPTIONS \"http://localhost:9000/audio/test\" -H \"Origin: http://localhost:3001\" -H \"Access-Control-Request-Method: PUT\")",
+      "Bash(curl -v -X OPTIONS \"http://localhost:9000/audio/test\" -H \"Origin: http://localhost:3001\" -H \"Access-Control-Request-Method: PUT\" --max-time 10)",
+      "Bash(curl -v \"http://localhost:9000/minio/health/live\" --max-time 5)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:9000/minio/health/live\" --max-time 5)",
+      "Bash(curl -4 -s -o /dev/null -w \"%{http_code}\" \"http://127.0.0.1:9000/minio/health/live\" --max-time 5)",
+      "Bash(curl -4 -s \"http://127.0.0.1:8080/api/v1/upload/drafts/ec19cb5f-5b40-4e7f-8c50-d46c70af03f9/tracks/60bcd804-6fb4-44d7-8fe9-83f2beff47ec/audio-url?filename=test.mp3\" -H \"Authorization: Bearer test\")",
+      "Bash(curl -4 -v \"http://127.0.0.1:8086/health\" --max-time 5)"
     ],
     "defaultMode": "bypassPermissions"
   },

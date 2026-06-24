@@ -66,6 +66,48 @@ library:
     track-updated: library.track.updated
     album-deleted: library.album.deleted
 
+resilience4j:
+  circuitbreaker:
+    circuit-breaker-aspect-order: 1
+    configs:
+      default:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state:
+          seconds: 30
+        permitted-number-of-calls-in-half-open-state: 3
+        minimum-number-of-calls: 5
+        register-health-indicator: true
+        record-exceptions:
+          - org.springframework.web.client.ResourceAccessException
+        ignore-exceptions:
+          - jakarta.persistence.EntityNotFoundException
+    instances:
+      catalogService:
+        base-config: default
+      playlistService:
+        base-config: default
+  retry:
+    retry-aspect-order: 2
+    configs:
+      default:
+        max-attempts: 3
+        wait-duration:
+          seconds: 0
+          nanos: 500000000
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - org.springframework.web.client.ResourceAccessException
+        ignore-exceptions:
+          - jakarta.persistence.EntityNotFoundException
+    instances:
+      catalogService:
+        base-config: default
+      playlistService:
+        base-config: default
+
 management:
   endpoints:
     web:
