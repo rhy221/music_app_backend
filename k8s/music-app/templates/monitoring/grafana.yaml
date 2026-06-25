@@ -123,7 +123,9 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
           "datasource": { "type": "prometheus" },
           "targets": [
-            { "expr": "sum(rate(http_requests_total{job=~\"$service\"}[1m])) by (job)", "legendFormat": "{{`{{job}}`}}" }
+            { "expr": "sum(rate(http_requests_total{job=~\"$service\"}[1m])) by (job)", "legendFormat": "{{`{{job}}`}} (Go)" },
+            { "expr": "sum(rate(http_server_requests_seconds_count{job=~\"$service\"}[1m])) by (job)", "legendFormat": "{{`{{job}}`}} (Java)" },
+            { "expr": "sum(rate(http_client_request_started_count_total{job=~\"$service\"}[1m])) by (job)", "legendFormat": "{{`{{job}}`}} (GW)" }
           ],
           "fieldConfig": {
             "defaults": { "unit": "reqps", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10, "pointSize": 5 } }
@@ -136,7 +138,9 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
           "datasource": { "type": "prometheus" },
           "targets": [
-            { "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~\"$service\"}[5m])) by (le, job))", "legendFormat": "{{`{{job}}`}} p95" }
+            { "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~\"$service\"}[5m])) by (le, job))", "legendFormat": "{{`{{job}}`}} (Go)" },
+            { "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket{job=~\"$service\"}[5m])) by (le, job))", "legendFormat": "{{`{{job}}`}} (Java)" },
+            { "expr": "histogram_quantile(0.95, sum(rate(http_server_duration_bucket{job=~\"$service\"}[5m])) by (le, job))", "legendFormat": "{{`{{job}}`}} (GW)" }
           ],
           "fieldConfig": {
             "defaults": { "unit": "s", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 } }
@@ -149,8 +153,9 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
           "datasource": { "type": "prometheus" },
           "targets": [
-            { "expr": "sum(rate(http_requests_total{job=~\"$service\", status=~\"5..\"}[1m])) by (job)", "legendFormat": "{{`{{job}}`}}" },
-            { "expr": "sum(rate(http_requests_total{job=~\"$service\", statusCode=~\"5..\"}[1m])) by (job)", "legendFormat": "{{`{{job}}`}}" }
+            { "expr": "sum(rate(http_requests_total{job=~\"$service\", status=~\"5..\"}[1m])) by (job)", "legendFormat": "{{`{{job}}`}} (Go)" },
+            { "expr": "sum(rate(http_server_requests_seconds_count{job=~\"$service\", status=~\"5..\"}[1m])) by (job)", "legendFormat": "{{`{{job}}`}} (Java)" },
+            { "expr": "sum(rate(http_client_request_failed_count_total{job=\"gateway\"}[1m]))", "legendFormat": "gateway (failed)" }
           ],
           "fieldConfig": {
             "defaults": { "unit": "reqps", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 }, "color": { "mode": "palette-classic" } }
@@ -204,7 +209,7 @@ data:
           "gridPos": { "h": 8, "w": 24, "x": 0, "y": 28 },
           "datasource": { "type": "prometheus" },
           "targets": [
-            { "expr": "sum(rate(http_requests_total{job=\"gateway\"}[1m])) by (method, path)", "legendFormat": "{{`{{method}}`}} {{`{{path}}`}}" }
+            { "expr": "sum(rate(http_client_request_started_count_total{job=\"gateway\"}[1m])) by (http_request_method, krakend_endpoint_route)", "legendFormat": "{{`{{http_request_method}}`}} {{`{{krakend_endpoint_route}}`}}" }
           ],
           "fieldConfig": {
             "defaults": { "unit": "reqps", "custom": { "drawStyle": "bars", "fillOpacity": 50, "stacking": { "mode": "normal" } } }

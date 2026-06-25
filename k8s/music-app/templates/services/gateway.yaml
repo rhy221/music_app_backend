@@ -13,6 +13,8 @@ spec:
   {{- if not (and .Values.services.gateway.autoscaling .Values.services.gateway.autoscaling.enabled) }}
   replicas: {{ .Values.services.gateway.replicas }}
   {{- end }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: gateway

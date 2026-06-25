@@ -36,6 +36,13 @@ func main() {
 
 	log := observability.NewLogger(cfg.ServiceName)
 
+	// ── OpenTelemetry tracing ─────────────────────────────────────────────────
+	shutdownTracer, err := observability.InitTracer(cfg.ServiceName)
+	if err != nil {
+		log.Warn().Err(err).Msg("failed to initialize tracer, continuing without tracing")
+	}
+	defer shutdownTracer()
+
 	// ── PostgreSQL ────────────────────────────────────────────────────────────
 	pool, err := postgres.NewPool(cfg.DatabaseURL)
 	if err != nil {
@@ -125,7 +132,7 @@ func main() {
 	mux.HandleFunc("/health", health.Handler())
 
 	chain := func(h http.Handler) http.Handler {
-		return metrics.MetricsMiddleware(observability.RequestLogger(log)(h))
+		return observability.OtelMiddleware(metrics.MetricsMiddleware(observability.RequestLogger(log)(h)))
 	}
 
 	mux.Handle("/api/v1/stream/", chain(handler.NewStreamHandler(streamUC, log, cfg.JWTSecret)))

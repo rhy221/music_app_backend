@@ -13,6 +13,8 @@ spec:
   {{- if not (and .Values.services.notificationService.autoscaling .Values.services.notificationService.autoscaling.enabled) }}
   replicas: {{ .Values.services.notificationService.replicas }}
   {{- end }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: notification-service
@@ -105,6 +107,10 @@ spec:
                 secretKeyRef:
                   name: {{ include "music-app.fullname" . }}-secrets
                   key: smtp-from
+            - name: OTEL_SERVICE_NAME
+              value: "notification-service"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://jaeger:4317"
           livenessProbe:
             httpGet:
               path: /health

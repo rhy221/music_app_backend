@@ -31,6 +31,13 @@ func main() {
 
 	log := observability.NewLogger(cfg.ServiceName)
 
+	// ── OpenTelemetry tracing ─────────────────────────────────────────────────
+	shutdownTracer, err := observability.InitTracer(cfg.ServiceName)
+	if err != nil {
+		log.Warn().Err(err).Msg("failed to initialize tracer, continuing without tracing")
+	}
+	defer shutdownTracer()
+
 	// ── Database ──────────────────────────────────────────────────────────────
 	pool, err := postgres.NewPool(cfg.DatabaseURL)
 	if err != nil {
@@ -141,7 +148,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: metrics.MetricsMiddleware(observability.RequestLogger(log)(mux)),
+		Handler: observability.OtelMiddleware(metrics.MetricsMiddleware(observability.RequestLogger(log)(mux))),
 	}
 
 	log.Info().Str("port", cfg.Port).Int("transcodeWorkers", numWorkers).Msg("upload-service starting")

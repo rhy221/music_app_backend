@@ -41,6 +41,9 @@ readme = 'README.md'
   pydantic-settings = "^2.0"
   prometheus-fastapi-instrumentator = "^7.0"
   python-json-logger = "^3.3"
+  opentelemetry-distro = "*"
+  opentelemetry-exporter-otlp = "*"
+  opentelemetry-instrumentation-fastapi = "*"
   music-events = { path = "../../libs/events/python/music-events", develop = true }
 
   [tool.poetry.group.dev.dependencies]

@@ -1,3 +1,6 @@
+// Tracing (side-effect: starts OpenTelemetry SDK)
+export {} from './tracing';
+
 // Modules
 export { RabbitMQModule } from './rabbitmq/rabbitmq.module';
 export { RedisModule } from './redis/redis.module';

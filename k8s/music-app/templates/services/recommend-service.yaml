@@ -13,6 +13,8 @@ spec:
   {{- if not (and .Values.services.recommendService.autoscaling .Values.services.recommendService.autoscaling.enabled) }}
   replicas: {{ .Values.services.recommendService.replicas }}
   {{- end }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: recommend-service
@@ -76,6 +78,16 @@ spec:
                 secretKeyRef:
                   name: {{ include "music-app.fullname" . }}-secrets
                   key: jwt-secret
+            - name: OTEL_SERVICE_NAME
+              value: "recommend-service"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://jaeger:4317"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_METRICS_EXPORTER
+              value: "none"
+            - name: OTEL_LOGS_EXPORTER
+              value: "none"
           livenessProbe:
             httpGet:
               path: /metrics

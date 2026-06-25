@@ -13,6 +13,8 @@ spec:
   {{- if not (and .Values.services.searchService.autoscaling .Values.services.searchService.autoscaling.enabled) }}
   replicas: {{ .Values.services.searchService.replicas }}
   {{- end }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: search-service
@@ -54,6 +56,10 @@ spec:
                   key: rabbitmq-vhost
             - name: RABBITMQ_URL
               value: "amqp://$(RABBITMQ_USER):$(RABBITMQ_PASSWORD)@rabbitmq:5672/$(RABBITMQ_VHOST)"
+            - name: OTEL_SERVICE_NAME
+              value: "search-service"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://jaeger:4317"
           livenessProbe:
             httpGet:
               path: /health

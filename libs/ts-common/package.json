@@ -12,6 +12,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./tracing": {
+      "@org/source": "./src/tracing/index.ts",
+      "types": "./dist/tracing/index.d.ts",
+      "import": "./dist/tracing/index.js",
+      "default": "./dist/tracing/index.js"
     }
   },
   "peerDependencies": {
@@ -22,6 +28,11 @@
     "rxjs": ">=7.0.0"
   },
   "dependencies": {
+    "@opentelemetry/auto-instrumentations-node": "^0.56.0",
+    "@opentelemetry/exporter-trace-otlp-grpc": "^0.57.0",
+    "@opentelemetry/resources": "^1.30.0",
+    "@opentelemetry/sdk-node": "^0.57.0",
+    "@opentelemetry/semantic-conventions": "^1.30.0",
     "amqplib": "^0.10.4",
     "ioredis": "^5.4.1",
     "prom-client": "^15.1.3",

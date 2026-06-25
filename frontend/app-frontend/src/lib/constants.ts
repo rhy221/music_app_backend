@@ -14,7 +14,8 @@ export const MINIO_URL = process.env.NEXT_PUBLIC_MINIO_URL ?? '/storage';
 /** Convert a MinIO object key (e.g. "artworks/xxx/cover.png") to a public HTTP URL. */
 export function storageUrl(key: string | null | undefined): string | null {
   if (!key) return null;
-  if (key.startsWith('http://') || key.startsWith('https://')) return key;
-  const bucket = key.startsWith('artworks/') ? 'images' : 'audio';
+  const absolute = key.match(/^https?:\/\/[^/]+\/(\w+)\/(.+)$/);
+  if (absolute) return `${MINIO_URL}/${absolute[1]}/${absolute[2]}`;
+  const bucket = key.startsWith('originals/') || key.startsWith('streams/') ? 'audio' : 'images';
   return `${MINIO_URL}/${bucket}/${key}`;
 }

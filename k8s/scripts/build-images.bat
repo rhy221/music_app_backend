@@ -8,12 +8,7 @@ echo === Music App - Build Docker Images ===
 echo Repo root: %REPO_ROOT%
 echo.
 
-:: ------------------------------------------------------------------
-:: 1. Configure Docker to use minikube's daemon
-:: ------------------------------------------------------------------
-echo [..] Configuring Docker to use minikube's daemon...
-@for /f "tokens=*" %%i in ('minikube docker-env --shell cmd') do @%%i
-echo [OK] Docker environment configured.
+:: Build on host Docker (faster network), then use load-images.bat to copy to minikube
 echo.
 
 :: ------------------------------------------------------------------
@@ -22,7 +17,7 @@ echo.
 
 :: Gateway (self-contained context)
 echo [..] Building music-app/gateway:latest ...
-docker build -t music-app/gateway:latest -f "%REPO_ROOT%\services\gateway\Dockerfile" "%REPO_ROOT%\services\gateway\"
+docker build -t music-app/gateway:latest -f "%REPO_ROOT%\services\gateway\Dockerfile" "%REPO_ROOT%\services\gateway"
 if errorlevel 1 ( echo FAILED: gateway & exit /b 1 )
 echo [OK] gateway
 

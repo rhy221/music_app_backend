@@ -46,6 +46,17 @@ spec:
           volumeMounts:
             - name: mongodb-data
               mountPath: /data/db
+          startupProbe:
+            exec:
+              command:
+                - mongosh
+                - --quiet
+                - --eval
+                - "db.adminCommand('ping')"
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 15
+            failureThreshold: 15
           livenessProbe:
             exec:
               command:
@@ -53,10 +64,9 @@ spec:
                 - --quiet
                 - --eval
                 - "db.adminCommand('ping')"
-            initialDelaySeconds: 30
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 3
+            periodSeconds: 15
+            timeoutSeconds: 15
+            failureThreshold: 5
           readinessProbe:
             exec:
               command:
@@ -64,9 +74,8 @@ spec:
                 - --quiet
                 - --eval
                 - "db.adminCommand('ping')"
-            initialDelaySeconds: 5
-            periodSeconds: 10
-            timeoutSeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 15
             failureThreshold: 3
           resources:
             {{- toYaml .Values.mongodb.resources | nindent 12 }}

@@ -19,3 +19,9 @@ helm upgrade --install music-app k8s\music-app -n music-app --create-namespace -
 
 :: 6. Mở tunnel (giữ terminal mở, cần cho Ingress)
 minikube tunnel
+
+
+
+
+
+$deployments = @("catalog-service","library-service","notification-service","playlist-service","recommend-service","search-service","upload-service","user-service","prometheus"); foreach ($d in $deployments) { kubectl scale deployment $d -n music-app --replicas=0 }; Start-Sleep 10; foreach ($d in $deployments) { kubectl scale deployment $d -n music-app --replicas=1 }

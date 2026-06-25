@@ -152,6 +152,74 @@ rabbitmq:
     - events.streaming
     - events.user
     - events.playlist
+  dlxExchanges:
+    - events.upload.dlx
+    - events.catalog.dlx
+    - events.streaming.dlx
+    - events.user.dlx
+    - events.playlist.dlx
+    - events.dead-letter
+  queues:
+    # recommend-service
+    - name: recommend-service.catalog
+      exchange: events.catalog
+      routingKey: "events.track.#"
+      dlx: events.catalog.dlx
+    - name: recommend-service.streaming
+      exchange: events.streaming
+      routingKey: "events.track.played"
+      dlx: events.streaming.dlx
+    - name: recommend-service.user
+      exchange: events.user
+      routingKey: "events.user.followed"
+      dlx: events.user.dlx
+    # search-service
+    - name: search-service.catalog
+      exchange: events.catalog
+      routingKey: "events.track.#"
+      dlx: events.catalog.dlx
+    # notification-service
+    - name: notification-service.user
+      exchange: events.user
+      routingKey: "events.user.#"
+      dlx: events.user.dlx
+    - name: notification-service.playlist
+      exchange: events.playlist
+      routingKey: "events.playlist.#"
+      dlx: events.playlist.dlx
+    - name: notification-service.upload
+      exchange: events.upload
+      routingKey: "events.transcode.failed"
+      dlx: events.upload.dlx
+    - name: notification-service.catalog
+      exchange: events.catalog
+      routingKey: "events.track.published"
+      dlx: events.catalog.dlx
+    # streaming-service
+    - name: streaming-service.catalog.events
+      exchange: events.catalog
+      routingKey: "events.track.#"
+    # upload-service
+    - name: upload-service.catalog.events
+      exchange: events.catalog
+      routingKey: "events.track.published"
+    # catalog-service
+    - name: catalog.transcode.completed
+      exchange: events.upload
+      routingKey: "events.transcode.completed"
+      dlx: events.dead-letter
+    - name: catalog.track.played
+      exchange: events.streaming
+      routingKey: "events.track.played"
+      dlx: events.dead-letter
+    - name: catalog.user.registered
+      exchange: events.user
+      routingKey: "events.user.registered"
+      dlx: events.dead-letter
+    - name: catalog.track.deleted
+      exchange: events.upload
+      routingKey: "events.track.deleted"
+      dlx: events.dead-letter
   resources:
     requests:
       cpu: 250m

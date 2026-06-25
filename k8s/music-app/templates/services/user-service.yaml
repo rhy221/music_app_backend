@@ -13,6 +13,8 @@ spec:
   {{- if not (and .Values.services.userService.autoscaling .Values.services.userService.autoscaling.enabled) }}
   replicas: {{ .Values.services.userService.replicas }}
   {{- end }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: user-service
@@ -98,6 +100,16 @@ spec:
               value: {{ .Values.cors.origins | quote }}
             - name: GOOGLE_TOKEN_INFO_URL
               value: {{ .Values.secrets.google.tokenInfoUrl | quote }}
+            - name: OTEL_SERVICE_NAME
+              value: "user-service"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://jaeger:4317"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_METRICS_EXPORTER
+              value: "none"
+            - name: OTEL_LOGS_EXPORTER
+              value: "none"
           startupProbe:
             httpGet:
               path: /actuator/health

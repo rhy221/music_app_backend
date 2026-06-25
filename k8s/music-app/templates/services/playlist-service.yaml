@@ -13,6 +13,8 @@ spec:
   {{- if not (and .Values.services.playlistService.autoscaling .Values.services.playlistService.autoscaling.enabled) }}
   replicas: {{ .Values.services.playlistService.replicas }}
   {{- end }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: playlist-service
@@ -96,6 +98,16 @@ spec:
                   key: minio-secret-key
             - name: CORS_ORIGINS
               value: {{ .Values.cors.origins | quote }}
+            - name: OTEL_SERVICE_NAME
+              value: "playlist-service"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://jaeger:4317"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_METRICS_EXPORTER
+              value: "none"
+            - name: OTEL_LOGS_EXPORTER
+              value: "none"
           startupProbe:
             httpGet:
               path: /actuator/health

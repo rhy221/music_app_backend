@@ -52,23 +52,30 @@ spec:
           volumeMounts:
             - name: rabbitmq-data
               mountPath: /var/lib/rabbitmq
-          livenessProbe:
-            exec:
-              command:
-                - rabbitmq-diagnostics
-                - ping
-            initialDelaySeconds: 120
-            periodSeconds: 15
-            timeoutSeconds: 10
-            failureThreshold: 10
-          readinessProbe:
+          startupProbe:
             exec:
               command:
                 - rabbitmq-diagnostics
                 - ping
             initialDelaySeconds: 30
             periodSeconds: 10
-            timeoutSeconds: 5
+            timeoutSeconds: 15
+            failureThreshold: 30
+          livenessProbe:
+            exec:
+              command:
+                - rabbitmq-diagnostics
+                - ping
+            periodSeconds: 30
+            timeoutSeconds: 15
+            failureThreshold: 5
+          readinessProbe:
+            exec:
+              command:
+                - rabbitmq-diagnostics
+                - ping
+            periodSeconds: 15
+            timeoutSeconds: 15
             failureThreshold: 3
           resources:
             {{- toYaml .Values.rabbitmq.resources | nindent 12 }}
@@ -115,9 +122,9 @@ metadata:
     app.kubernetes.io/name: rabbitmq-init
     app.kubernetes.io/instance: {{ .Release.Name }}
   annotations:
-    "helm.sh/hook": post-install
+    "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-weight": "15"
-    "helm.sh/hook-delete-policy": hook-succeeded
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
 spec:
   template:
     metadata:
@@ -137,12 +144,40 @@ spec:
                 echo "Waiting for RabbitMQ management API..."
                 sleep 3
               done
-              BODY='{"type":"topic","durable":true,"auto_delete":false,"internal":false,"arguments":{}}'
+              API="http://rabbitmq:15672/api"
+              AUTH="$RABBITMQ_USER:$RABBITMQ_PASS"
+              V="$RABBITMQ_VHOST"
+              EX_BODY='{"type":"topic","durable":true,"auto_delete":false,"internal":false,"arguments":{}}'
+
+              # --- Create topic exchanges ---
               {{- range .Values.rabbitmq.exchanges }}
-              curl -sf -u "$RABBITMQ_USER:$RABBITMQ_PASS" -X PUT \
-                "http://rabbitmq:15672/api/exchanges/$RABBITMQ_VHOST/{{ . }}" \
-                -H "content-type: application/json" -d "$BODY"
+              curl -sf -u "$AUTH" -X PUT "$API/exchanges/$V/{{ . }}" \
+                -H "content-type: application/json" -d "$EX_BODY"
               echo "Created exchange: {{ . }}"
+              {{- end }}
+
+              # --- Create dead-letter exchanges ---
+              {{- range .Values.rabbitmq.dlxExchanges }}
+              curl -sf -u "$AUTH" -X PUT "$API/exchanges/$V/{{ . }}" \
+                -H "content-type: application/json" -d "$EX_BODY"
+              echo "Created DLX exchange: {{ . }}"
+              {{- end }}
+
+              # --- Create queues and bindings ---
+              {{- range .Values.rabbitmq.queues }}
+              {{- if .dlx }}
+              curl -sf -u "$AUTH" -X PUT "$API/queues/$V/{{ .name }}" \
+                -H "content-type: application/json" \
+                -d '{"durable":true,"arguments":{"x-dead-letter-exchange":"{{ .dlx }}"}}'
+              {{- else }}
+              curl -sf -u "$AUTH" -X PUT "$API/queues/$V/{{ .name }}" \
+                -H "content-type: application/json" \
+                -d '{"durable":true,"arguments":{}}'
+              {{- end }}
+              curl -sf -u "$AUTH" -X POST "$API/bindings/$V/e/{{ .exchange }}/q/{{ .name }}" \
+                -H "content-type: application/json" \
+                -d '{"routing_key":"{{ .routingKey }}","arguments":{}}'
+              echo "Created queue {{ .name }} -> {{ .exchange }} [{{ .routingKey }}]"
               {{- end }}
           env:
             - name: RABBITMQ_USER

@@ -27,8 +27,8 @@ echo Done.
 
 :: ── Elasticsearch ──────────────────────────────────────────────────────────
 echo.
-echo [4/7] Elasticsearch -- deleting all user indices...
-docker exec music-elasticsearch curl -sf -X DELETE "http://localhost:9200/*,-.*"
+echo [4/7] Elasticsearch -- deleting all documents (preserving mappings)...
+docker exec music-elasticsearch curl -sf -X POST "http://localhost:9200/tracks,albums,artists/_delete_by_query?refresh" -H "Content-Type: application/json" -d "{\"query\":{\"match_all\":{}}}"
 echo Done.
 
 :: ── Redis ──────────────────────────────────────────────────────────────────

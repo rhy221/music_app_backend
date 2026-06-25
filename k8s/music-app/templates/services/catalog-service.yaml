@@ -13,6 +13,8 @@ spec:
   {{- if not (and .Values.services.catalogService.autoscaling .Values.services.catalogService.autoscaling.enabled) }}
   replicas: {{ .Values.services.catalogService.replicas }}
   {{- end }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: catalog-service
@@ -96,6 +98,16 @@ spec:
                   key: minio-secret-key
             - name: CORS_ORIGINS
               value: {{ .Values.cors.origins | quote }}
+            - name: OTEL_SERVICE_NAME
+              value: "catalog-service"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://jaeger:4317"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_METRICS_EXPORTER
+              value: "none"
+            - name: OTEL_LOGS_EXPORTER
+              value: "none"
           startupProbe:
             httpGet:
               path: /actuator/health

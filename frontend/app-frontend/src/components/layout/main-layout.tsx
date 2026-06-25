@@ -14,7 +14,7 @@ import {
 
 type PanelHandle = { collapse: () => void; expand: () => void };
 
-const LEFT_COLLAPSED_SIZE = 4;
+const LEFT_COLLAPSED_SIZE = 5;
 const RIGHT_COLLAPSED_SIZE = 3;
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
